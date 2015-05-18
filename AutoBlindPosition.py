@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+# vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
+#########################################################################
+#  Copyright 2014-2015 Thomas Ernst
+#########################################################################
+#  This file is part of SmartHome.py.    http://mknx.github.io/smarthome/
+#
+#  SmartHome.py is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  SmartHome.py is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
+#########################################################################
+#
+# AutoBlindPosition
+#
+# Class representing a blind position, consisting of name, conditions
+# to be met and configured position of blind
+#########################################################################
+import logging
+import datetime
+from . import AutoBlindTools
+from . import AutoBlindConditionChecker
+from .AutoBlindLogger import abLogger
+logger = logging.getLogger('')
+
+# Create abPosition-Instance
+def create(smarthome, item, item_autoblind):
+	return abPosition(smarthome, item, item_autoblind)
+	
+class abPosition:	
+	# Name of position
+	_name = ''
+	
+	# Item defining the position
+	__item = None
+
+	# Dictionary containing all conditions for entering this position (class abConditionChecker ensures all relevant conditions are included)	
+	__enterConditions = {}
+	
+	# Dictionary containing all conditions for leaving this position (class abConditionChecker ensures all relevant conditions are included)
+	__leaveConditions = {}
+	
+	# Position (list [height, lamella] or "auto" for lamella following the sun)
+	__position = [None, None]		
+	
+	# Return id of position (= id of defining item)
+	def id(self):
+		return self.__item.id()
+	
+	# Return conditions to enter this position
+	def getEnterConditions(self):
+		return self.__enterConditions
+		
+	# Return conditions to leave this position
+	def getLeaveConditions(self):
+		return self.__leaveConditions
+			
+	# Constructor
+	# @param smarthome: instance of smarthome
+	# @param item: item containing configuration of AutoBlind position
+	def __init__(self,smarthome, item, item_autoblind):
+		logger.info("Init AutoBlindPosition {}".format(item.id()))
+		self.sh = smarthome
+		self.__item = item
+		self.__enterConditions = {}
+		self.__leaveConditions = {}
+		AutoBlindConditionChecker.init_conditions(self.__enterConditions)
+		AutoBlindConditionChecker.init_conditions(self.__leaveConditions)
+		self.__fill(self.__item,0, item_autoblind)
+				
+	# Read configuration from item and populate data in class
+	# @param item: item to read from
+	# @param recursion_depth: current recursion_depth (recursion is canceled after five levels)
+	def __fill(self, item, recursion_depth, item_autoblind):	
+		if recursion_depth > 5:
+			logger.error("{0}/{1}: to many levels of 'use'".format(self.__item.id(),item.id()))
+			return;
+		
+		# Import data from other item if attribute "use" is found
+		if 'use' in item.conf:
+			use_item = self.sh.return_item(item.conf['use'])
+			if use_item != None:
+				self.__fill(use_item,recursion_depth + 1, item_autoblind)
+			else:
+				logger.error("{0}: Referenced item '{1}' not found!".format(item.id(),item.conf['use']))
+		
+		# Ask ConditionChecker to update conditions
+		parentItem = item.return_parent()
+		enterItem = AutoBlindTools.get_child_item(item, 'enter');
+		AutoBlindConditionChecker.update_conditions(self.__enterConditions, enterItem, parentItem, self.sh)
+		leaveItem = AutoBlindTools.get_child_item(item, 'leave');
+		AutoBlindConditionChecker.update_conditions(self.__leaveConditions, leaveItem, parentItem, self.sh)
+				
+		# This is the blind position for this item
+		if "position" in item.conf:
+			self.__position = AutoBlindTools.get_position_attribute(item, "position")
+
+		# if an item name is given, or if we do not have a name after returning from all recursions, use item name as position name
+		if item._name != item.id() or (self._name == '' and recursion_depth == 0):
+			self._name = item._name	
+	
+	# validate position data
+	# @return TRUE: data ok, FALSE: data not ok
+	def validate(self):
+		if self.__position == None:
+			return False
+			
+		return True
+
+	# log position data
+	def log(self):
+		abLogger.info("Position {0}:".format(self.id()))
+		abLogger.info("\tName: {0}".format(self._name))
+		abLogger.info("\tEnter Conditions:")
+		AutoBlindConditionChecker.log_conditions(self.__enterConditions)
+		abLogger.info("\tLeave Conditions:")
+		AutoBlindConditionChecker.log_conditions(self.__leaveConditions)
+		
+	# return position data for position
+	# @param sun_azimut: current azimut of sun
+	# @param sun_altitude: current altitude of sun
+	# @return list [%-heigth,%-lamella]: blind position
+	def get_position(self, sun_altitude):
+		if self.__position != 'auto': return self.__position;
+		
+		logger.debug("Calculating blind position based on sun position (altitude {0}°)".format(sun_altitude))
+		
+		# Blinds at right angle to sun
+		angel = 90-sun_altitude
+		logger.debug("Lamella angle to {0}°".format(angel))
+
+		return [100,angel]
