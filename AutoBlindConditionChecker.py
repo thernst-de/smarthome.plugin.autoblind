@@ -78,7 +78,12 @@ def update_conditions(conditions, item, grandparent_item, smarthome):
 			elif attribute.startswith("value_"):
 				name = attribute.split("_",1)[1]
 				if name not in conditions['items']: conditions['items'][name] = {}
-				conditions['items'][name]['value'] = float(item.conf[attribute])
+				if item.conf[attribute].upper() == "TRUE":
+					conditions['items'][name]['value'] = True
+				elif item.conf[attribute].upper() == "FALSE":
+					conditions['items'][name]['value'] = False
+				else:
+					conditions['items'][name]['value'] = float(item.conf[attribute])
 		
 	for attribute in grandparent_item.conf:
 		if attribute.startswith("item_"):
@@ -206,7 +211,12 @@ class abConditionChecker:
 					
 		if 'value' in element:
 			abLogger.debug("condition '{0}': value={1} current={2}".format(name, element['value'], current))
-			return current == element['value']		
+			if current == element['value']:
+				abLogger.debug(" -> matching")
+				return True
+			else:
+				abLogger.debug(" -> not matching")
+				return False
 		else:		
 			min = element['min'] if 'min' in element else None;
 			max = element['max'] if 'max' in element else None;
