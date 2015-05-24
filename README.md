@@ -1,5 +1,16 @@
 # smarthome.plugin.autoblind
 Automatic Blind Control Plugin for smarthome.py
 
-Important: Repository will not be updated anymore. Please see the "plugin-autoblind" branch of my fork of smarthome.py instead: 
-https://github.com/i-am-offline/smarthome/tree/plugin-autoblind!
+See docu.pdf for (german) documentation
+
+To use this plugin, you can import it as a subrepository in your own smarthome.py repository:
+
+<pre>
+cd [your smarthome.py base directory]/plugins
+git submodule add https://github.com/i-am-offline/smarthome.plugin.autoblind.git autoblind
+</pre>
+
+see https://git-scm.com/book/en/v2/Git-Tools-Submodules for more information on git submodules.
+
+(memo for myself: remember `git submodule init` and `git submodule update`)
+  
