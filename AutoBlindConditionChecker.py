@@ -167,18 +167,24 @@ class AbConditionChecker:
     # @return True: position matches current conditions, False: position does not match current conditions
     def can_enter(self, position):
         AbLogger.info("Check Position {0} ('{1}')".format(position.id(), position.name))
+        AbLogger.increase_indent()
         conditionsets = position.get_enter_conditionsets()
         if len(conditionsets) == 0:
             AbLogger.info(
                 "No condition sets to check when entering position {0} ('{1}')".format(position.id(), position.name))
+            AbLogger.decrease_indent()
             return True
 
         for key in conditionsets:
             AbLogger.info("Check Condition Set '{0}'".format(key))
+            AbLogger.increase_indent()
             if self.__match_all(conditionsets[key]):
+                AbLogger.decrease_indent()
                 AbLogger.info("Position {0} ('{1}') matching".format(position.id(), position.name))
+                AbLogger.decrease_indent()
                 return True
 
+        AbLogger.decrease_indent()
         AbLogger.info("Position {0} ('{1}') not matching".format(position.id(), position.name))
         return False
 
@@ -187,18 +193,24 @@ class AbConditionChecker:
     # @return True: position matches current conditions, False: position does not match current conditions
     def can_leave(self, position):
         AbLogger.info("Check if position {0} ('{1}') can be left".format(position.id(), position.name))
+        AbLogger.increase_indent()
         conditionsets = position.get_leave_conditionsets()
         if len(conditionsets) == 0:
             AbLogger.info(
                 "No condition sets to check when leaving position {0} ('{1}')".format(position.id(), position.name))
+            AbLogger.decrease_indent()
             return True
 
         for key in conditionsets:
             AbLogger.info("Check Condition Set '{0}'".format(key))
+            AbLogger.increase_indent()
             if self.__match_all(conditionsets[key]):
+                AbLogger.decrease_indent()
                 AbLogger.info("Position {0} ('{1}') can be left".format(position.id(), position.name))
+                AbLogger.decrease_indent()
                 return True
 
+        AbLogger.decrease_indent()
         AbLogger.info("Position {0} ('{1}') must not be left".format(position.id(), position.name))
         return False
 
@@ -226,18 +238,22 @@ class AbConditionChecker:
         max_age = conditions['max_age'] if 'max_age' in conditions else None
 
         AbLogger.debug("condition 'age': min={0} max={1} current={2}".format(min_age, max_age, self.__current_age))
-
+        AbLogger.increase_indent()
         if min_age is None and max_age is None:
             AbLogger.debug(" -> check age: no limit given")
+            AbLogger.decrease_indent()
             return True
 
         if min_age is not None and self.__current_age < min_age:
             AbLogger.debug(" -> check age: to young")
+            AbLogger.decrease_indent()
             return False
         if max_age is not None and self.__current_age > max_age:
             AbLogger.debug(" -> check age: to old")
+            AbLogger.decrease_indent()
             return False
         AbLogger.debug(" -> check age: OK")
+        AbLogger.decrease_indent()
         return True
 
     # Check if given item conditions match conditions of position
@@ -259,27 +275,35 @@ class AbConditionChecker:
 
         if 'value' in element:
             AbLogger.debug("condition '{0}': value={1} current={2}".format(name, element['value'], current))
+            AbLogger.increase_indent()
             if current == element['value']:
                 AbLogger.debug(" -> matching")
+                AbLogger.decrease_indent()
                 return True
             else:
                 AbLogger.debug(" -> not matching")
+                AbLogger.decrease_indent()
                 return False
         else:
             min_value = element['min'] if 'min' in element else None
             max_value = element['max'] if 'max' in element else None
             AbLogger.debug("condition '{0}': min={1} max={2} current={3}".format(name, min_value, max_value, current))
+            AbLogger.increase_indent()
             if min_value is None and max_value is None:
                 AbLogger.debug(" -> check {0}: no limit given".format(name))
+                AbLogger.decrease_indent()
                 return True
 
             if min_value is not None and current < min_value:
                 AbLogger.debug(" -> check {0}: to low".format(name))
+                AbLogger.decrease_indent()
                 return False
             if max_value is not None and current > max_value:
                 AbLogger.debug(" -> check {0}: to high".format(name))
+                AbLogger.decrease_indent()
                 return False
             AbLogger.debug(" -> check {0}: OK".format(name))
+            AbLogger.decrease_indent()
             return True
 
     # Check if given time matches time conditions of position
@@ -290,9 +314,10 @@ class AbConditionChecker:
         max_time = conditions['max_time'] if 'max_time' in conditions else None
 
         AbLogger.debug("condition 'time': min={0} max={1} current={2}".format(min_time, max_time, self.__current_time))
-
+        AbLogger.increase_indent()
         if min_time is None and max_time is None:
             AbLogger.debug(" -> check time: no limit given")
+            AbLogger.decrease_indent()
             return True
 
         min_time = [0, 0] if min_time is None else min_time
@@ -303,14 +328,17 @@ class AbConditionChecker:
             if AutoBlindTools.compare_time(self.__current_time, min_time) == -1 or AutoBlindTools.compare_time(
                     self.__current_time, max_time) == 1:
                 AbLogger.debug(" -> check time: not in range (min <= max)")
+                AbLogger.decrease_indent()
                 return False
         else:
             # min > max: Invertieren
             if AutoBlindTools.compare_time(self.__current_time, min_time) == -1 and AutoBlindTools.compare_time(
                     self.__current_time, max_time) == 1:
                 AbLogger.debug(" -> check time: not in range (min > max)")
+                AbLogger.decrease_indent()
                 return False
         AbLogger.debug(" -> check time: OK")
+        AbLogger.decrease_indent()
         return True
 
     # Check if given sun azimut matches sun azimut conditions of position
@@ -322,9 +350,11 @@ class AbConditionChecker:
 
         AbLogger.debug("condition 'sun_azimut': min={0} max={1} current={2}".format(min_sun_azimut, max_sun_azimut,
                                                                                     self.__current_sun_azimut))
+        AbLogger.increase_indent()
 
         if min_sun_azimut is None and max_sun_azimut is None:
             AbLogger.debug(" -> check sun azimut: no limit given")
+            AbLogger.decrease_indent()
             return True
 
         min_azimut = 0 if min_sun_azimut is None else min_sun_azimut
@@ -333,13 +363,16 @@ class AbConditionChecker:
         if min_azimut <= max_azimut:
             if self.__current_sun_azimut < min_azimut or self.__current_sun_azimut > max_azimut:
                 AbLogger.debug(" -> check sun azimut: out of range (min <= max)")
+                AbLogger.decrease_indent()
                 return False
         else:
             if self.__current_sun_azimut > min_azimut:
                 if self.__current_sun_azimut < max_azimut:
                     AbLogger.debug(" -> check sun azimut: out of range (min > max)")
+                    AbLogger.decrease_indent()
                     return False
         AbLogger.debug(" -> check sun azimut: OK")
+        AbLogger.decrease_indent()
         return True
 
     # Check if given sun altitude matches sun altitude conditions of position
@@ -352,18 +385,23 @@ class AbConditionChecker:
         AbLogger.debug(
             "condition 'sun_altitude': min={0} max={1} current={2}".format(min_sun_altitude, max_sun_altitude,
                                                                            self.__current_sun_altitude))
+        AbLogger.increase_indent()
 
         if min_sun_altitude is None and max_sun_altitude is None:
             AbLogger.debug(" -> check sun altitude: no limit given")
+            AbLogger.decrease_indent()
             return True
 
         if min_sun_altitude is not None and self.__current_sun_altitude < min_sun_altitude:
             AbLogger.debug(" -> check sun altitude: to low")
+            AbLogger.decrease_indent()
             return False
         if max_sun_altitude is not None and self.__current_sun_altitude > max_sun_altitude:
             AbLogger.debug(" -> check sun altitude: to high")
+            AbLogger.decrease_indent()
             return False
         AbLogger.debug(" -> check sun altitude: OK")
+        AbLogger.decrease_indent()
         return True
 
     # Return current sun altitude

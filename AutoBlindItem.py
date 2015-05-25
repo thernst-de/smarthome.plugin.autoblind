@@ -164,7 +164,7 @@ class AbItem:
 
         # Check if this AutoBlindItem is active. Leave if not
         if self.__item_active() != 1:
-            AbLogger.info("AutoBlind inactive")
+            AbLogger.info("AutoBlind is inactive")
             self.__item_lastpos_name('(inactive)')
             return
 
@@ -179,6 +179,7 @@ class AbItem:
         # check if current position can be left
         can_leave_position = True
         new_position = None
+        AbLogger.increase_indent()
         for position in self.__positions:
             if position.id() == last_pos_id:
                 if not condition_checker.can_leave(position):
@@ -186,13 +187,16 @@ class AbItem:
                     can_leave_position = False
                     new_position = position
                     break
+        AbLogger.decrease_indent()
 
         if can_leave_position:
             # find new position
+            AbLogger.increase_indent()
             for position in self.__positions:
                 if condition_checker.can_enter(position):
                     new_position = position
                     break
+            AbLogger.decrease_indent()
 
             # no new position -> leave
             if new_position is None:

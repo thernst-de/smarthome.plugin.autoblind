@@ -112,7 +112,7 @@ class AbLogger:
                 # Log to section specific logfile
                 filename = str(AbLogger.__filename)
                 indent = "\t" * AbLogger.__indentlevel
-                logtext = "{0}{1}{2}\r\n".format(datetime.datetime.now(), indent, text)
+                logtext = "{0}{1} {2}\r\n".format(datetime.datetime.now(), indent, text)
                 with open(filename, mode="a", encoding="utf-8") as f:
                     f.write(logtext)
 
