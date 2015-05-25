@@ -114,8 +114,8 @@ class AbPosition:
 
         # if an item name is given, or if we do not have a name after returning from all recursions,
         # use item name as position name
-        if item.name != item.id() or (self.__name == '' and recursion_depth == 0):
-            self.__name = item.name
+        if str(item) != item.id() or (self.__name == '' and recursion_depth == 0):
+            self.__name = str(item)
 
     # validate position data
     # @return TRUE: data ok, FALSE: data not ok
