@@ -40,26 +40,30 @@ def create(smarthome):
     return AbConditionChecker(smarthome)
 
 
-# Return an initial conditions dictionary
-# @param conditions: dictionary to initialize
-def init_conditions(conditions):
-    conditions['min_time'] = None
-    conditions['max_time'] = None
-    conditions['min_sun_azimut'] = None
-    conditions['max_sun_azimut'] = None
-    conditions['min_sun_altitude'] = None
-    conditions['max_sun_altitude'] = None
-    conditions['min_age'] = None
-    conditions['max_age'] = None
-    conditions['items'] = {}
-
-
-# Update conditions-dictionary based on attributes of an item
-# @param conditions: dictionary to update
+# add conditionset based on attributes of an item
+# @param conditionsets: dictionary to update
+# @param condition_name: name of condition set
 # @param item: Item from which the attributes are used
-# @param grandparent_item: Parent of parent-Item, containing item_* attributes 
+# @param grandparent_item: Parent of parent-Item, containing item_* attributes
 # @param smarthome: reference to smarthome-class
-def update_conditions(conditions, item, grandparent_item, smarthome):
+def fill_conditionset(conditionsets, condition_name, item, grandparent_item, smarthome):
+    # Load existing condition set, create initial condition set if not existing
+    if condition_name in conditionsets:
+        conditions = conditionsets[condition_name]
+    else:
+        conditions = {
+            'min_time': None,
+            'max_time': None,
+            'min_sun_azimut': None,
+            'max_sun_azimut': None,
+            'min_sun_altitude': None,
+            'max_sun_altitude': None,
+            'min_age': None,
+            'max_age': None,
+            'items': {}
+        }
+
+    # Update conditions in condition set
     if item is not None:
         for attribute in item.conf:
             # Write known condition attributes from item into conditions-dictionary
@@ -90,6 +94,7 @@ def update_conditions(conditions, item, grandparent_item, smarthome):
                 else:
                     conditions['items'][name]['value'] = float(item.conf[attribute])
 
+    # Update item from grandparent_item
     for attribute in grandparent_item.conf:
         if attribute.startswith("item_"):
             name = attribute.split("_", 1)[1]
@@ -99,27 +104,37 @@ def update_conditions(conditions, item, grandparent_item, smarthome):
                 conditions['items'][name] = {}
             conditions['items'][name]['item'] = item
 
+    # Update conditionset
+    conditionsets[condition_name] = conditions
+
+
+# Log all conditionsets in a dictionary
+def log_conditionsets(conditionsets):
+    for key in conditionsets:
+        AbLogger.info('\t\tCondition Set "{0}":'.format(key))
+        __log_conditions((conditionsets[key]))
+
 
 # Log conditions-dictionary using abLogger-Class
 # @param conditions: conditions-dictionary to log
-def log_conditions(conditions):
+def __log_conditions(conditions):
     for key in conditions:
         if key == "items":
             continue
-        AbLogger.info("\t\t{0} = {1}".format(key, conditions[key]))
+        AbLogger.info("\t\t\t{0} = {1}".format(key, conditions[key]))
 
     items = conditions["items"]
     for key in items:
         if items[key] is None:
-            AbLogger.info("\t\t{0}: ERROR".format(key))
+            AbLogger.info("\t\t\t{0}: ERROR".format(key))
         else:
-            AbLogger.info("\t\t{0}:".format(key))
+            AbLogger.info("\t\t\t{0}:".format(key))
             for element in items[key]:
                 if element == "item":
                     value = items[key][element].id()
                 else:
                     value = items[key][element]
-                AbLogger.info("\t\t\t{0} = {1}".format(element, value))
+                AbLogger.info("\t\t\t\t{0} = {1}".format(element, value))
 
 
 class AbConditionChecker:
@@ -148,29 +163,37 @@ class AbConditionChecker:
     # @return True: position matches current conditions, False: position does not match current conditions
     def can_enter(self, position):
         AbLogger.info("Check Position {0} ('{1}')".format(position.id(), position.name))
-        conditions = position.getEnterConditions()
+        conditionsets = position.get_enter_conditionsets()
 
-        if not self.__match_items(conditions):
-            return False
-        if not self.__match_age(conditions):
-            return False
-        if not self.__match_time(conditions):
-            return False
-        if not self.__match_sun_azimut(conditions):
-            return False
-        if not self.__match_sun_altitude(conditions):
-            return False
+        for key in conditionsets:
+            AbLogger.info("Check Condition Set '{0}'".format(key))
+            if self.__match_all(conditionsets[key]):
+                AbLogger.info("Position {0} ('{1}') matching".format(position.id(), position.name))
+                return True
 
-        AbLogger.info("Position {0} ('{1}') matching".format(position.id(), position.name))
-        return True
+        AbLogger.info("Position {0} ('{1}') not matching".format(position.id(), position.name))
+        return False
 
     # check if position matches currrent conditions
     # @param position: position to check
     # @return True: position matches current conditions, False: position does not match current conditions
     def can_leave(self, position):
         AbLogger.info("Check if position {0} ('{1}') can be left".format(position.id(), position.name))
-        conditions = position.getLeaveConditions()
+        conditionsets = position.get_leave_conditionsets()
 
+        for key in conditionsets:
+            AbLogger.info("Check Condition Set '{0}'".format(key))
+            if self.__match_all(conditionsets[key]):
+                AbLogger.info("Position {0} ('{1}') can be left".format(position.id(), position.name))
+                return True
+
+        AbLogger.info("Position {0} ('{1}') must not be left".format(position.id(), position.name))
+        return False
+
+    # check if given conditions match current conditions
+    # @param conditions: conditions to check
+    # @return: True= No Conditions or Conditions matched, False = Conditions not matched
+    def __match_all(self, conditions):
         if not self.__match_items(conditions):
             return False
         if not self.__match_age(conditions):
@@ -181,8 +204,6 @@ class AbConditionChecker:
             return False
         if not self.__match_sun_altitude(conditions):
             return False
-
-        AbLogger.info("Position {0} ('{1}') can be left".format(position.id(), position.name))
         return True
 
     # Check if given age matches age conditions

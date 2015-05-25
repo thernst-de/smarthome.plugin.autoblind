@@ -46,11 +46,11 @@ class AbPosition:
 
     # Dictionary containing all conditions for entering this position
     # (class abConditionChecker ensures all relevant conditions are included)
-    __enterConditions = {}
+    __enterConditionSets = {}
 
     # Dictionary containing all conditions for leaving this position
     # (class abConditionChecker ensures all relevant conditions are included)
-    __leaveConditions = {}
+    __leaveConditionSets = {}
 
     # Position (list [height, lamella] or "auto" for lamella following the sun)
     __position = [None, None]
@@ -65,12 +65,12 @@ class AbPosition:
         return self.__name
 
     # Return conditions to enter this position
-    def get_enter_conditions(self):
-        return self.__enterConditions
+    def get_enter_conditionsets(self):
+        return self.__enterConditionSets
 
     # Return conditions to leave this position
-    def get_leave_conditions(self):
-        return self.__leaveConditions
+    def get_leave_conditionsetss(self):
+        return self.__leaveConditionSets
 
     # Constructor
     # @param smarthome: instance of smarthome
@@ -79,10 +79,8 @@ class AbPosition:
         logger.info("Init AutoBlindPosition {}".format(item.id()))
         self.sh = smarthome
         self.__item = item
-        self.__enterConditions = {}
-        self.__leaveConditions = {}
-        AutoBlindConditionChecker.init_conditions(self.__enterConditions)
-        AutoBlindConditionChecker.init_conditions(self.__leaveConditions)
+        self.__enterConditionSets = {}
+        self.__leaveConditionSets = {}
         self.__fill(self.__item, 0, item_autoblind)
 
     # Read configuration from item and populate data in class
@@ -101,12 +99,17 @@ class AbPosition:
             else:
                 logger.error("{0}: Referenced item '{1}' not found!".format(item.id(), item.conf['use']))
 
-        # Ask ConditionChecker to update conditions
+        # Get condition sets
         parent_item = item.return_parent()
-        enter_item = AutoBlindTools.get_child_item(item, 'enter')
-        AutoBlindConditionChecker.update_conditions(self.__enterConditions, enter_item, parent_item, self.sh)
-        leave_item = AutoBlindTools.get_child_item(item, 'leave')
-        AutoBlindConditionChecker.update_conditions(self.__leaveConditions, leave_item, parent_item, self.sh)
+        items_conditionsets = item.return_children()
+        for item_conditionset in items_conditionsets:
+            condition_name = AutoBlindTools.get_last_part_of_item_id(item_conditionset)
+            if condition_name == "enter" or condition_name.startswith("enter_"):
+                AutoBlindConditionChecker.fill_conditionset(self.__enterConditionSets, condition_name,
+                                                            item_conditionset, parent_item, self.sh)
+            elif condition_name == "leave" or condition_name.startswith("leave_"):
+                AutoBlindConditionChecker.fill_conditionset(self.__leaveConditionSets, condition_name,
+                                                            item_conditionset, parent_item, self.sh)
 
         # This is the blind position for this item
         if "position" in item.conf:
@@ -129,10 +132,10 @@ class AbPosition:
     def log(self):
         AbLogger.info("Position {0}:".format(self.id()))
         AbLogger.info("\tName: {0}".format(self.__name))
-        AbLogger.info("\tEnter Conditions:")
-        AutoBlindConditionChecker.log_conditions(self.__enterConditions)
-        AbLogger.info("\tLeave Conditions:")
-        AutoBlindConditionChecker.log_conditions(self.__leaveConditions)
+        AbLogger.info("\tCondition sets to enter position:")
+        AutoBlindConditionChecker.log_conditionsets(self.__enterConditionSets)
+        AbLogger.info("\tCondition sets to leace position:")
+        AutoBlindConditionChecker.log_conditionsets(self.__leaveConditionSets)
 
     # return position data for position
     # @param sun_azimut: current azimut of sun
