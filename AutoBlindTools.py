@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst
+#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
 #########################################################################
-#  This file is part of SmartHome.py.    http://mknx.github.io/smarthome/
+#  This file is part of SmartHome.py.
 #
 #  SmartHome.py is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 # AutoBlindTools
 #
 # Some general tool functions
-#
 #########################################################################
 import logging
 
