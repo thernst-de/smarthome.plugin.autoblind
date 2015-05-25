@@ -111,8 +111,10 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
 # Log all conditionsets in a dictionary
 def log_conditionsets(conditionsets):
     for key in conditionsets:
-        AbLogger.info('\t\tCondition Set "{0}":'.format(key))
+        AbLogger.info('Condition Set "{0}":'.format(key))
+        AbLogger.increase_indent()
         __log_conditions((conditionsets[key]))
+        AbLogger.decrease_indent()
 
 
 # Log conditions-dictionary using abLogger-Class
@@ -121,20 +123,22 @@ def __log_conditions(conditions):
     for key in conditions:
         if key == "items":
             continue
-        AbLogger.info("\t\t\t{0} = {1}".format(key, conditions[key]))
+        AbLogger.info("{0} = {1}".format(key, conditions[key]))
 
     items = conditions["items"]
     for key in items:
         if items[key] is None:
-            AbLogger.info("\t\t\t{0}: ERROR".format(key))
+            AbLogger.info("{0}: ERROR".format(key))
         else:
-            AbLogger.info("\t\t\t{0}:".format(key))
+            AbLogger.info("{0}:".format(key))
+            AbLogger.increase_indent()
             for element in items[key]:
                 if element == "item":
                     value = items[key][element].id()
                 else:
                     value = items[key][element]
-                AbLogger.info("\t\t\t\t{0} = {1}".format(element, value))
+                AbLogger.info("{0} = {1}".format(element, value))
+            AbLogger.decrease_indent()
 
 
 class AbConditionChecker:

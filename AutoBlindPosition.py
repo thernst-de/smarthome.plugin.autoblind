@@ -131,11 +131,13 @@ class AbPosition:
     # log position data
     def log(self):
         AbLogger.info("Position {0}:".format(self.id()))
-        AbLogger.info("\tName: {0}".format(self.__name))
-        AbLogger.info("\tCondition sets to enter position:")
+        AbLogger.increase_indent()
+        AbLogger.info("Name: {0}".format(self.__name))
+        AbLogger.info("Condition sets to enter position:")
         AutoBlindConditionChecker.log_conditionsets(self.__enterConditionSets)
-        AbLogger.info("\tCondition sets to leace position:")
+        AbLogger.info("Condition sets to leave position:")
         AutoBlindConditionChecker.log_conditionsets(self.__leaveConditionSets)
+        AbLogger.decrease_indent()
 
     # return position data for position
     # @param sun_azimut: current azimut of sun
