@@ -135,10 +135,14 @@ class AbPosition:
         AbLogger.info("Name: {0}".format(self.__name))
         if len(self.__enterConditionSets) > 0:
             AbLogger.info("Condition sets to enter position:")
+            AbLogger.increase_indent()
             AutoBlindConditionChecker.log_conditionsets(self.__enterConditionSets)
+            AbLogger.decrease_indent()
         if len(self.__leaveConditionSets) > 0:
             AbLogger.info("Condition sets to leave position:")
+            AbLogger.increase_indent()
             AutoBlindConditionChecker.log_conditionsets(self.__leaveConditionSets)
+            AbLogger.decrease_indent()
         AbLogger.decrease_indent()
 
     # return position data for position

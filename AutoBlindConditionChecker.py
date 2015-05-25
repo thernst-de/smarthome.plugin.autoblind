@@ -183,6 +183,7 @@ class AbConditionChecker:
                 AbLogger.info("Position {0} ('{1}') matching".format(position.id(), position.name))
                 AbLogger.decrease_indent()
                 return True
+            AbLogger.decrease_indent()
 
         AbLogger.decrease_indent()
         AbLogger.info("Position {0} ('{1}') not matching".format(position.id(), position.name))

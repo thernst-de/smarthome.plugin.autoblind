@@ -179,7 +179,6 @@ class AbItem:
         # check if current position can be left
         can_leave_position = True
         new_position = None
-        AbLogger.increase_indent()
         for position in self.__positions:
             if position.id() == last_pos_id:
                 if not condition_checker.can_leave(position):
@@ -187,16 +186,13 @@ class AbItem:
                     can_leave_position = False
                     new_position = position
                     break
-        AbLogger.decrease_indent()
 
         if can_leave_position:
             # find new position
-            AbLogger.increase_indent()
             for position in self.__positions:
                 if condition_checker.can_enter(position):
                     new_position = position
                     break
-            AbLogger.decrease_indent()
 
             # no new position -> leave
             if new_position is None:
