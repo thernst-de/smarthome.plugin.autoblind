@@ -22,7 +22,7 @@
 import logging
 import re
 import time
-from .AutoBlindLogger import abLogger
+from .AutoBlindLogger import AbLogger
 from . import AutoBlindItem
 from . import AutoBlindConditionChecker
 
@@ -32,6 +32,11 @@ logger = logging.getLogger('')
 class AutoBlind:
     _items = {}
     __item_regex = re.compile('.*\.AutoBlind\.active$')
+    __item_id_height = 'hoehe'
+    __item_id_lamella = 'lamelle'
+    __cycle = 300
+    __manual_break_default = 3600
+    alive = False
 
     # Constructor
     # @param smarthome: instance of smarthome.py
@@ -41,22 +46,23 @@ class AutoBlind:
     def __init__(self, smarthome, cycle=300, item_id_height='hoehe', item_id_lamella='lamelle', log_level=0,
                  log_directory='/usr/local/smarthome/var/log/AutoBlind/', manual_break_default=3600):
         logger.info("Init AutoBlind (cycle={0}, item_id_height={1}, item_id_lamella={2}".format(cycle, item_id_height,
-                                                                                                item_id_lamella));
+                                                                                                item_id_lamella))
 
         self.sh = smarthome
 
         self.__item_id_height = item_id_height
         self.__item_id_lamella = item_id_lamella
         self.__cycle = cycle
+        self.__manual_break_default = manual_break_default
 
-        abLogger.setLogLevel(log_level)
-        abLogger.setLogDirectory(log_directory)
+        AbLogger.set_loglevel(log_level)
+        AbLogger.set_logdirectory(log_directory)
 
     # Called during initialization of smarthome.py for each item
     def parse_item(self, item):
         # If item matches __item_regex, store it for later use
         if self.__item_regex.match(item.id()):
-            use_item = item.return_parent().return_parent();
+            use_item = item.return_parent().return_parent()
             self._items[use_item.id()] = use_item
 
         return None
@@ -70,12 +76,14 @@ class AutoBlind:
         items = self._items
         self._items = {}
         for item_id in items:
-            item = AutoBlindItem.create(self.sh, items[item_id], self.__item_id_height, self.__item_id_lamella)
+            item = AutoBlindItem.create(self.sh, items[item_id], self.__item_id_height, self.__item_id_lamella,
+                                        self.__manual_break_default)
             if item.validate():
                 self._items[item_id] = item
                 item.log()
 
-        # if we have items, wait some time, update the blind positions and afterwards schedule regular recheck of updateing the blind positions
+        # if we have items, wait some time, update the blind positions and afterwards schedule regular
+        # recheck of updateing the blind positions
         if len(self._items) > 0:
             logger.info("Using AutoBlind for {} items".format(len(self._items)))
             time.sleep(10)
@@ -90,12 +98,12 @@ class AutoBlind:
 
     # Update the positions of all configured blinds
     def update_positions(self):
-        logger.info('Updating positions');
+        logger.info('Updating positions')
 
         condition_checker = AutoBlindConditionChecker.create(self.sh)
 
         # call position update for each AutoBlindItem
         for item in self._items:
-            abLogger.setSection(self._items[item].id())
+            AbLogger.set_section(self._items[item].id())
             self._items[item].update_position(condition_checker)
-            abLogger.clearSection()
+            AbLogger.clear_section()

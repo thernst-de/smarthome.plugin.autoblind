@@ -25,18 +25,18 @@
 #########################################################################
 import logging
 from . import AutoBlindTools
-from .AutoBlindLogger import abLogger
+from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
 
 logger = logging.getLogger('')
 
 
-def create(smarthome, item, item_id_height='hoehe', item_id_lamella='lamelle'):
-    return abItem(smarthome, item, item_id_height, item_id_lamella)
+def create(smarthome, item, item_id_height='hoehe', item_id_lamella='lamelle', manual_break_default=3600):
+    return AbItem(smarthome, item, item_id_height, item_id_lamella, manual_break_default)
 
 
 # Class representing a blind item
-class abItem:
+class AbItem:
     __item = None
     __item_item_autoblind = None
     __item_active = None
@@ -66,7 +66,7 @@ class abItem:
         self.__item_height = AutoBlindTools.get_child_item(self.__item, self.__item_id_height)
         self.__item_lamella = AutoBlindTools.get_child_item(self.__item, self.__item_id_lamella)
         self.__item_autoblind = AutoBlindTools.get_child_item(self.__item, "AutoBlind")
-        if self.__item_autoblind != None:
+        if self.__item_autoblind is not None:
             # get items
             self.__item_active = AutoBlindTools.get_child_item(self.__item_autoblind, "active")
             self.__item_lastpos_id = AutoBlindTools.get_child_item(self.__item_autoblind, "lastpos_id")
@@ -75,7 +75,8 @@ class abItem:
             # get positions
             items_position = self.__item_autoblind.return_children()
             for item_position in items_position:
-                if not 'position' in item_position.conf and not 'use' in item_position.conf: continue
+                if 'position' not in item_position.conf and 'use' not in item_position.conf:
+                    continue
                 position = AutoBlindPosition.create(self.sh, item_position, self.__item_autoblind)
                 if position.validate():
                     self.__positions.append(position)
@@ -97,36 +98,36 @@ class abItem:
     # Validate data in instance
     # @return: TRUE: Everything ok, FALSE: Errors occured
     def validate(self):
-        if self.__item == None:
+        if self.__item is None:
             logger.error("No item configured!")
             return False
 
         item_id = self.__item.id()
 
-        if self.__item_autoblind == None:
+        if self.__item_autoblind is None:
             logger.error("{0}: Item '{1}' does not have a sub-item 'AutoBlind'!".format(item_id, item_id))
             return False
 
         autoblind_id = self.__item_autoblind.id()
 
-        if self.__item_active == None:
+        if self.__item_active is None:
             logger.error("{0}: Item '{1}' does not have a sub-item 'active'!".format(item_id, autoblind_id))
             return False
 
-        if self.__item_lastpos_id == None:
+        if self.__item_lastpos_id is None:
             logger.error("{0}: Item '{1}' does not have a sub-item 'lastpos_id'!".format(item_id, autoblind_id))
             return False
 
-        if self.__item_lastpos_name == None:
+        if self.__item_lastpos_name is None:
             logger.error("{0}: Item '{1}' does not have a sub-item 'lastpos_name'!".format(item_id, autoblind_id))
             return False
 
-        if self.__item_height == None:
+        if self.__item_height is None:
             logger.error(
                 "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id, self.__item_id_height))
             return False
 
-        if self.__item_lamella == None:
+        if self.__item_lamella is None:
             logger.error(
                 "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id, self.__item_id_lamella))
             return False
@@ -139,31 +140,31 @@ class abItem:
 
     # log item data
     def log(self):
-        abLogger.setSection(self.id())
-        abLogger.info(
-            "AutoBlind Configuration ========================================================================================================")
-        abLogger.info("Item 'Height': {0}".format(self.__item_height.id()));
-        abLogger.info("Item 'Lamella': {0}".format(self.__item_lamella.id()));
-        abLogger.info("Item 'Active': {0}".format(self.__item_active.id()));
-        abLogger.info("Item 'LastPos Id': {0}".format(self.__item_lastpos_id.id()));
-        abLogger.info("Item 'LastPos Name': {0}".format(self.__item_lastpos_name.id()));
+        AbLogger.set_section(self.id())
+        AbLogger.info(
+            "AutoBlind Configuration =================================================================================")
+        AbLogger.info("Item 'Height': {0}".format(self.__item_height.id()))
+        AbLogger.info("Item 'Lamella': {0}".format(self.__item_lamella.id()))
+        AbLogger.info("Item 'Active': {0}".format(self.__item_active.id()))
+        AbLogger.info("Item 'LastPos Id': {0}".format(self.__item_lastpos_id.id()))
+        AbLogger.info("Item 'LastPos Name': {0}".format(self.__item_lastpos_name.id()))
         for position in self.__positions:
             position.log()
-        abLogger.clearSection()
+        AbLogger.clear_section()
 
     # return item id
     def id(self):
         return self.__item.id()
 
-    # Find the positition, matching the current conditions and move the blinds to this position
+    # Find the position, matching the current conditions and move the blinds to this position
     def update_position(self, condition_checker):
-        logger.info("Update position of {0}".format(self.__item._name))
-        abLogger.info(
-            "Update Position ================================================================================================================")
+        logger.info("Update position of {0}".format(str(self.__item)))
+        AbLogger.info(
+            "Update Position =========================================================================================")
 
         # Check if this AutoBlindItem is active. Leave if not
         if self.__item_active() != 1:
-            abLogger.info("AutoBlind inactive");
+            AbLogger.info("AutoBlind inactive")
             self.__item_lastpos_name('(inactive)')
             return
 
@@ -173,42 +174,41 @@ class abItem:
         # get last position
         last_pos_id = self.__item_lastpos_id()
         last_pos_name = self.__item_lastpos_name()
-        abLogger.info("Last position: {0} ('{1}')".format(last_pos_id, last_pos_name))
+        AbLogger.info("Last position: {0} ('{1}')".format(last_pos_id, last_pos_name))
 
-        # check if current possition can be left
+        # check if current position can be left
         can_leave_position = True
+        new_position = None
         for position in self.__positions:
             if position.id() == last_pos_id:
                 if not condition_checker.can_leave(position):
-                    abLogger.info("Can not leave current position.")
+                    AbLogger.info("Can not leave current position.")
                     can_leave_position = False
                     new_position = position
                     break
 
         if can_leave_position:
             # find new position
-            new_position = None
             for position in self.__positions:
                 if condition_checker.can_enter(position):
                     new_position = position
-                    break;
+                    break
 
             # no new position -> leave
-            if new_position == None:
-                abLogger.info("No matching position found.")
+            if new_position is None:
+                AbLogger.info("No matching position found.")
                 return
-
 
         # get data for new position
         new_pos_id = new_position.id()
         if new_pos_id == last_pos_id:
             # New position is last position
-            abLogger.info("Position unchanged")
+            AbLogger.info("Position unchanged")
         else:
             # New position is different from last position
-            abLogger.info("New position: {0} ('{1}')".format(new_pos_id, new_position._name))
+            AbLogger.info("New position: {0} ('{1}')".format(new_pos_id, new_position.name))
             self.__item_lastpos_id(new_pos_id)
-            self.__item_lastpos_name(new_position._name)
+            self.__item_lastpos_name(new_position.name)
 
         # move blinds to this position
         target_position = new_position.get_position(condition_checker.get_sun_altitude())
@@ -224,15 +224,18 @@ class abItem:
             self.__item_lamella(target_position[1])
 
     # called when one of the items given at "watch_manual" is being changed
+    # noinspection PyUnusedLocal
     def __watch_manual_callback(self, item, caller=None, source=None, dest=None):
         if caller != 'plugin' and caller != 'Timer':
             # deactivate "active"
-            if self.__item_active() == 0: return
+            if self.__item_active() == 0:
+                return
             self.__item_active(0)
             # schedule reactivation of "active"
             self.__item_active.timer(self.__manual_break, 1)
 
     # called when the item "active" is being changed
+    # noinspection PyUnusedLocal
     def __reset_active_callback(self, item, caller=None, source=None, dest=None):
         # reset timer for reactivation of "active"
         self.__item_active.timer(0, self.__item_active())

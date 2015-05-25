@@ -32,77 +32,78 @@ import datetime
 logger = logging.getLogger('')
 
 
-class abLogger:
+class AbLogger:
     # Log-Level: (0= off 1=Info, 2 = Debug)
-    __logLevel = 2
+    __loglevel = 2
 
     # Target directory for log files
-    __logDirectory = "/usr/local/smarthome/var/log/AutoBlind/"
+    __logdirectory = "/usr/local/smarthome/var/log/AutoBlind/"
 
     # Section specific file name
-    __fileName = None
+    __filename = None
 
     # Set log level
     # @param loglevel loglevel
     @staticmethod
-    def setLogLevel(logLevel):
+    def set_loglevel(loglevel):
         try:
-            abLogger.__logLevel = int(logLevel)
+            AbLogger.__loglevel = int(loglevel)
         except ValueError:
-            abLogger.__logLevel = 2
+            AbLogger.__loglevel = 2
             logger.error("Das Log-Level muss numerisch angegeben werden.")
 
     # Set log directory
     # @param logDirectory Target directory for AutoBlind log files
     @staticmethod
-    def setLogDirectory(logDirectory):
-        abLogger.__logDirectory = logDirectory
+    def set_logdirectory(logdirectory):
+        AbLogger.__logdirectory = logdirectory
 
     # Set section
-    # @param Section Name of section
+    # @param section Name of section
     @staticmethod
-    def setSection(Section):
-        if Section == None:
-            abLogger.__fileName = None
+    def set_section(section):
+        if section is None:
+            AbLogger.__filename = None
         else:
-            abLogger.__fileName = abLogger.__logDirectory + str(datetime.date.today()) + '-' + Section.replace(".",
-                                                                                                               "_").replace(
-                "/", "") + ".log"
+            today = str(datetime.date.today())
+            section = section.replace(".", "_").replace("/", "")
+            AbLogger.__filename = AbLogger.__logdirectory + today + '-' + section + ".log"
 
     # clear section
     @staticmethod
-    def clearSection():
-        abLogger.setSection(None)
+    def clear_section():
+        AbLogger.set_section(None)
 
     # log text something
     # @param level Loglevel
     # @param text  text to log
     @staticmethod
     def log(level, text):
-        if abLogger.__fileName == None:
+        if AbLogger.__filename is None:
             # No section given, log to normal smarthome.py-log
             # we ignore AutoBlindLogLevel as the logger has its own loglevel check
             if level == 2:
-                logger.debug(text);
+                logger.debug(text)
             else:
-                logger.info(text);
+                logger.info(text)
             return
         else:
             # Section givn: Check level
-            if level <= abLogger.__logLevel:
+            if level <= AbLogger.__loglevel:
                 # Log to section specific logfile
+                filename = str(AbLogger.__filename)
                 logtext = "{0}\t{1}\r\n".format(datetime.datetime.now(), text)
-                with open(abLogger.__fileName, mode="a", encoding="utf-8") as f:
+                with open(filename, mode="a", encoding="utf-8") as f:
                     f.write(logtext)
 
     # log with level=info
     # @param text text to log
     @staticmethod
     def info(text):
-        abLogger.log(1, text)
+        AbLogger.log(1, text)
 
     # log with lebel=debug
     # @param text text to log
     @staticmethod
     def debug(text):
-        abLogger.log(2, text)
+        AbLogger.log(2, text)

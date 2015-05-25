@@ -27,6 +27,7 @@ import logging
 
 logger = logging.getLogger('')
 
+
 # Find a certain item below a given item.
 # @param item: Item to search below
 # @param child_id: Id of child item to search (without prefixed id of "item")
@@ -44,14 +45,16 @@ def get_child_item(item, child_id):
 # @param: name of attribute to return
 # @return: value of attribute as integer or None if value of attribute can not be converted into integer
 def get_int_attribute(item, attribute):
-    if not attribute in item.conf: return None
+    if attribute not in item.conf:
+        return None
     value = item.conf[attribute]
     try:
         return int(value)
     except ValueError:
-        id = item.id()
+        item_id = item.id()
         logger.error(
-            "Das Konfigurations-Attribut '{0}' im Item '{1}' muss numerisch angegeben werden.".format(attribute, id))
+            "Das Konfigurations-Attribut '{0}' im Item '{1}' muss numerisch angegeben werden.".format(attribute,
+                                                                                                      item_id))
         return None
 
 
@@ -60,9 +63,11 @@ def get_int_attribute(item, attribute):
 # @param: name of attribute to return
 # @return: value of attribute as array or None if attribute is missing or empty
 def get_array_attribute(item, attribute):
-    if not attribute in item.conf: return None
+    if attribute not in item.conf:
+        return None
     value = item.conf[attribute]
-    if value == "": return None
+    if value == "":
+        return None
     return [v.strip() for v in value.split(",")]
 
 
@@ -71,25 +76,26 @@ def get_array_attribute(item, attribute):
 # @param: name of attribute to return
 # @return: value of attribute as time or None if value of attribute can not be converted into time
 def get_time_attribute(item, attribute):
-    if not attribute in item.conf: return None
+    if attribute not in item.conf:
+        return None
 
     value = item.conf[attribute]
     value_parts = value.split(",")
     if len(value_parts) != 2:
-        id = item.id()
+        item_id = item.id()
         logger.error(
             "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                attribute, id))
+                attribute, item_id))
     else:
         try:
             hour = int(value_parts[0])
             minute = int(value_parts[1])
             return [hour, minute]
         except ValueError:
-            id = item.id()
+            item_id = item.id()
             logger.error(
                 "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                    attribute, id))
+                    attribute, item_id))
             return None
 
 
@@ -98,27 +104,28 @@ def get_time_attribute(item, attribute):
 # @param: name of attribute to return
 # @return: value of attribute as position or None if value of attribute can not be converted into position
 def get_position_attribute(item, attribute):
-    if not attribute in item.conf: return None
+    if attribute not in item.conf:
+        return None
 
     value = item.conf[attribute]
     if value == 'auto':
-        return 'auto';
+        return 'auto'
     value_parts = value.split(",")
     if len(value_parts) != 2:
-        id = item.id()
+        item_id = item.id()
         logger.error(
             "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                attribute, id))
+                attribute, item_id))
     else:
         try:
             height = int(value_parts[0])
             lamella = int(value_parts[1])
             return [height, lamella]
         except ValueError:
-            id = item.id()
+            item_id = item.id()
             logger.error(
                 "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                    attribute, id))
+                    attribute, item_id))
             return None
 
 
