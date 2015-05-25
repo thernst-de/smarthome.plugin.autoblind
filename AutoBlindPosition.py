@@ -69,7 +69,7 @@ class AbPosition:
         return self.__enterConditionSets
 
     # Return conditions to leave this position
-    def get_leave_conditionsetss(self):
+    def get_leave_conditionsets(self):
         return self.__leaveConditionSets
 
     # Constructor

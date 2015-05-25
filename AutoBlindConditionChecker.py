@@ -164,6 +164,10 @@ class AbConditionChecker:
     def can_enter(self, position):
         AbLogger.info("Check Position {0} ('{1}')".format(position.id(), position.name))
         conditionsets = position.get_enter_conditionsets()
+        if len(conditionsets) == 0:
+            AbLogger.info(
+                "No condition sets to check when entering position {0} ('{1}')".format(position.id(), position.name))
+            return True
 
         for key in conditionsets:
             AbLogger.info("Check Condition Set '{0}'".format(key))
@@ -180,6 +184,10 @@ class AbConditionChecker:
     def can_leave(self, position):
         AbLogger.info("Check if position {0} ('{1}') can be left".format(position.id(), position.name))
         conditionsets = position.get_leave_conditionsets()
+        if len(conditionsets) == 0:
+            AbLogger.info(
+                "No condition sets to check when leaving position {0} ('{1}')".format(position.id(), position.name))
+            return True
 
         for key in conditionsets:
             AbLogger.info("Check Condition Set '{0}'".format(key))
