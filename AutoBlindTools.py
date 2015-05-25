@@ -25,6 +25,7 @@
 #
 #########################################################################
 import logging
+
 logger = logging.getLogger('')
 
 # Find a certain item below a given item.
@@ -32,96 +33,109 @@ logger = logging.getLogger('')
 # @param child_id: Id of child item to search (without prefixed id of "item")
 # @return child item if found, otherwise None
 def get_child_item(item, child_id):
-	search_id = item.id()+"."+child_id
-	for child in item.return_children():
-		if child.id() == search_id:
-			return child
-	return None
-	
+    search_id = item.id() + "." + child_id
+    for child in item.return_children():
+        if child.id() == search_id:
+            return child
+    return None
+
+
 # Return the value of a given attribute as integer
 # @param: item to read the attribute from
 # @param: name of attribute to return
 # @return: value of attribute as integer or None if value of attribute can not be converted into integer
 def get_int_attribute(item, attribute):
-	if not attribute in item.conf: return None
-	value = item.conf[attribute]
-	try:
-		return int(value)
-	except ValueError:
-		id = item.id()
-		logger.error("Das Konfigurations-Attribut '{0}' im Item '{1}' muss numerisch angegeben werden.".format(attribute, id))
-		return None
-		
+    if not attribute in item.conf: return None
+    value = item.conf[attribute]
+    try:
+        return int(value)
+    except ValueError:
+        id = item.id()
+        logger.error(
+            "Das Konfigurations-Attribut '{0}' im Item '{1}' muss numerisch angegeben werden.".format(attribute, id))
+        return None
+
+
 # Return the values of a given attribute as array
 # @param: item to read the attribute from
 # @param: name of attribute to return
 # @return: value of attribute as array or None if attribute is missing or empty
 def get_array_attribute(item, attribute):
-	if not attribute in item.conf: return None
-	value = item.conf[attribute]	
-	if value == "": return None
-	return [v.strip() for v in value.split(",")]
-	
+    if not attribute in item.conf: return None
+    value = item.conf[attribute]
+    if value == "": return None
+    return [v.strip() for v in value.split(",")]
+
 
 # Return the value of a given attribute as time [hour, minute]
 # @param: item to read the attribute from
 # @param: name of attribute to return
 # @return: value of attribute as time or None if value of attribute can not be converted into time
 def get_time_attribute(item, attribute):
-	if not attribute in item.conf: return None
+    if not attribute in item.conf: return None
 
-	value = item.conf[attribute]
-	value_parts = value.split(",")
-	if len(value_parts) != 2:
-		id = item.id()
-		logger.error("Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(attribute, id))
-	else:
-		try: 
-			hour = int(value_parts[0])
-			minute = int(value_parts[1])
-			return [hour,minute]
-		except ValueError:
-			id = item.id()
-			logger.error("Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(attribute, id))
-			return None
-			
+    value = item.conf[attribute]
+    value_parts = value.split(",")
+    if len(value_parts) != 2:
+        id = item.id()
+        logger.error(
+            "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
+                attribute, id))
+    else:
+        try:
+            hour = int(value_parts[0])
+            minute = int(value_parts[1])
+            return [hour, minute]
+        except ValueError:
+            id = item.id()
+            logger.error(
+                "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
+                    attribute, id))
+            return None
+
+
 # Return the value of a given attribute as position ([height, lamella] or 'auto')
 # @param: item to read the attribute from
 # @param: name of attribute to return
 # @return: value of attribute as position or None if value of attribute can not be converted into position
 def get_position_attribute(item, attribute):
-	if not attribute in item.conf: return None
+    if not attribute in item.conf: return None
 
-	value = item.conf[attribute]
-	if value == 'auto':
-		return 'auto';
-	value_parts = value.split(",")
-	if len(value_parts) != 2:
-		id = item.id()
-		logger.error("Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(attribute, id))
-	else:
-		try: 
-			height = int(value_parts[0])
-			lamella = int(value_parts[1])
-			return [height,lamella]
-		except ValueError:
-			id = item.id()
-			logger.error("Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(attribute, id))
-			return None
+    value = item.conf[attribute]
+    if value == 'auto':
+        return 'auto';
+    value_parts = value.split(",")
+    if len(value_parts) != 2:
+        id = item.id()
+        logger.error(
+            "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
+                attribute, id))
+    else:
+        try:
+            height = int(value_parts[0])
+            lamella = int(value_parts[1])
+            return [height, lamella]
+        except ValueError:
+            id = item.id()
+            logger.error(
+                "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
+                    attribute, id))
+            return None
+
 
 # Compares two times (as List [hour, minute])
 # -1: time1 < time2
 # 0: time1 = time2
 # 1: time1 > time2
 def compare_time(time1, time2):
-	if time1[0] < time2[0]:
-		return -1
-	elif time1[0] > time2[0]:
-		return 1
-	else:
-		if time1[1] < time2[1]:
-			return -1
-		elif time1[1] > time2[1]:
-			return 1
-		else:
-			return 0
+    if time1[0] < time2[0]:
+        return -1
+    elif time1[0] > time2[0]:
+        return 1
+    else:
+        if time1[1] < time2[1]:
+            return -1
+        elif time1[1] > time2[1]:
+            return 1
+        else:
+            return 0

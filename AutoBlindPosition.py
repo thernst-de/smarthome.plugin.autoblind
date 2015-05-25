@@ -29,112 +29,114 @@ import datetime
 from . import AutoBlindTools
 from . import AutoBlindConditionChecker
 from .AutoBlindLogger import abLogger
+
 logger = logging.getLogger('')
 
 # Create abPosition-Instance
 def create(smarthome, item, item_autoblind):
-	return abPosition(smarthome, item, item_autoblind)
-	
-class abPosition:	
-	# Name of position
-	_name = ''
-	
-	# Item defining the position
-	__item = None
+    return abPosition(smarthome, item, item_autoblind)
 
-	# Dictionary containing all conditions for entering this position (class abConditionChecker ensures all relevant conditions are included)	
-	__enterConditions = {}
-	
-	# Dictionary containing all conditions for leaving this position (class abConditionChecker ensures all relevant conditions are included)
-	__leaveConditions = {}
-	
-	# Position (list [height, lamella] or "auto" for lamella following the sun)
-	__position = [None, None]		
-	
-	# Return id of position (= id of defining item)
-	def id(self):
-		return self.__item.id()
-	
-	# Return conditions to enter this position
-	def getEnterConditions(self):
-		return self.__enterConditions
-		
-	# Return conditions to leave this position
-	def getLeaveConditions(self):
-		return self.__leaveConditions
-			
-	# Constructor
-	# @param smarthome: instance of smarthome
-	# @param item: item containing configuration of AutoBlind position
-	def __init__(self,smarthome, item, item_autoblind):
-		logger.info("Init AutoBlindPosition {}".format(item.id()))
-		self.sh = smarthome
-		self.__item = item
-		self.__enterConditions = {}
-		self.__leaveConditions = {}
-		AutoBlindConditionChecker.init_conditions(self.__enterConditions)
-		AutoBlindConditionChecker.init_conditions(self.__leaveConditions)
-		self.__fill(self.__item,0, item_autoblind)
-				
-	# Read configuration from item and populate data in class
-	# @param item: item to read from
-	# @param recursion_depth: current recursion_depth (recursion is canceled after five levels)
-	def __fill(self, item, recursion_depth, item_autoblind):	
-		if recursion_depth > 5:
-			logger.error("{0}/{1}: to many levels of 'use'".format(self.__item.id(),item.id()))
-			return;
-		
-		# Import data from other item if attribute "use" is found
-		if 'use' in item.conf:
-			use_item = self.sh.return_item(item.conf['use'])
-			if use_item != None:
-				self.__fill(use_item,recursion_depth + 1, item_autoblind)
-			else:
-				logger.error("{0}: Referenced item '{1}' not found!".format(item.id(),item.conf['use']))
-		
-		# Ask ConditionChecker to update conditions
-		parentItem = item.return_parent()
-		enterItem = AutoBlindTools.get_child_item(item, 'enter');
-		AutoBlindConditionChecker.update_conditions(self.__enterConditions, enterItem, parentItem, self.sh)
-		leaveItem = AutoBlindTools.get_child_item(item, 'leave');
-		AutoBlindConditionChecker.update_conditions(self.__leaveConditions, leaveItem, parentItem, self.sh)
-				
-		# This is the blind position for this item
-		if "position" in item.conf:
-			self.__position = AutoBlindTools.get_position_attribute(item, "position")
 
-		# if an item name is given, or if we do not have a name after returning from all recursions, use item name as position name
-		if item._name != item.id() or (self._name == '' and recursion_depth == 0):
-			self._name = item._name	
-	
-	# validate position data
-	# @return TRUE: data ok, FALSE: data not ok
-	def validate(self):
-		if self.__position == None:
-			return False
-			
-		return True
+class abPosition:
+    # Name of position
+    _name = ''
 
-	# log position data
-	def log(self):
-		abLogger.info("Position {0}:".format(self.id()))
-		abLogger.info("\tName: {0}".format(self._name))
-		abLogger.info("\tEnter Conditions:")
-		AutoBlindConditionChecker.log_conditions(self.__enterConditions)
-		abLogger.info("\tLeave Conditions:")
-		AutoBlindConditionChecker.log_conditions(self.__leaveConditions)
-		
-	# return position data for position
-	# @param sun_azimut: current azimut of sun
-	# @param sun_altitude: current altitude of sun
-	# @return list [%-heigth,%-lamella]: blind position
-	def get_position(self, sun_altitude):
-		if self.__position != 'auto': return self.__position;
-		
-		logger.debug("Calculating blind position based on sun position (altitude {0}°)".format(sun_altitude))
-		
-		# Blinds at right angle to sun
-		angel = 90-sun_altitude
-		logger.debug("Lamella angle to {0}°".format(angel))
+    # Item defining the position
+    __item = None
 
-		return [100,angel]
+    # Dictionary containing all conditions for entering this position (class abConditionChecker ensures all relevant conditions are included)
+    __enterConditions = {}
+
+    # Dictionary containing all conditions for leaving this position (class abConditionChecker ensures all relevant conditions are included)
+    __leaveConditions = {}
+
+    # Position (list [height, lamella] or "auto" for lamella following the sun)
+    __position = [None, None]
+
+    # Return id of position (= id of defining item)
+    def id(self):
+        return self.__item.id()
+
+    # Return conditions to enter this position
+    def getEnterConditions(self):
+        return self.__enterConditions
+
+    # Return conditions to leave this position
+    def getLeaveConditions(self):
+        return self.__leaveConditions
+
+    # Constructor
+    # @param smarthome: instance of smarthome
+    # @param item: item containing configuration of AutoBlind position
+    def __init__(self, smarthome, item, item_autoblind):
+        logger.info("Init AutoBlindPosition {}".format(item.id()))
+        self.sh = smarthome
+        self.__item = item
+        self.__enterConditions = {}
+        self.__leaveConditions = {}
+        AutoBlindConditionChecker.init_conditions(self.__enterConditions)
+        AutoBlindConditionChecker.init_conditions(self.__leaveConditions)
+        self.__fill(self.__item, 0, item_autoblind)
+
+    # Read configuration from item and populate data in class
+    # @param item: item to read from
+    # @param recursion_depth: current recursion_depth (recursion is canceled after five levels)
+    def __fill(self, item, recursion_depth, item_autoblind):
+        if recursion_depth > 5:
+            logger.error("{0}/{1}: to many levels of 'use'".format(self.__item.id(), item.id()))
+            return;
+
+        # Import data from other item if attribute "use" is found
+        if 'use' in item.conf:
+            use_item = self.sh.return_item(item.conf['use'])
+            if use_item != None:
+                self.__fill(use_item, recursion_depth + 1, item_autoblind)
+            else:
+                logger.error("{0}: Referenced item '{1}' not found!".format(item.id(), item.conf['use']))
+
+        # Ask ConditionChecker to update conditions
+        parentItem = item.return_parent()
+        enterItem = AutoBlindTools.get_child_item(item, 'enter');
+        AutoBlindConditionChecker.update_conditions(self.__enterConditions, enterItem, parentItem, self.sh)
+        leaveItem = AutoBlindTools.get_child_item(item, 'leave');
+        AutoBlindConditionChecker.update_conditions(self.__leaveConditions, leaveItem, parentItem, self.sh)
+
+        # This is the blind position for this item
+        if "position" in item.conf:
+            self.__position = AutoBlindTools.get_position_attribute(item, "position")
+
+        # if an item name is given, or if we do not have a name after returning from all recursions, use item name as position name
+        if item._name != item.id() or (self._name == '' and recursion_depth == 0):
+            self._name = item._name
+
+    # validate position data
+    # @return TRUE: data ok, FALSE: data not ok
+    def validate(self):
+        if self.__position == None:
+            return False
+
+        return True
+
+    # log position data
+    def log(self):
+        abLogger.info("Position {0}:".format(self.id()))
+        abLogger.info("\tName: {0}".format(self._name))
+        abLogger.info("\tEnter Conditions:")
+        AutoBlindConditionChecker.log_conditions(self.__enterConditions)
+        abLogger.info("\tLeave Conditions:")
+        AutoBlindConditionChecker.log_conditions(self.__leaveConditions)
+
+    # return position data for position
+    # @param sun_azimut: current azimut of sun
+    # @param sun_altitude: current altitude of sun
+    # @return list [%-heigth,%-lamella]: blind position
+    def get_position(self, sun_altitude):
+        if self.__position != 'auto': return self.__position;
+
+        logger.debug("Calculating blind position based on sun position (altitude {0}°)".format(sun_altitude))
+
+        # Blinds at right angle to sun
+        angel = 90 - sun_altitude
+        logger.debug("Lamella angle to {0}°".format(angel))
+
+        return [100, angel]
