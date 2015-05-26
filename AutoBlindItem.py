@@ -164,7 +164,7 @@ class AbItem:
 
         # Check if this AutoBlindItem is active. Leave if not
         if self.__item_active() != 1:
-            AbLogger.info("AutoBlind inactive")
+            AbLogger.info("AutoBlind is inactive")
             self.__item_lastpos_name('(inactive)')
             return
 

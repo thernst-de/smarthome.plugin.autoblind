@@ -42,6 +42,9 @@ class AbLogger:
     # Section specific file name
     __filename = None
 
+    # Indentation level
+    __indentlevel = 0
+
     # Set log level
     # @param loglevel loglevel
     @staticmethod
@@ -68,11 +71,27 @@ class AbLogger:
             today = str(datetime.date.today())
             section = section.replace(".", "_").replace("/", "")
             AbLogger.__filename = AbLogger.__logdirectory + today + '-' + section + ".log"
+        AbLogger.__indentlevel = 0
 
     # clear section
     @staticmethod
     def clear_section():
         AbLogger.set_section(None)
+
+    # Increase indentation level
+    # @param by number of levels to increase
+    @staticmethod
+    def increase_indent(by=1):
+        AbLogger.__indentlevel += by
+
+    # Decrease indentation level
+    # @param by number of levels to decrease
+    @staticmethod
+    def decrease_indent(by=1):
+        if AbLogger.__indentlevel > by:
+            AbLogger.__indentlevel -= by
+        else:
+            AbLogger.__indentlevel = 0
 
     # log text something
     # @param level Loglevel
@@ -92,7 +111,8 @@ class AbLogger:
             if level <= AbLogger.__loglevel:
                 # Log to section specific logfile
                 filename = str(AbLogger.__filename)
-                logtext = "{0}\t{1}\r\n".format(datetime.datetime.now(), text)
+                indent = "\t" * AbLogger.__indentlevel
+                logtext = "{0}{1} {2}\r\n".format(datetime.datetime.now(), indent, text)
                 with open(filename, mode="a", encoding="utf-8") as f:
                     f.write(logtext)
 

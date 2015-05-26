@@ -40,6 +40,13 @@ def get_child_item(item, child_id):
     return None
 
 
+# Returns the last part of the id of an item (everythig behind last .)
+# @param item: Item for which the last part of the id should be returned
+# @return last part of item id
+def get_last_part_of_item_id(item):
+    return item.id().rsplit('.', 1)[1]
+
+
 # Return the value of a given attribute as integer
 # @param: item to read the attribute from
 # @param: name of attribute to return

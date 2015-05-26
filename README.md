@@ -134,8 +134,8 @@ Object | Function
 Attribute `name` | Name of position. Will be written in `lastpos_name` if position is active and can be displayed in visualization
 Attribute `position` | Blind position to set if position is active. See below for possible values
 Attribute `use` | Import settings from a different item. If `enter` and/or `leave` are included in the current item too, the conditions in this child items overwrite the matching imported conditions   
-Child item  `enter` | Set of conditions that have to be all fulfilled before a position can become active
-Child item `leave` | Set of conditions that have to be all fulfilled before a position can be left
+Child item  `enter` | Condition set that has to be fulfilled before the position can become active
+Child item `leave` | Condition set that has to be fulfilled before the position can be left
 
 For the attribute `position` there are two possible types of values that can be used:
 - **static position:** To values separated by comma. First value his the value for heigth, second value is the value for lamella angle. Example: `100,0`
@@ -154,11 +154,40 @@ The items to watch need to be listed in attribute `watch_manual` below `AutoBlin
                 manual_break = 7200
 
 
-#Condition Sets#
-##Specific Conditions##
+##Condition sets##
+Each position can have several condition sets. In general, there are two types of condition sets:
+- **Enter condition sets**: Condition sets that are checked if a new position is searched.
+- **Leave condition sets**: Condition sets that are checked in order to determine if a position can be left.
+
+The example above shows a simpe definition: One condition set of each type, named "enter" and "leave". 
+For more complex conditions it is possible to have more than one condition set of each type. To separate different condition sets, they need to have different names. However, their name has to start with either "enter_" or "leave_" to indicate whether they are enter- or leave conditions.
+
+The following rules apply:
+* A single condition set is fulfilled if each condition defined in the condition set is being matched ("AND"). Possible limits that are not defined in this condition are not checked.
+* A position can be left if any of the defined leave condition sets is fulfilled ("OR"). Checking stops at the first fulfilled condition set.
+* A position can be entered if any if the defined enter condition sets is fulfilled ("OR"). Checking stops at the first filfilled condition set.
+
+
+####Example####
+
+            [[[[night]]]]
+                type = foo
+                name = Night
+                position = 100,0
+                use = some.default.item
+                [[[[[enter_todark]]]]]
+                    (... some conditions to enter this position if it is to dark ...)
+                [[[[enter_tolate]]]]]
+                    (... some conditions to enter this position if it is to late ...)
+                [[[[[leave]]]]]
+                    (...)
+
+
+##Conditions inside a condition set##
+###Specific Conditions###
 Some values are calculated within the plugin. For this values specific conditions can be set in the condition sets 
 
-###time###
+####time####
 Condition | Explanation
 --------- | ----------
 min_time  | Lower limit for time of day
@@ -172,7 +201,7 @@ min_time may me larger than max_time to define overnight periods:
 
 Between 17:00 (5:00pm) und 08:00 (8:00am)
 
-###sun azimut###
+####sun azimut####
 Condition | Explanation
 --------- | ----------
 min_sun_azimut  | Lower limit for sun position (horizontal angle)
@@ -192,7 +221,7 @@ Here, too, min_sun_azimut may be larger than max_sun_azimut:
 
 Fulfilled from the time where the sun is exactly in the West (in the evening) until the sun is exactly in the East (in the morning of the next day)
 
-###sun altitude###
+####sun altitude####
 Condition | Explanation
 --------- | ----------
 min_sun_altitude  | Lower limit for sun position (vertical angle)
@@ -205,7 +234,7 @@ negative → Sun below horizon
 0 → Sunrise 
 90 → Sun exactly in zenith (occurs only in equatorial areas)
 
-###age of position###
+####age of position####
 Condition | Explanation
 --------- | ----------
 min_age  | Lower limit for period sincle last change of position
@@ -213,7 +242,7 @@ max_age  | Upper limit forperiod sincle last change of position
 
 The age is being calculated via the last change of item `lastpos_id`. Value is seconds.
 
-##Generic conditions##
+###Generic conditions###
 In addition to the described specific conditions, the value of any item can be used for a condition. This functionality is called "generic conditions".
 
 If you want to use an item for a generic condition, you first need to add an attribute on the `autoblind` item where you specify the item for the generic condition. Then you can add conditions for this item in the condition sets. Item and conditions are linked via the attribute names:
@@ -229,9 +258,9 @@ max_[name] | Upper limit for value
 If the condition "value_[name]" is set, the condition is fulfilled if the item has exactly the value defined in "value_[name]". Conditions "min_[name]" and "max_[name]" are not checked if "value_[name]" is set.
 If "value_[name]" is not set, the value if the item has to be between "min_[name]" and "max_[name]" to fulfill the condition. "min_[name]" and "max_[name]" may be missing, in this case the missing limit will not be checked
 
-#Examples'
+##Examples##
 
-##Default values##
+###Default values###
 Independen from blinds, some default items are defined. In the default items some items are derived from other items (using the `use` attribute). 
 
     [autoblind]
@@ -318,7 +347,7 @@ Independen from blinds, some default items are defined. In the default items som
 
 ###Some remarks explaining this example configuration:###
 
-####Generische Conditions####
+####Generic Conditions####
 `item_*` as well as `min_*`, `max_*` and `value_*` settings can be made in default settings. The important thing is that the `item_*` attribute is two levels above the`min_*`, `max_*` and/or ' value_*' attriutes
 ####"morning"/"evening"####
 During twilight the blinds should be down, but tilted so that some light can fall in. In the morning the blinds are tilted downwards, in the evening upwards. The differentiation between "morning" and "evening" is made via the time (morning = 00:00 till 12:00, evening = 12:00 till 24:00)
@@ -332,7 +361,7 @@ Within `suntrack_front1`there is a leace condition set which should take care th
 ####"child_nap"/"child_sleep"####
 Independend from other conditions, a room (childrens room) shold be darkend completely between 12:15 and 16:00 and 19:430 and 08:30.
  
-##Specific blind objects##
+###Specific blind objects###
 For specific blind objects, the predefined default settings can simply be used:
 
     [room1]
