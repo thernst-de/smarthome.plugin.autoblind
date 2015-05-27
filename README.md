@@ -201,6 +201,21 @@ min_time may me larger than max_time to define overnight periods:
 
 Between 17:00 (5:00pm) und 08:00 (8:00am)
 
+
+####day of week####
+Condition | Explanation
+--------- | ----------
+min_weekday  | Lower limit for day of week
+max_weekday  | Upper limit for day of week
+
+The day of week has to be entered as number. 0 represents Monday, 6 represents Sunday
+min_weekday may me larger than max_weekday:
+
+    min_weekday = 5
+    max_weekday = 1
+
+Between Saturday (5) and Tuesday(1)
+
 ####sun azimut####
 Condition | Explanation
 --------- | ----------
