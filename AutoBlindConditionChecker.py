@@ -54,6 +54,8 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
         conditions = {
             'min_time': None,
             'max_time': None,
+            'min_weekday': None,
+            'max_weekday': None,
             'min_sun_azimut': None,
             'max_sun_azimut': None,
             'min_sun_altitude': None,
@@ -69,7 +71,8 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
             # Write known condition attributes from item into conditions-dictionary
             if attribute == "min_sun_azimut" or attribute == "max_sun_azimut" \
                     or attribute == "min_sun_altitude" or attribute == "max_sun_altitude" \
-                    or attribute == "min_age" or attribute == "max_age":
+                    or attribute == "min_age" or attribute == "max_age" \
+                    or attribute == "min_weekday" or attribute == "max_weekday":
                 conditions[attribute] = AutoBlindTools.get_int_attribute(item, attribute)
             elif attribute == "min_time" or attribute == "max_time":
                 conditions[attribute] = AutoBlindTools.get_time_attribute(item, attribute)
@@ -145,6 +148,7 @@ class AbConditionChecker:
     # Current conditions when checking
     __current_age = None
     __current_time = None
+    __current_weekday = None
     __current_sun_azimut = None
     __current_sun_altitude = None
 
@@ -153,6 +157,7 @@ class AbConditionChecker:
         self.sh = smarthome
         now = time.localtime()
         self.__current_time = [now.tm_hour, now.tm_min]
+        self.__current_weekday = now.tm_wday
         azimut, altitude = self.sh.sun.pos()
         self.__current_sun_azimut = math.degrees(float(azimut))
         self.__current_sun_altitude = math.degrees(float(altitude))
@@ -224,6 +229,8 @@ class AbConditionChecker:
         if not self.__match_age(conditions):
             return False
         if not self.__match_time(conditions):
+            return False
+        if not self.__match_weekday(conditions):
             return False
         if not self.__match_sun_azimut(conditions):
             return False
@@ -339,6 +346,40 @@ class AbConditionChecker:
                 AbLogger.decrease_indent()
                 return False
         AbLogger.debug(" -> check time: OK")
+        AbLogger.decrease_indent()
+        return True
+
+    # Check if weekday matches weekday conditions of position
+    # @param: conditions: conditions to check
+    # @return: True= No Conditions or Conditions matched, False = Conditions not matched
+    def __match_weekday(self, conditions):
+        min_weekday = conditions['min_weekday'] if 'min_weekday' in conditions else None
+        max_weekday = conditions['max_weekday'] if 'max_weekday' in conditions else None
+
+        AbLogger.debug(
+            "condition 'weekday': min={0} max={1} current={2}".format(min_weekday, max_weekday, self.__current_weekday))
+        AbLogger.increase_indent()
+
+        if min_weekday is None and max_weekday is None:
+            AbLogger.debug(" -> check weekday: no limit given")
+            AbLogger.decrease_indent()
+            return True
+
+        min_wday = 0 if min_weekday is None else min_weekday
+        max_wday = 6 if max_weekday is None else max_weekday
+
+        if min_wday <= max_wday:
+            if self.__current_weekday < min_wday or self.__current_weekday > max_wday:
+                AbLogger.debug(" -> check weekday: out of range (min <= max)")
+                AbLogger.decrease_indent()
+                return False
+        else:
+            if self.__current_weekday > min_wday:
+                if self.__current_weekday < max_wday:
+                    AbLogger.debug(" -> check weekday: out of range (min > max)")
+                    AbLogger.decrease_indent()
+                    return False
+        AbLogger.debug(" -> check weekday: OK")
         AbLogger.decrease_indent()
         return True
 
