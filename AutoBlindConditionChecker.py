@@ -110,6 +110,49 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
     # Update conditionset
     conditionsets[condition_name] = conditions
 
+# Check the condition sets, optimize and complete them
+def complete_conditionsets(conditionsets, item, smarthome):
+    for name in conditionsets:
+        conditions = conditionsets[name]
+        remove = []
+        for condname in conditions['items']:
+            condition = conditions['items'][condname]
+
+            # neither value nor min nor max in condition: Something to ignore. We remove it
+            if 'value' not in condition and 'min' not in condition and 'max' not in condition:
+                remove.append(condname)
+                continue
+
+            # missing item in condition: Try to find it
+            if 'item' not in condition:
+                search_for = 'item_'+condname
+                result = find_item(item, search_for, smarthome)
+                if result is not None:
+                    condition['item'] = result
+                else:
+                    logger.warning('missing condition. item= {0}'.format(item.id()))
+
+        for name in remove:
+            del conditions['items'][name]
+
+# find a certain item definition for a generic condition
+def find_item(item, name, smarthome):
+    # 1: parent of given item could have attribute "item_[name]"
+    parent_item = item.return_parent()
+    if parent_item is not None:
+        if name in parent_item.conf:
+            return smarthome.return_item(parent_item.conf[name])
+
+    # 2: if item has attribute "use", get the item to use and search this item for required attribute
+    if 'use' in item.conf:
+        use_item = smarthome.return_item(item.conf['use'])
+        result = find_item(use_item, name, smarthome)
+        if result is not None:
+            return result
+
+    # 3: nothing found
+    return None
+
 
 # Log all conditionsets in a dictionary
 def log_conditionsets(conditionsets):
@@ -279,6 +322,10 @@ class AbConditionChecker:
     # @return: True= No Conditions or Conditions matched, False = Conditions not matched
     @staticmethod
     def __match_item(name, element):
+        if 'item' not in element:
+            AbLogger.info("condition '{0}': no item found! Considering condition as matching!".format(name))
+            return True
+
         current = element['item']()
 
         if 'value' in element:

@@ -120,6 +120,10 @@ class AbPosition:
         if str(item) != item.id() or (self.__name == '' and recursion_depth == 0):
             self.__name = str(item)
 
+        if (recursion_depth == 0):
+            AutoBlindConditionChecker.complete_conditionsets(self.__enterConditionSets, item, self.sh)
+            AutoBlindConditionChecker.complete_conditionsets(self.__leaveConditionSets, item, self.sh)
+
     # validate position data
     # @return TRUE: data ok, FALSE: data not ok
     def validate(self):
