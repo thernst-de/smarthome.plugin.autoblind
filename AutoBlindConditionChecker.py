@@ -110,6 +110,7 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
     # Update conditionset
     conditionsets[condition_name] = conditions
 
+
 # Check the condition sets, optimize and complete them
 def complete_conditionsets(conditionsets, item, smarthome):
     for name in conditionsets:
@@ -125,15 +126,16 @@ def complete_conditionsets(conditionsets, item, smarthome):
 
             # missing item in condition: Try to find it
             if 'item' not in condition:
-                search_for = 'item_'+condname
+                search_for = 'item_' + condname
                 result = find_item(item, search_for, smarthome)
                 if result is not None:
                     condition['item'] = result
                 else:
                     logger.warning('missing condition. item= {0}'.format(item.id()))
 
-        for name in remove:
-            del conditions['items'][name]
+        for condname in remove:
+            del conditions['items'][condname]
+
 
 # find a certain item definition for a generic condition
 def find_item(item, name, smarthome):
@@ -166,10 +168,12 @@ def log_conditionsets(conditionsets):
 # Log conditions-dictionary using abLogger-Class
 # @param conditions: conditions-dictionary to log
 def __log_conditions(conditions):
-    for key in conditions:
-        if key == "items":
-            continue
-        AbLogger.info("{0} = {1}".format(key, conditions[key]))
+
+    __log_condition(conditions, "time")
+    __log_condition(conditions, "weekday")
+    __log_condition(conditions, "sun_azimut")
+    __log_condition(conditions, "sun_altitude")
+    __log_condition(conditions, "age")
 
     items = conditions["items"]
     for key in items:
@@ -178,14 +182,33 @@ def __log_conditions(conditions):
         else:
             AbLogger.info("{0}:".format(key))
             AbLogger.increase_indent()
-            for element in items[key]:
-                if element == "item":
-                    value = items[key][element].id()
-                else:
-                    value = items[key][element]
-                AbLogger.info("{0} = {1}".format(element, value))
+            if 'item' in items[key]:
+                AbLogger.info("item = {0}".format(items[key]["item"].id()))
+            if 'value' in items[key]:
+                AbLogger.info("value = {0}".format(items[key]["value"]))
+            if 'min' in items[key]:
+                AbLogger.info("min = {0}".format(items[key]["min"]))
+            if 'max' in items[key]:
+                AbLogger.info("max = {0}".format(items[key]["max"]))
             AbLogger.decrease_indent()
 
+
+# Log single condition (min/max) if values are given
+# @param conditions: conditions-dictionary to log
+# @param name: name of condition (without "min_" or "max_"
+def __log_condition(conditions, name):
+    min_value = conditions['min_' + name] if 'min_' + name in conditions else None
+    max_value = conditions['max_' + name] if 'max_' + name in conditions else None
+
+    if min_value is None and max_value is None:
+        return
+    AbLogger.info("{0}:".format(name))
+    AbLogger.increase_indent()
+    if min_value is not None:
+        AbLogger.info("min = {0}".format(min_value))
+    if max_value is not None:
+        AbLogger.info("max = {0}".format(max_value))
+    AbLogger.decrease_indent()
 
 class AbConditionChecker:
     # Current conditions when checking
@@ -422,9 +445,9 @@ class AbConditionChecker:
                 return False
         else:
             if self.__current_weekday > max_wday and self.__current_weekday < min_wday:
-                    AbLogger.debug(" -> check weekday: out of range (min > max)")
-                    AbLogger.decrease_indent()
-                    return False
+                AbLogger.debug(" -> check weekday: out of range (min > max)")
+                AbLogger.decrease_indent()
+                return False
         AbLogger.debug(" -> check weekday: OK")
         AbLogger.decrease_indent()
         return True
@@ -455,9 +478,9 @@ class AbConditionChecker:
                 return False
         else:
             if self.__current_sun_azimut > max_azimut and self.__current_sun_azimut < min_azimut:
-                    AbLogger.debug(" -> check sun azimut: out of range (min > max)")
-                    AbLogger.decrease_indent()
-                    return False
+                AbLogger.debug(" -> check sun azimut: out of range (min > max)")
+                AbLogger.decrease_indent()
+                return False
         AbLogger.debug(" -> check sun azimut: OK")
         AbLogger.decrease_indent()
         return True
