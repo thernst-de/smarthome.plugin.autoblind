@@ -421,8 +421,7 @@ class AbConditionChecker:
                 AbLogger.decrease_indent()
                 return False
         else:
-            if self.__current_weekday > min_wday:
-                if self.__current_weekday < max_wday:
+            if self.__current_weekday > max_wday and self.__current_weekday < min_wday:
                     AbLogger.debug(" -> check weekday: out of range (min > max)")
                     AbLogger.decrease_indent()
                     return False
@@ -455,8 +454,7 @@ class AbConditionChecker:
                 AbLogger.decrease_indent()
                 return False
         else:
-            if self.__current_sun_azimut > min_azimut:
-                if self.__current_sun_azimut < max_azimut:
+            if self.__current_sun_azimut > max_azimut and self.__current_sun_azimut < min_azimut:
                     AbLogger.debug(" -> check sun azimut: out of range (min > max)")
                     AbLogger.decrease_indent()
                     return False
