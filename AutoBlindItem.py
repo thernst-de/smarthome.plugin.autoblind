@@ -27,6 +27,7 @@ import logging
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
+from . import AutoBlindConditionChecker
 
 logger = logging.getLogger('')
 
@@ -88,6 +89,13 @@ class AbItem:
                         item.add_method_trigger(self.__watch_manual_callback)
                         self.__watch_manual.append(item.id())
                 self.__item_active.add_method_trigger(self.__reset_active_callback)
+
+            if 'watch_trigger' in self.__item_autoblind.conf:
+                if isinstance(self.__item_autoblind.conf["watch_trigger"], str):
+                    self.__item_autoblind.conf["watch_trigger"] = [self.__item_autoblind.conf["watch_trigger"]]
+                for entry in self.__item_autoblind.conf["watch_trigger"]:
+                    for item in self.sh.match_items(entry):
+                        item.add_method_trigger(self.__watch_trigger_callback)
 
             # get manual_break time
             if 'manual_break' in self.__item_autoblind.conf:
@@ -239,3 +247,15 @@ class AbItem:
     def __reset_active_callback(self, item, caller=None, source=None, dest=None):
         # reset timer for reactivation of "active"
         self.__item_active.timer(0, self.__item_active())
+
+    # called when item triggering an update is being changed
+    # noinspection PyUnusedLocal
+    def __watch_trigger_callback(self, item, caller=None, source=None, dest=None):
+        logger.info('Updating position {0} triggered by item {1}'.format(str(self.__item), item.id()))
+
+        condition_checker = AutoBlindConditionChecker.create(self.sh)
+
+        # call position update for this AutoBlindItem
+        AbLogger.set_section(self.__item.id())
+        self.update_position(condition_checker)
+        AbLogger.clear_section()
