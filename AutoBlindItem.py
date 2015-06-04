@@ -45,7 +45,6 @@ class AbItem:
     __item_height = None
     __item_lamella = None
     __positions = []
-    __watch_manual = []
     __manual_break = 0
 
     # Constructor
@@ -83,10 +82,11 @@ class AbItem:
 
             # set triggers for watch_manual
             if 'watch_manual' in self.__item_autoblind.conf:
+                if isinstance(self.__item_autoblind.conf["watch_manual"], str):
+                    self.__item_autoblind.conf["watch_manual"] = [self.__item_autoblind.conf["watch_manual"]]
                 for entry in self.__item_autoblind.conf["watch_manual"]:
                     for item in self.sh.match_items(entry):
                         item.add_method_trigger(self.__watch_manual_callback)
-                        self.__watch_manual.append(item.id())
                 self.__item_active.add_method_trigger(self.__reset_active_callback)
 
             # get manual_break time
