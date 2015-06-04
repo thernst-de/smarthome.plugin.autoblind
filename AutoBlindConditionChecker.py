@@ -282,6 +282,7 @@ class AbConditionChecker:
                 AbLogger.info("Position {0} ('{1}') can be left".format(position.id(), position.name))
                 AbLogger.decrease_indent()
                 return True
+            AbLogger.decrease_indent()
 
         AbLogger.decrease_indent()
         AbLogger.info("Position {0} ('{1}') must not be left".format(position.id(), position.name))
