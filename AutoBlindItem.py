@@ -24,6 +24,7 @@
 # Class representing a blind item
 #########################################################################
 import logging
+import time
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
@@ -46,6 +47,7 @@ class AbItem:
     __item_lamella = None
     __positions = []
     __manual_break = 0
+    __current_pos_timestamp = 0
 
     # Constructor
     # @param smarthome: instance of smarthome.py
@@ -170,6 +172,10 @@ class AbItem:
 
         # update item dependent conditions
         condition_checker.set_current_age(self.__item_lastpos_id.age())
+        if self.__current_pos_timestamp == 0:
+            condition_checker.set_current_delay(None)
+        else:
+            condition_checker.set_current_delay(time.time() - self.__current_pos_timestamp)
 
         # get last position
         last_pos_id = self.__item_lastpos_id()
@@ -192,12 +198,18 @@ class AbItem:
             for position in self.__positions:
                 if condition_checker.can_enter(position):
                     new_position = position
+                    self.__current_pos_timestamp = time.time()
                     break
 
             # no new position -> leave
             if new_position is None:
                 AbLogger.info("No matching position found.")
                 return
+        else:
+            # if current position can not be left, check if enter conditions are still valid.
+            # If yes, update current_pos_timestamp
+            if condition_checker.can_enter(new_position):
+                self.__current_pos_timestamp = time.time()
 
         # get data for new position
         new_pos_id = new_position.id()
