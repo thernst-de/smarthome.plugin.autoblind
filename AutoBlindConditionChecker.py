@@ -32,7 +32,7 @@ import math
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 
-logger = logging.getLogger('')
+logger = logging.getLogger("")
 
 
 # Create abConditionChecker-Instance
@@ -52,17 +52,17 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
         conditions = conditionsets[condition_name]
     else:
         conditions = {
-            'min_time': None,
-            'max_time': None,
-            'min_weekday': None,
-            'max_weekday': None,
-            'min_sun_azimut': None,
-            'max_sun_azimut': None,
-            'min_sun_altitude': None,
-            'max_sun_altitude': None,
-            'min_age': None,
-            'max_age': None,
-            'items': {}
+            "min_time": None,
+            "max_time": None,
+            "min_weekday": None,
+            "max_weekday": None,
+            "min_sun_azimut": None,
+            "max_sun_azimut": None,
+            "min_sun_altitude": None,
+            "max_sun_altitude": None,
+            "min_age": None,
+            "max_age": None,
+            "items": {}
         }
 
     # Update conditions in condition set
@@ -78,24 +78,24 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
                 conditions[attribute] = AutoBlindTools.get_time_attribute(item, attribute)
             elif attribute.startswith("min_"):
                 name = attribute.split("_", 1)[1]
-                if name not in conditions['items']:
-                    conditions['items'][name] = {}
-                conditions['items'][name]['min'] = float(item.conf[attribute])
+                if name not in conditions["items"]:
+                    conditions["items"][name] = {}
+                conditions["items"][name]["min"] = float(item.conf[attribute])
             elif attribute.startswith("max_"):
                 name = attribute.split("_", 1)[1]
-                if name not in conditions['items']:
-                    conditions['items'][name] = {}
-                conditions['items'][name]['max'] = float(item.conf[attribute])
+                if name not in conditions["items"]:
+                    conditions["items"][name] = {}
+                conditions["items"][name]["max"] = float(item.conf[attribute])
             elif attribute.startswith("value_"):
                 name = attribute.split("_", 1)[1]
-                if name not in conditions['items']:
-                    conditions['items'][name] = {}
+                if name not in conditions["items"]:
+                    conditions["items"][name] = {}
                 if item.conf[attribute].upper() == "TRUE":
-                    conditions['items'][name]['value'] = True
+                    conditions["items"][name]["value"] = True
                 elif item.conf[attribute].upper() == "FALSE":
-                    conditions['items'][name]['value'] = False
+                    conditions["items"][name]["value"] = False
                 else:
-                    conditions['items'][name]['value'] = float(item.conf[attribute])
+                    conditions["items"][name]["value"] = float(item.conf[attribute])
 
     # Update item from grandparent_item
     for attribute in grandparent_item.conf:
@@ -103,9 +103,9 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
             name = attribute.split("_", 1)[1]
             value = grandparent_item.conf[attribute]
             item = smarthome.return_item(value)
-            if name not in conditions['items']:
-                conditions['items'][name] = {}
-            conditions['items'][name]['item'] = item
+            if name not in conditions["items"]:
+                conditions["items"][name] = {}
+            conditions["items"][name]["item"] = item
 
     # Update conditionset
     conditionsets[condition_name] = conditions
@@ -116,25 +116,25 @@ def complete_conditionsets(conditionsets, item, smarthome):
     for name in conditionsets:
         conditions = conditionsets[name]
         remove = []
-        for condname in conditions['items']:
-            condition = conditions['items'][condname]
+        for condname in conditions["items"]:
+            condition = conditions["items"][condname]
 
             # neither value nor min nor max in condition: Something to ignore. We remove it
-            if 'value' not in condition and 'min' not in condition and 'max' not in condition:
+            if "value" not in condition and "min" not in condition and "max" not in condition:
                 remove.append(condname)
                 continue
 
             # missing item in condition: Try to find it
-            if 'item' not in condition:
-                search_for = 'item_' + condname
+            if "item" not in condition:
+                search_for = "item_" + condname
                 result = find_item(item, search_for, smarthome)
                 if result is not None:
-                    condition['item'] = result
+                    condition["item"] = result
                 else:
-                    logger.warning('missing condition. item= {0}'.format(item.id()))
+                    logger.warning("missing condition. item= {0}".format(item.id()))
 
         for condname in remove:
-            del conditions['items'][condname]
+            del conditions["items"][condname]
 
 
 # find a certain item definition for a generic condition
@@ -146,8 +146,8 @@ def find_item(item, name, smarthome):
             return smarthome.return_item(parent_item.conf[name])
 
     # 2: if item has attribute "use", get the item to use and search this item for required attribute
-    if 'use' in item.conf:
-        use_item = smarthome.return_item(item.conf['use'])
+    if "use" in item.conf:
+        use_item = smarthome.return_item(item.conf["use"])
         result = find_item(use_item, name, smarthome)
         if result is not None:
             return result
@@ -159,7 +159,7 @@ def find_item(item, name, smarthome):
 # Log all conditionsets in a dictionary
 def log_conditionsets(conditionsets):
     for key in conditionsets:
-        AbLogger.info('Condition Set "{0}":'.format(key))
+        AbLogger.info("Condition Set '{0}':".format(key))
         AbLogger.increase_indent()
         __log_conditions((conditionsets[key]))
         AbLogger.decrease_indent()
@@ -182,13 +182,13 @@ def __log_conditions(conditions):
         else:
             AbLogger.info("{0}:".format(key))
             AbLogger.increase_indent()
-            if 'item' in items[key]:
+            if "item" in items[key]:
                 AbLogger.info("item = {0}".format(items[key]["item"].id()))
-            if 'value' in items[key]:
+            if "value" in items[key]:
                 AbLogger.info("value = {0}".format(items[key]["value"]))
-            if 'min' in items[key]:
+            if "min" in items[key]:
                 AbLogger.info("min = {0}".format(items[key]["min"]))
-            if 'max' in items[key]:
+            if "max" in items[key]:
                 AbLogger.info("max = {0}".format(items[key]["max"]))
             AbLogger.decrease_indent()
 
@@ -197,8 +197,8 @@ def __log_conditions(conditions):
 # @param conditions: conditions-dictionary to log
 # @param name: name of condition (without "min_" or "max_"
 def __log_condition(conditions, name):
-    min_value = conditions['min_' + name] if 'min_' + name in conditions else None
-    max_value = conditions['max_' + name] if 'max_' + name in conditions else None
+    min_value = conditions["min_" + name] if "min_" + name in conditions else None
+    max_value = conditions["max_" + name] if "max_" + name in conditions else None
 
     if min_value is None and max_value is None:
         return
@@ -209,6 +209,7 @@ def __log_condition(conditions, name):
     if max_value is not None:
         AbLogger.info("max = {0}".format(max_value))
     AbLogger.decrease_indent()
+
 
 class AbConditionChecker:
     # Current conditions when checking
@@ -308,8 +309,8 @@ class AbConditionChecker:
     # @param: conditions: conditions to check
     # @return: True= No Conditions or Conditions matched, False = Conditions not matched
     def __match_age(self, conditions):
-        min_age = conditions['min_age'] if 'min_age' in conditions else None
-        max_age = conditions['max_age'] if 'max_age' in conditions else None
+        min_age = conditions["min_age"] if "min_age" in conditions else None
+        max_age = conditions["max_age"] if "max_age" in conditions else None
 
         AbLogger.debug("condition 'age': min={0} max={1} current={2}".format(min_age, max_age, self.__current_age))
         AbLogger.increase_indent()
@@ -334,8 +335,8 @@ class AbConditionChecker:
     # @param: conditions: conditions to check
     # @return: True= No Conditions or Conditions matched, False = Conditions not matched
     def __match_items(self, conditions):
-        for name in conditions['items']:
-            if not self.__match_item(name, conditions['items'][name]):
+        for name in conditions["items"]:
+            if not self.__match_item(name, conditions["items"][name]):
                 return False
         return True
 
@@ -345,16 +346,16 @@ class AbConditionChecker:
     # @return: True= No Conditions or Conditions matched, False = Conditions not matched
     @staticmethod
     def __match_item(name, element):
-        if 'item' not in element:
+        if "item" not in element:
             AbLogger.info("condition '{0}': no item found! Considering condition as matching!".format(name))
             return True
 
-        current = element['item']()
+        current = element["item"]()
 
-        if 'value' in element:
-            AbLogger.debug("condition '{0}': value={1} current={2}".format(name, element['value'], current))
+        if "value" in element:
+            AbLogger.debug("condition '{0}': value={1} current={2}".format(name, element["value"], current))
             AbLogger.increase_indent()
-            if current == element['value']:
+            if current == element["value"]:
                 AbLogger.debug(" -> matching")
                 AbLogger.decrease_indent()
                 return True
@@ -363,8 +364,8 @@ class AbConditionChecker:
                 AbLogger.decrease_indent()
                 return False
         else:
-            min_value = element['min'] if 'min' in element else None
-            max_value = element['max'] if 'max' in element else None
+            min_value = element["min"] if "min" in element else None
+            max_value = element["max"] if "max" in element else None
             AbLogger.debug("condition '{0}': min={1} max={2} current={3}".format(name, min_value, max_value, current))
             AbLogger.increase_indent()
             if min_value is None and max_value is None:
@@ -388,8 +389,8 @@ class AbConditionChecker:
     # @param: conditions: conditions to check
     # @return: True= No Conditions or Conditions matched, False = Conditions not matched
     def __match_time(self, conditions):
-        min_time = conditions['min_time'] if 'min_time' in conditions else None
-        max_time = conditions['max_time'] if 'max_time' in conditions else None
+        min_time = conditions["min_time"] if "min_time" in conditions else None
+        max_time = conditions["max_time"] if "max_time" in conditions else None
 
         AbLogger.debug("condition 'time': min={0} max={1} current={2}".format(min_time, max_time, self.__current_time))
         AbLogger.increase_indent()
@@ -423,8 +424,8 @@ class AbConditionChecker:
     # @param: conditions: conditions to check
     # @return: True= No Conditions or Conditions matched, False = Conditions not matched
     def __match_weekday(self, conditions):
-        min_weekday = conditions['min_weekday'] if 'min_weekday' in conditions else None
-        max_weekday = conditions['max_weekday'] if 'max_weekday' in conditions else None
+        min_weekday = conditions["min_weekday"] if "min_weekday" in conditions else None
+        max_weekday = conditions["max_weekday"] if "max_weekday" in conditions else None
 
         AbLogger.debug(
             "condition 'weekday': min={0} max={1} current={2}".format(min_weekday, max_weekday, self.__current_weekday))
@@ -444,7 +445,7 @@ class AbConditionChecker:
                 AbLogger.decrease_indent()
                 return False
         else:
-            if self.__current_weekday > max_wday and self.__current_weekday < min_wday:
+            if max_wday < self.__current_weekday < min_wday:
                 AbLogger.debug(" -> check weekday: out of range (min > max)")
                 AbLogger.decrease_indent()
                 return False
@@ -456,8 +457,8 @@ class AbConditionChecker:
     # @param: conditions: conditions to check
     # @return: True= No Conditions or Conditions matched, False = Conditions not matched
     def __match_sun_azimut(self, conditions):
-        min_sun_azimut = conditions['min_sun_azimut'] if 'min_sun_azimut' in conditions else None
-        max_sun_azimut = conditions['max_sun_azimut'] if 'max_sun_azimut' in conditions else None
+        min_sun_azimut = conditions["min_sun_azimut"] if "min_sun_azimut" in conditions else None
+        max_sun_azimut = conditions["max_sun_azimut"] if "max_sun_azimut" in conditions else None
 
         AbLogger.debug("condition 'sun_azimut': min={0} max={1} current={2}".format(min_sun_azimut, max_sun_azimut,
                                                                                     self.__current_sun_azimut))
@@ -477,7 +478,7 @@ class AbConditionChecker:
                 AbLogger.decrease_indent()
                 return False
         else:
-            if self.__current_sun_azimut > max_azimut and self.__current_sun_azimut < min_azimut:
+            if max_azimut < self.__current_sun_azimut < min_azimut:
                 AbLogger.debug(" -> check sun azimut: out of range (min > max)")
                 AbLogger.decrease_indent()
                 return False
@@ -489,8 +490,8 @@ class AbConditionChecker:
     # @param: conditions: conditions to check
     # @return: True= No Conditions or Conditions matched, False = Conditions not matched
     def __match_sun_altitude(self, conditions):
-        min_sun_altitude = conditions['min_sun_altitude'] if 'min_sun_altitude' in conditions else None
-        max_sun_altitude = conditions['max_sun_altitude'] if 'max_sun_altitude' in conditions else None
+        min_sun_altitude = conditions["min_sun_altitude"] if "min_sun_altitude" in conditions else None
+        max_sun_altitude = conditions["max_sun_altitude"] if "max_sun_altitude" in conditions else None
 
         AbLogger.debug(
             "condition 'sun_altitude': min={0} max={1} current={2}".format(min_sun_altitude, max_sun_altitude,

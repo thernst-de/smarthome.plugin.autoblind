@@ -26,14 +26,14 @@ from .AutoBlindLogger import AbLogger
 from . import AutoBlindItem
 from . import AutoBlindConditionChecker
 
-logger = logging.getLogger('')
+logger = logging.getLogger("")
 
 
 class AutoBlind:
     _items = {}
-    __item_regex = re.compile('.*\.AutoBlind\.active$')
-    __item_id_height = 'hoehe'
-    __item_id_lamella = 'lamelle'
+    __item_regex = re.compile(".*\.AutoBlind\.active$")
+    __item_id_height = "hoehe"
+    __item_id_lamella = "lamelle"
     __cycle = 300
     __manual_break_default = 3600
     alive = False
@@ -43,8 +43,8 @@ class AutoBlind:
     # @cycle: intervall to update the bind positions
     # @param item_id_height: name of item to controll the blind's height below the main item of the blind
     # @param item_id_lamella: name of item to controll the blind's lamella below the main item of the blind
-    def __init__(self, smarthome, cycle=300, item_id_height='hoehe', item_id_lamella='lamelle', log_level=0,
-                 log_directory='/usr/local/smarthome/var/log/AutoBlind/', manual_break_default=3600):
+    def __init__(self, smarthome, cycle=300, item_id_height="hoehe", item_id_lamella="lamelle", log_level=0,
+                 log_directory="/usr/local/smarthome/var/log/AutoBlind/", manual_break_default=3600):
         logger.info("Init AutoBlind (cycle={0}, item_id_height={1}, item_id_lamella={2}".format(cycle, item_id_height,
                                                                                                 item_id_lamella))
 
@@ -88,7 +88,7 @@ class AutoBlind:
             logger.info("Using AutoBlind for {} items".format(len(self._items)))
             time.sleep(10)
             self.update_positions()
-            self.sh.scheduler.add('autoblind', self.update_positions, cycle=self.__cycle)
+            self.sh.scheduler.add("autoblind", self.update_positions, cycle=self.__cycle)
         else:
             logger.info("AutoBlind deactivated because no items have been found.")
 
@@ -98,7 +98,7 @@ class AutoBlind:
 
     # Update the positions of all configured blinds
     def update_positions(self):
-        logger.info('Updating positions')
+        logger.info("Updating positions")
 
         condition_checker = AutoBlindConditionChecker.create(self.sh)
 

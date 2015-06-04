@@ -25,7 +25,7 @@
 #########################################################################
 import logging
 
-logger = logging.getLogger('')
+logger = logging.getLogger("")
 
 
 # Find a certain item below a given item.
@@ -44,7 +44,7 @@ def get_child_item(item, child_id):
 # @param item: Item for which the last part of the id should be returned
 # @return last part of item id
 def get_last_part_of_item_id(item):
-    return item.id().rsplit('.', 1)[1]
+    return item.id().rsplit(".", 1)[1]
 
 
 # Return the value of a given attribute as integer
@@ -115,8 +115,8 @@ def get_position_attribute(item, attribute):
         return None
 
     value = item.conf[attribute]
-    if value == 'auto':
-        return 'auto'
+    if value == "auto":
+        return "auto"
     value_parts = value.split(",")
     if len(value_parts) != 2:
         item_id = item.id()

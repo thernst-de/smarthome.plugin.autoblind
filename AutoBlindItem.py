@@ -28,10 +28,10 @@ from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
 
-logger = logging.getLogger('')
+logger = logging.getLogger("")
 
 
-def create(smarthome, item, item_id_height='hoehe', item_id_lamella='lamelle', manual_break_default=3600):
+def create(smarthome, item, item_id_height="hoehe", item_id_lamella="lamelle", manual_break_default=3600):
     return AbItem(smarthome, item, item_id_height, item_id_lamella, manual_break_default)
 
 
@@ -53,7 +53,7 @@ class AbItem:
     # @param item_id_height: name of item to controll the blind's height below the main item of the blind
     # @param item_id_lamella: name of item to controll the blind's lamella below the main item of the blind
     # @param manual_break_default: default value for "manual_break" if no value is set for specific item
-    def __init__(self, smarthome, item, item_id_height='hoehe', item_id_lamella='lamelle', manual_break_default=3600):
+    def __init__(self, smarthome, item, item_id_height="hoehe", item_id_lamella="lamelle", manual_break_default=3600):
         logger.info("Init AutoBlindItem {}".format(item.id()))
         self.sh = smarthome
         self.__item_id_height = item_id_height
@@ -74,14 +74,14 @@ class AbItem:
             # get positions
             items_position = self.__item_autoblind.return_children()
             for item_position in items_position:
-                if 'position' not in item_position.conf and 'use' not in item_position.conf:
+                if "position" not in item_position.conf and "use" not in item_position.conf:
                     continue
                 position = AutoBlindPosition.create(self.sh, item_position, self.__item_autoblind)
                 if position.validate():
                     self.__positions.append(position)
 
             # set triggers for watch_manual
-            if 'watch_manual' in self.__item_autoblind.conf:
+            if "watch_manual" in self.__item_autoblind.conf:
                 if isinstance(self.__item_autoblind.conf["watch_manual"], str):
                     self.__item_autoblind.conf["watch_manual"] = [self.__item_autoblind.conf["watch_manual"]]
                 for entry in self.__item_autoblind.conf["watch_manual"]:
@@ -90,7 +90,7 @@ class AbItem:
                 self.__item_active.add_method_trigger(self.__reset_active_callback)
 
             # get manual_break time
-            if 'manual_break' in self.__item_autoblind.conf:
+            if "manual_break" in self.__item_autoblind.conf:
                 self.__manual_break = int(self.__item_autoblind.conf["manual_break"])
             else:
                 self.__manual_break = manual_break_default
@@ -165,7 +165,7 @@ class AbItem:
         # Check if this AutoBlindItem is active. Leave if not
         if self.__item_active() != 1:
             AbLogger.info("AutoBlind is inactive")
-            self.__item_lastpos_name('(inactive)')
+            self.__item_lastpos_name("(inactive)")
             return
 
         # update item dependent conditions
@@ -185,7 +185,7 @@ class AbItem:
                     AbLogger.info("Can not leave current position.")
                     can_leave_position = False
                     new_position = position
-                    break
+                break
 
         if can_leave_position:
             # find new position
@@ -226,7 +226,7 @@ class AbItem:
     # called when one of the items given at "watch_manual" is being changed
     # noinspection PyUnusedLocal
     def __watch_manual_callback(self, item, caller=None, source=None, dest=None):
-        if caller != 'plugin' and caller != 'Timer':
+        if caller != "plugin" and caller != "Timer":
             # deactivate "active"
             if self.__item_active() == 0:
                 return

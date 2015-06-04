@@ -29,7 +29,7 @@ from . import AutoBlindTools
 from . import AutoBlindConditionChecker
 from .AutoBlindLogger import AbLogger
 
-logger = logging.getLogger('')
+logger = logging.getLogger("")
 
 
 # Create abPosition-Instance
@@ -39,7 +39,7 @@ def create(smarthome, item, item_autoblind):
 
 class AbPosition:
     # Name of position
-    __name = ''
+    __name = ""
 
     # Item defining the position
     __item = None
@@ -92,12 +92,12 @@ class AbPosition:
             return
 
         # Import data from other item if attribute "use" is found
-        if 'use' in item.conf:
-            use_item = self.sh.return_item(item.conf['use'])
+        if "use" in item.conf:
+            use_item = self.sh.return_item(item.conf["use"])
             if use_item is not None:
                 self.__fill(use_item, recursion_depth + 1, item_autoblind)
             else:
-                logger.error("{0}: Referenced item '{1}' not found!".format(item.id(), item.conf['use']))
+                logger.error("{0}: Referenced item '{1}' not found!".format(item.id(), item.conf["use"]))
 
         # Get condition sets
         parent_item = item.return_parent()
@@ -117,10 +117,10 @@ class AbPosition:
 
         # if an item name is given, or if we do not have a name after returning from all recursions,
         # use item name as position name
-        if str(item) != item.id() or (self.__name == '' and recursion_depth == 0):
+        if str(item) != item.id() or (self.__name == "" and recursion_depth == 0):
             self.__name = str(item)
 
-        if (recursion_depth == 0):
+        if recursion_depth == 0:
             AutoBlindConditionChecker.complete_conditionsets(self.__enterConditionSets, item, self.sh)
             AutoBlindConditionChecker.complete_conditionsets(self.__leaveConditionSets, item, self.sh)
 
@@ -154,7 +154,7 @@ class AbPosition:
     # @param sun_altitude: current altitude of sun
     # @return list [%-heigth,%-lamella]: blind position
     def get_position(self, sun_altitude):
-        if self.__position != 'auto':
+        if self.__position != "auto":
             return self.__position
 
         logger.debug("Calculating blind position based on sun position (altitude {0}°)".format(sun_altitude))

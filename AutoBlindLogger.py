@@ -29,7 +29,7 @@
 import logging
 import datetime
 
-logger = logging.getLogger('')
+logger = logging.getLogger("")
 
 
 class AbLogger:
@@ -70,7 +70,7 @@ class AbLogger:
         else:
             today = str(datetime.date.today())
             section = section.replace(".", "_").replace("/", "")
-            AbLogger.__filename = AbLogger.__logdirectory + today + '-' + section + ".log"
+            AbLogger.__filename = AbLogger.__logdirectory + today + "-" + section + ".log"
         AbLogger.__indentlevel = 0
 
     # clear section
