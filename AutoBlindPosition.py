@@ -24,12 +24,9 @@
 # Class representing a blind position, consisting of name, conditions
 # to be met and configured position of blind
 #########################################################################
-import logging
 from . import AutoBlindTools
 from . import AutoBlindConditionChecker
 from .AutoBlindLogger import AbLogger
-
-logger = logging.getLogger('')
 
 
 # Create abPosition-Instance
@@ -76,7 +73,7 @@ class AbPosition:
     # @param smarthome: instance of smarthome
     # @param item: item containing configuration of AutoBlind position
     def __init__(self, smarthome, item, item_autoblind):
-        logger.info("Init AutoBlindPosition {}".format(item.id()))
+        AbLogger.info("Init AutoBlindPosition {}".format(item.id()))
         self.sh = smarthome
         self.__item = item
         self.__enterConditionSets = {}
@@ -88,7 +85,7 @@ class AbPosition:
     # @param recursion_depth: current recursion_depth (recursion is canceled after five levels)
     def __fill(self, item, recursion_depth, item_autoblind):
         if recursion_depth > 5:
-            logger.error("{0}/{1}: to many levels of 'use'".format(self.__item.id(), item.id()))
+            AbLogger.error("{0}/{1}: to many levels of 'use'".format(self.__item.id(), item.id()))
             return
 
         # Import data from other item if attribute "use" is found
@@ -97,7 +94,7 @@ class AbPosition:
             if use_item is not None:
                 self.__fill(use_item, recursion_depth + 1, item_autoblind)
             else:
-                logger.error("{0}: Referenced item '{1}' not found!".format(item.id(), item.conf['use']))
+                AbLogger.error("{0}: Referenced item '{1}' not found!".format(item.id(), item.conf['use']))
 
         # Get condition sets
         parent_item = item.return_parent()
@@ -120,7 +117,7 @@ class AbPosition:
         if str(item) != item.id() or (self.__name == '' and recursion_depth == 0):
             self.__name = str(item)
 
-        if (recursion_depth == 0):
+        if recursion_depth == 0:
             AutoBlindConditionChecker.complete_conditionsets(self.__enterConditionSets, item, self.sh)
             AutoBlindConditionChecker.complete_conditionsets(self.__leaveConditionSets, item, self.sh)
 
@@ -157,10 +154,10 @@ class AbPosition:
         if self.__position != 'auto':
             return self.__position
 
-        logger.debug("Calculating blind position based on sun position (altitude {0}°)".format(sun_altitude))
+        AbLogger.debug("Calculating blind position based on sun position (altitude {0}°)".format(sun_altitude))
 
         # Blinds at right angle to sun
         angel = 90 - sun_altitude
-        logger.debug("Lamella angle to {0}°".format(angel))
+        AbLogger.debug("Lamella angle to {0}°".format(angel))
 
         return [100, angel]

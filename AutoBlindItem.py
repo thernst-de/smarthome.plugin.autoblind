@@ -23,13 +23,10 @@
 #
 # Class representing a blind item
 #########################################################################
-import logging
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
 from . import AutoBlindConditionChecker
-
-logger = logging.getLogger('')
 
 
 def create(smarthome, item, item_id_height='hoehe', item_id_lamella='lamelle', manual_break_default=3600):
@@ -56,7 +53,7 @@ class AbItem:
     # @param item_id_lamella: name of item to controll the blind's lamella below the main item of the blind
     # @param manual_break_default: default value for "manual_break" if no value is set for specific item
     def __init__(self, smarthome, item, item_id_height='hoehe', item_id_lamella='lamelle', manual_break_default=3600):
-        logger.info("Init AutoBlindItem {}".format(item.id()))
+        AbLogger.info("Init AutoBlindItem {}".format(item.id()))
         self.sh = smarthome
         self.__item_id_height = item_id_height
         self.__item_id_lamella = item_id_lamella
@@ -107,41 +104,41 @@ class AbItem:
     # @return: TRUE: Everything ok, FALSE: Errors occured
     def validate(self):
         if self.__item is None:
-            logger.error("No item configured!")
+            AbLogger.error("No item configured!")
             return False
 
         item_id = self.__item.id()
 
         if self.__item_autoblind is None:
-            logger.error("{0}: Item '{1}' does not have a sub-item 'AutoBlind'!".format(item_id, item_id))
+            AbLogger.error("{0}: Item '{1}' does not have a sub-item 'AutoBlind'!".format(item_id, item_id))
             return False
 
         autoblind_id = self.__item_autoblind.id()
 
         if self.__item_active is None:
-            logger.error("{0}: Item '{1}' does not have a sub-item 'active'!".format(item_id, autoblind_id))
+            AbLogger.error("{0}: Item '{1}' does not have a sub-item 'active'!".format(item_id, autoblind_id))
             return False
 
         if self.__item_lastpos_id is None:
-            logger.error("{0}: Item '{1}' does not have a sub-item 'lastpos_id'!".format(item_id, autoblind_id))
+            AbLogger.error("{0}: Item '{1}' does not have a sub-item 'lastpos_id'!".format(item_id, autoblind_id))
             return False
 
         if self.__item_lastpos_name is None:
-            logger.error("{0}: Item '{1}' does not have a sub-item 'lastpos_name'!".format(item_id, autoblind_id))
+            AbLogger.error("{0}: Item '{1}' does not have a sub-item 'lastpos_name'!".format(item_id, autoblind_id))
             return False
 
         if self.__item_height is None:
-            logger.error(
+            AbLogger.error(
                 "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id, self.__item_id_height))
             return False
 
         if self.__item_lamella is None:
-            logger.error(
+            AbLogger.error(
                 "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id, self.__item_id_lamella))
             return False
 
         if len(self.__positions) == 0:
-            logger.error("{0}: No positions defined!".format(item_id, item_id, self.__item_id_lamella))
+            AbLogger.error("{0}: No positions defined!".format(item_id, item_id, self.__item_id_lamella))
             return False
 
         return True
@@ -166,7 +163,6 @@ class AbItem:
 
     # Find the position, matching the current conditions and move the blinds to this position
     def update_position(self, condition_checker):
-        logger.info("Update position of {0}".format(str(self.__item)))
         AbLogger.info(
             "Update Position =========================================================================================")
 
@@ -235,27 +231,39 @@ class AbItem:
     # noinspection PyUnusedLocal
     def __watch_manual_callback(self, item, caller=None, source=None, dest=None):
         if caller != 'plugin' and caller != 'Timer':
+            AbLogger.set_section(self.__item.id())
+            AbLogger.info("Handling manual operation after change if item '{0}'".format(item.id()))
+            AbLogger.increase_indent()
             # deactivate "active"
             if self.__item_active() == 0:
+                AbLogger.debug("Automatic mode already inactive")
+                AbLogger.clear_section()
                 return
+
+            AbLogger.debug("Deactivated automatic mode for {0} seconds.".format(self.__manual_break))
             self.__item_active(0)
+
             # schedule reactivation of "active"
             self.__item_active.timer(self.__manual_break, 1)
+            AbLogger.clear_section()
 
     # called when the item "active" is being changed
     # noinspection PyUnusedLocal
     def __reset_active_callback(self, item, caller=None, source=None, dest=None):
         # reset timer for reactivation of "active"
+        AbLogger.set_section(self.__item.id())
+        AbLogger.info("Reactivate automatic mode.")
         self.__item_active.timer(0, self.__item_active())
+        AbLogger.clear_section()
 
     # called when item triggering an update is being changed
     # noinspection PyUnusedLocal
     def __watch_trigger_callback(self, item, caller=None, source=None, dest=None):
-        logger.info('Updating position {0} triggered by item {1}'.format(str(self.__item), item.id()))
+        AbLogger.set_section(self.__item.id())
+        AbLogger.info('Updating {0} triggered by item {1}'.format(str(self.__item), item.id()))
 
         condition_checker = AutoBlindConditionChecker.create(self.sh)
 
         # call position update for this AutoBlindItem
-        AbLogger.set_section(self.__item.id())
         self.update_position(condition_checker)
         AbLogger.clear_section()

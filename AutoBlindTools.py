@@ -23,9 +23,7 @@
 #
 # Some general tool functions
 #########################################################################
-import logging
-
-logger = logging.getLogger('')
+from .AutoBlindLogger import AbLogger
 
 
 # Find a certain item below a given item.
@@ -59,7 +57,7 @@ def get_int_attribute(item, attribute):
         return int(value)
     except ValueError:
         item_id = item.id()
-        logger.error(
+        AbLogger.error(
             "Das Konfigurations-Attribut '{0}' im Item '{1}' muss numerisch angegeben werden.".format(attribute,
                                                                                                       item_id))
         return None
@@ -90,7 +88,7 @@ def get_time_attribute(item, attribute):
     value_parts = value.split(",")
     if len(value_parts) != 2:
         item_id = item.id()
-        logger.error(
+        AbLogger.error(
             "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
                 attribute, item_id))
     else:
@@ -100,7 +98,7 @@ def get_time_attribute(item, attribute):
             return [hour, minute]
         except ValueError:
             item_id = item.id()
-            logger.error(
+            AbLogger.error(
                 "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
                     attribute, item_id))
             return None
@@ -120,7 +118,7 @@ def get_position_attribute(item, attribute):
     value_parts = value.split(",")
     if len(value_parts) != 2:
         item_id = item.id()
-        logger.error(
+        AbLogger.error(
             "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
                 attribute, item_id))
     else:
@@ -130,7 +128,7 @@ def get_position_attribute(item, attribute):
             return [height, lamella]
         except ValueError:
             item_id = item.id()
-            logger.error(
+            AbLogger.error(
                 "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
                     attribute, item_id))
             return None
