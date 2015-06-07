@@ -363,11 +363,11 @@ class AbConditionChecker:
             AbLogger.decrease_indent()
             return True
 
-        if min_delay is not None and self.__current_age < min_delay:
+        if min_delay is not None and self.__current_delay < min_delay:
             AbLogger.debug(" -> check delay: to early")
             AbLogger.decrease_indent()
             return False
-        if max_delay is not None and self.__current_age > max_delay:
+        if max_delay is not None and self.__current_delay > max_delay:
             AbLogger.debug(" -> check age: to late")
             AbLogger.decrease_indent()
             return False
