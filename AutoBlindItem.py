@@ -62,6 +62,11 @@ class AbItem:
 
         # get required items for this AutoBlindItem
         self.__item = item
+
+        AbLogger.set_section(self.id())
+        AbLogger.info(
+            "Initialize Position =====================================================================================")
+
         self.__item_height = AutoBlindTools.get_child_item(self.__item, self.__item_id_height)
         self.__item_lamella = AutoBlindTools.get_child_item(self.__item, self.__item_id_lamella)
         self.__item_autoblind = AutoBlindTools.get_child_item(self.__item, "AutoBlind")
@@ -82,25 +87,35 @@ class AbItem:
 
             # set triggers for watch_manual
             if "watch_manual" in self.__item_autoblind.conf:
+                AbLogger.info("watch_manual items:")
+                AbLogger.increase_indent()
                 if isinstance(self.__item_autoblind.conf["watch_manual"], str):
                     self.__item_autoblind.conf["watch_manual"] = [self.__item_autoblind.conf["watch_manual"]]
                 for entry in self.__item_autoblind.conf["watch_manual"]:
                     for item in self.sh.match_items(entry):
                         item.add_method_trigger(self.__watch_manual_callback)
+                        AbLogger.info(item.id())
                 self.__item_active.add_method_trigger(self.__reset_active_callback)
+                AbLogger.decrease_indent()
 
             if 'watch_trigger' in self.__item_autoblind.conf:
+                AbLogger.info("watch_trigger items:")
+                AbLogger.increase_indent()
                 if isinstance(self.__item_autoblind.conf["watch_trigger"], str):
                     self.__item_autoblind.conf["watch_trigger"] = [self.__item_autoblind.conf["watch_trigger"]]
                 for entry in self.__item_autoblind.conf["watch_trigger"]:
                     for item in self.sh.match_items(entry):
                         item.add_method_trigger(self.__watch_trigger_callback)
+                        AbLogger.info(item.id())
+                AbLogger.decrease_indent()
 
             # get manual_break time
             if "manual_break" in self.__item_autoblind.conf:
                 self.__manual_break = int(self.__item_autoblind.conf["manual_break"])
             else:
                 self.__manual_break = manual_break_default
+
+        AbLogger.clear_section()
 
     # Validate data in instance
     # @return: TRUE: Everything ok, FALSE: Errors occured
