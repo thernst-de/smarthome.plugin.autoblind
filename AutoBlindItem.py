@@ -23,6 +23,7 @@
 #
 # Class representing a blind item
 #########################################################################
+import time
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
@@ -44,6 +45,7 @@ class AbItem:
     __item_lamella = None
     __positions = []
     __manual_break = 0
+    __can_not_leave_current_pos_since = 0
 
     # Constructor
     # @param smarthome: instance of smarthome.py
@@ -174,6 +176,10 @@ class AbItem:
 
         # update item dependent conditions
         condition_checker.set_current_age(self.__item_lastpos_id.age())
+        if self.__can_not_leave_current_pos_since == 0:
+            condition_checker.set_current_delay(0)
+        else:
+            condition_checker.set_current_delay(time.time() - self.__can_not_leave_current_pos_since)
 
         # get last position
         last_pos_id = self.__item_lastpos_id()
@@ -189,6 +195,8 @@ class AbItem:
                     AbLogger.info("Can not leave current position.")
                     can_leave_position = False
                     new_position = position
+                    if self.__can_not_leave_current_pos_since == 0:
+                        self.__can_not_leave_current_pos_since = time.time()
                 break
 
         if can_leave_position:
@@ -196,12 +204,18 @@ class AbItem:
             for position in self.__positions:
                 if condition_checker.can_enter(position):
                     new_position = position
+                    self.__can_not_leave_current_pos_since = 0
                     break
 
             # no new position -> leave
             if new_position is None:
                 AbLogger.info("No matching position found.")
                 return
+        else:
+            # if current position can not be left, check if enter conditions are still valid.
+            # If yes, update "can_not_leave_current_pos_since"
+            if condition_checker.can_enter(new_position):
+                self.__can_not_leave_current_pos_since = 0
 
         # get data for new position
         new_pos_id = new_position.id()

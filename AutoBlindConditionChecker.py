@@ -59,6 +59,8 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
             "max_sun_altitude": None,
             "min_age": None,
             "max_age": None,
+            "min_delay": None,
+            "max_delay": None,
             "items": {}
         }
 
@@ -69,6 +71,7 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
             if attribute == "min_sun_azimut" or attribute == "max_sun_azimut" \
                     or attribute == "min_sun_altitude" or attribute == "max_sun_altitude" \
                     or attribute == "min_age" or attribute == "max_age" \
+                    or attribute == "min_delay" or attribute == "max_delay" \
                     or attribute == "min_weekday" or attribute == "max_weekday":
                 conditions[attribute] = AutoBlindTools.get_int_attribute(item, attribute)
             elif attribute == "min_time" or attribute == "max_time":
@@ -165,12 +168,12 @@ def log_conditionsets(conditionsets):
 # Log conditions-dictionary using abLogger-Class
 # @param conditions: conditions-dictionary to log
 def __log_conditions(conditions):
-
     __log_condition(conditions, "time")
     __log_condition(conditions, "weekday")
     __log_condition(conditions, "sun_azimut")
     __log_condition(conditions, "sun_altitude")
     __log_condition(conditions, "age")
+    __log_condition(conditions, "delay")
 
     items = conditions["items"]
     for key in items:
@@ -211,6 +214,7 @@ def __log_condition(conditions, name):
 class AbConditionChecker:
     # Current conditions when checking
     __current_age = None
+    __current_delay = None
     __current_time = None
     __current_weekday = None
     __current_sun_azimut = None
@@ -230,6 +234,11 @@ class AbConditionChecker:
     # @param age: current age
     def set_current_age(self, age):
         self.__current_age = age
+
+    # Update current delay for condition checks
+    # @param delay: current delay
+    def set_current_delay(self, delay):
+        self.__current_delay = delay
 
     # check if position matches currrent conditions
     # @param position: position to check
@@ -293,6 +302,8 @@ class AbConditionChecker:
             return False
         if not self.__match_age(conditions):
             return False
+        if not self.__match_delay(conditions):
+            return False
         if not self.__match_time(conditions):
             return False
         if not self.__match_weekday(conditions):
@@ -326,6 +337,39 @@ class AbConditionChecker:
             AbLogger.decrease_indent()
             return False
         AbLogger.debug(" -> check age: OK")
+        AbLogger.decrease_indent()
+        return True
+
+    # Check if given dalay matches delay conditions
+    # @param: conditions: conditions to check
+    # @return: True= No Conditions or Conditions matched, False = Conditions not matched
+    def __match_delay(self, conditions):
+        min_delay = conditions['min_delay'] if 'min_delay' in conditions else None
+        max_delay = conditions['max_delay'] if 'max_delay' in conditions else None
+
+        AbLogger.debug(
+            "condition 'delay': min={0} max={1} current={2}".format(min_delay, max_delay, self.__current_delay))
+        AbLogger.increase_indent()
+
+        if self.__current_delay is None:
+            AbLogger.debug(" -> check delay: no value given")
+            AbLogger.decrease_indent()
+            return True
+
+        if min_delay is None and max_delay is None:
+            AbLogger.debug(" -> check delay: no limit given")
+            AbLogger.decrease_indent()
+            return True
+
+        if min_delay is not None and self.__current_delay < min_delay:
+            AbLogger.debug(" -> check delay: to early")
+            AbLogger.decrease_indent()
+            return False
+        if max_delay is not None and self.__current_delay > max_delay:
+            AbLogger.debug(" -> check age: to late")
+            AbLogger.decrease_indent()
+            return False
+        AbLogger.debug(" -> check delay: OK")
         AbLogger.decrease_indent()
         return True
 

@@ -253,9 +253,21 @@ negative → Sun below horizon
 Condition | Explanation
 --------- | ----------
 min_age  | Lower limit for period sincle last change of position
-max_age  | Upper limit forperiod sincle last change of position
+max_age  | Upper limit for period sincle last change of position
 
 The age is being calculated via the last change of item `lastpos_id`. Value is seconds.
+
+####delay####
+Condition | Explanation
+--------- | ----------
+min_delay  | Lower limit for period since enter conditions of position are not matched
+max_delay  | Upper limit for period sincle enter conditions of position are not matched
+
+Value is seconds.
+
+__What's the difference between "age" and "delay":__
+- "age" is the time since when the current position is active.
+- "delay" is the time since when the current position can not be left
 
 ###Generic conditions###
 In addition to the described specific conditions, the value of any item can be used for a condition. This functionality is called "generic conditions".
