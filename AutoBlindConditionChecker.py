@@ -80,22 +80,17 @@ def fill_conditionset(conditionsets, condition_name, item, grandparent_item, sma
                 name = attribute.split("_", 1)[1]
                 if name not in conditions["items"]:
                     conditions["items"][name] = {}
-                conditions["items"][name]["min"] = float(item.conf[attribute])
+                conditions["items"][name]["min"] = item.conf[attribute]
             elif attribute.startswith("max_"):
                 name = attribute.split("_", 1)[1]
                 if name not in conditions["items"]:
                     conditions["items"][name] = {}
-                conditions["items"][name]["max"] = float(item.conf[attribute])
+                conditions["items"][name]["max"] = item.conf[attribute]
             elif attribute.startswith("value_"):
                 name = attribute.split("_", 1)[1]
                 if name not in conditions["items"]:
                     conditions["items"][name] = {}
-                if item.conf[attribute].upper() == "TRUE":
-                    conditions["items"][name]["value"] = True
-                elif item.conf[attribute].upper() == "FALSE":
-                    conditions["items"][name]["value"] = False
-                else:
-                    conditions["items"][name]["value"] = float(item.conf[attribute])
+                conditions["items"][name]["value"] = item.conf[attribute]
 
     # Update item from grandparent_item
     for attribute in grandparent_item.conf:
@@ -132,6 +127,15 @@ def complete_conditionsets(conditionsets, item, smarthome):
                     condition["item"] = result
                 else:
                     AbLogger.warning("missing condition. item= {0}".format(item.id()))
+                    continue
+
+            # cast value, min and max
+            if "value" in condition:
+                condition["value"] = condition["item"].cast(condition["value"])
+            if "min" in condition:
+                condition["min"] = condition["item"].cast(condition["min"])
+            if "max" in condition:
+                condition["max"] = condition["item"].cast(condition["max"])
 
         for condname in remove:
             del conditions["items"][condname]
