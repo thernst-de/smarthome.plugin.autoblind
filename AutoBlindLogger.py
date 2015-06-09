@@ -127,3 +127,15 @@ class AbLogger:
     @staticmethod
     def debug(text):
         AbLogger.log(2, text)
+
+    # log warning (always to main smarthome.py log)
+    # @param text text to log
+    @staticmethod
+    def warning(text):
+        logger.warning(text)
+
+    # log error (always to main smarthome.py log)
+    # @param text text to log
+    @staticmethod
+    def error(text):
+        logger.error(text)

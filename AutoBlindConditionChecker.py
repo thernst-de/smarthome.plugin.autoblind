@@ -26,13 +26,10 @@
 # additional conditions are required it should be sufficient to extend 
 # this class
 #########################################################################
-import logging
 import time
 import math
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
-
-logger = logging.getLogger("")
 
 
 # Create abConditionChecker-Instance
@@ -131,7 +128,7 @@ def complete_conditionsets(conditionsets, item, smarthome):
                 if result is not None:
                     condition["item"] = result
                 else:
-                    logger.warning("missing condition. item= {0}".format(item.id()))
+                    AbLogger.warning("missing condition. item= {0}".format(item.id()))
 
         for condname in remove:
             del conditions["items"][condname]
