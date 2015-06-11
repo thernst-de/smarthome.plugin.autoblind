@@ -48,7 +48,7 @@ class AutoBlind:
 
         self.__item_id_height = item_id_height
         self.__item_id_lamella = item_id_lamella
-        self.__cycle = cycle
+        self.__cycle = int(cycle)
         self.__manual_break_default = manual_break_default
 
         AbLogger.set_loglevel(log_level)
@@ -84,7 +84,8 @@ class AutoBlind:
             AbLogger.info("Using AutoBlind for {} items".format(len(self._items)))
             time.sleep(10)
             self.update_positions()
-            self.sh.scheduler.add("autoblind", self.update_positions, cycle=self.__cycle)
+            if self.__cycle > 0:
+                self.sh.scheduler.add("autoblind", self.update_positions, cycle=self.__cycle)
         else:
             AbLogger.info("AutoBlind deactivated because no items have been found.")
 
