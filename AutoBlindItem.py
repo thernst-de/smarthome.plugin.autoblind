@@ -47,6 +47,42 @@ class AbItem:
     __positions = []
     __manual_break = 0
     __can_not_leave_current_pos_since = 0
+    __just_changing_active = False
+
+    # set the value of the item "active"
+    # @param value new value for item
+    # @param reset_interval Interval after which the value should be reset to the previous value
+    def _set_active(self, value, reset_interval = None):
+        try:
+            self.__just_changing_active = True
+            if reset_interval is None:
+                self.__item_active(value)
+            else:
+                previous_value = self._get_active()
+                self.__item_active(value)
+                self.__item_active.timer(reset_interval, previous_value)
+        finally:
+            self.__just_changing_active = False
+
+    # get the value of the item "active"
+    def _get_active(self):
+        return self.__item_active()
+
+    # remove timer on item "active"
+    def _remove_active_trigger(self):
+        self.__item_active.timer(0, self.__item_active())
+
+    # return time when trigger on item "active" will be called. None if no trigger is set
+    def _get_active_trigger_time(self):
+         # check if we can find a Timer-Entry for this item inside the scheduler-configuration
+        timer_key = self.__item_active.id() + "-Timer"
+        scheduler_next = self.sh.scheduler.return_next(timer_key)
+        if not isinstance(scheduler_next, datetime.datetime):
+            return None
+        if scheduler_next <= datetime.datetime.now(scheduler_next.tzinfo):
+             return None
+
+        return scheduler_next
 
     # Constructor
     # @param smarthome: instance of smarthome.py
@@ -178,18 +214,16 @@ class AbItem:
     # check if item is active and update lastpos_name if not
     def check_active(self):
         # item is active
-        if self.__item_active():
+        if self._get_active():
             return True
 
         # check if we can find a Timer-Entry for this item inside the scheduler-configuration
-        timer_key = self.__item_active.id() + "-Timer"
-        scheduler_next = self.sh.scheduler.return_next(timer_key)
-        if isinstance(scheduler_next, datetime.datetime) \
-                and scheduler_next > datetime.datetime.now(scheduler_next.tzinfo):
+        active_trigger_time = self._get_active_trigger_time()
+        if active_trigger_time is not None:
             AbLogger.info(
                 "AutoBlind has been deactivated automatically after manual changes. Reactivating at {0}".format(
-                    scheduler_next))
-            self.__item_lastpos_name(scheduler_next.strftime("Automatisch deakviert bis %X"))
+                    active_trigger_time))
+            self.__item_lastpos_name(active_trigger_time.strftime("Automatisch deakviert bis %X"))
             return False
 
         # must have been manually deactivated
@@ -207,9 +241,7 @@ class AbItem:
             "Update Position =========================================================================================")
 
         # Check if this AutoBlindItem is active. Leave if not
-        if self.__item_active() != 1:
-            AbLogger.info("AutoBlind is inactive")
-            self.__item_lastpos_name("(inactive)")
+        if not self.check_active():
             return
 
         # update item dependent conditions
@@ -289,26 +321,26 @@ class AbItem:
             AbLogger.info("Handling manual operation after change if item '{0}'".format(item.id()))
             AbLogger.increase_indent()
             # deactivate "active"
-            if self.__item_active() == 0:
+            if not self._get_active():
                 AbLogger.debug("Automatic mode already inactive")
                 AbLogger.clear_section()
                 return
 
             AbLogger.debug("Deactivated automatic mode for {0} seconds.".format(self.__manual_break))
-            self.__item_active(0)
-
-            # schedule reactivation of "active"
-            self.__item_active.timer(self.__manual_break, 1)
+            self._set_active(0,self.__manual_break)
             self.check_active()
             AbLogger.clear_section()
 
     # called when the item "active" is being changed
     # noinspection PyUnusedLocal
     def __reset_active_callback(self, item, caller=None, source=None, dest=None):
+        if self.__just_changing_active:
+            return
+
         # reset timer for reactivation of "active"
         AbLogger.set_section(self.__item.id())
         AbLogger.info("Reactivate automatic mode.")
-        self.__item_active.timer(0, self.__item_active())
+        self._remove_active_trigger()
         if self.check_active():
             self.__item_lastpos_name("Wird beim nächsten Durchgang aktualisiert")
         AbLogger.clear_section()
