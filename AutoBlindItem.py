@@ -24,6 +24,7 @@
 # Class representing a blind item
 #########################################################################
 import time
+import datetime
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
@@ -174,6 +175,28 @@ class AbItem:
             position.log()
         AbLogger.clear_section()
 
+    # check if item is active and update lastpos_name if not
+    def check_active(self):
+        # item is active
+        if self.__item_active():
+            return True
+
+        # check if we can find a Timer-Entry for this item inside the scheduler-configuration
+        timer_key = self.__item_active.id() + "-Timer"
+        scheduler_next = self.sh.scheduler.return_next(timer_key)
+        if isinstance(scheduler_next, datetime.datetime) \
+                and scheduler_next > datetime.datetime.now(scheduler_next.tzinfo):
+            AbLogger.info(
+                "AutoBlind has been deactivated automatically after manual changes. Reactivating at {0}".format(
+                    scheduler_next))
+            self.__item_lastpos_name(scheduler_next.strftime("Automatisch deakviert bis %X"))
+            return False
+
+        # must have been manually deactivated
+        AbLogger.info("AutoBlind is inactive")
+        self.__item_lastpos_name("Manuell deaktiviert")
+        return False
+
     # return item id
     def id(self):
         return self.__item.id()
@@ -237,6 +260,8 @@ class AbItem:
         if new_pos_id == last_pos_id:
             # New position is last position
             AbLogger.info("Position unchanged")
+            if self.__item_lastpos_name() != new_position.name:
+                self.__item_lastpos_name(new_position.name)
         else:
             # New position is different from last position
             AbLogger.info("New position: {0} ('{1}')".format(new_pos_id, new_position.name))
@@ -274,6 +299,7 @@ class AbItem:
 
             # schedule reactivation of "active"
             self.__item_active.timer(self.__manual_break, 1)
+            self.check_active()
             AbLogger.clear_section()
 
     # called when the item "active" is being changed
@@ -283,6 +309,8 @@ class AbItem:
         AbLogger.set_section(self.__item.id())
         AbLogger.info("Reactivate automatic mode.")
         self.__item_active.timer(0, self.__item_active())
+        if self.check_active():
+            self.__item_lastpos_name("Wird beim nächsten Durchgang aktualisiert")
         AbLogger.clear_section()
 
     # called when item triggering an update is being changed
