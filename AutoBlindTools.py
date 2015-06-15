@@ -23,7 +23,6 @@
 #
 # Some general tool functions
 #########################################################################
-from .AutoBlindLogger import AbLogger
 
 
 # Find a certain item below a given item.
@@ -56,11 +55,9 @@ def get_int_attribute(item, attribute):
     try:
         return int(value)
     except ValueError:
-        item_id = item.id()
-        AbLogger.error(
+        raise ValueError(
             "Das Konfigurations-Attribut '{0}' im Item '{1}' muss numerisch angegeben werden.".format(attribute,
-                                                                                                      item_id))
-        return None
+                                                                                                      item.id()))
 
 
 # Return the values of a given attribute as array
@@ -87,21 +84,18 @@ def get_time_attribute(item, attribute):
     value = item.conf[attribute]
     value_parts = value.split(",")
     if len(value_parts) != 2:
-        item_id = item.id()
-        AbLogger.error(
+        raise ValueError(
             "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                attribute, item_id))
+                attribute, item.id()))
     else:
         try:
             hour = int(value_parts[0])
             minute = int(value_parts[1])
             return [hour, minute]
         except ValueError:
-            item_id = item.id()
-            AbLogger.error(
+            raise ValueError(
                 "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                    attribute, item_id))
-            return None
+                    attribute, item.id()))
 
 
 # Return the value of a given attribute as position ([height, lamella] or 'auto')
@@ -117,21 +111,18 @@ def get_position_attribute(item, attribute):
         return "auto"
     value_parts = value.split(",")
     if len(value_parts) != 2:
-        item_id = item.id()
-        AbLogger.error(
+        raise ValueError(
             "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                attribute, item_id))
+                attribute, item.id()))
     else:
         try:
             height = int(value_parts[0])
             lamella = int(value_parts[1])
             return [height, lamella]
         except ValueError:
-            item_id = item.id()
-            AbLogger.error(
+            raise ValueError(
                 "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                    attribute, item_id))
-            return None
+                    attribute, item.id()))
 
 
 # Compares two times (as List [hour, minute])

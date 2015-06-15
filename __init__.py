@@ -24,6 +24,9 @@ import time
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindItem
 from . import AutoBlindConditionChecker
+import logging
+
+logger = logging.getLogger()
 
 
 class AutoBlind:
@@ -42,8 +45,8 @@ class AutoBlind:
     # @param item_id_lamella: name of item to controll the blind's lamella below the main item of the blind
     def __init__(self, smarthome, cycle=300, item_id_height="hoehe", item_id_lamella="lamelle", log_level=0,
                  log_directory="/usr/local/smarthome/var/log/AutoBlind/", manual_break_default=3600):
-        AbLogger.info("Init AutoBlind (cycle={0}, item_id_height={1}, item_id_lamella={2}".format(cycle, item_id_height,
-                                                                                                  item_id_lamella))
+        logger.info("Init AutoBlind (cycle={0}, item_id_height={1}, item_id_lamella={2}".format(cycle, item_id_height,
+                                                                                                item_id_lamella))
         self.sh = smarthome
 
         self.__item_id_height = item_id_height
@@ -68,39 +71,40 @@ class AutoBlind:
         self.alive = True
 
         # init AutoBlindItems based on previously stored items
-        AbLogger.info("Init AutoBlind Items")
+        logger.info("Init AutoBlind Items")
         items = self._items
         self._items = {}
         for item_id in items:
             item = AutoBlindItem.create(self.sh, items[item_id], self.__item_id_height, self.__item_id_lamella,
                                         self.__manual_break_default)
-            if item.validate():
+            try:
+                item.validate()
                 self._items[item_id] = item
                 item.log()
+            except ValueError as ex:
+                logger.exception(ex)
 
         # if we have items, wait some time, update the blind positions and afterwards schedule regular
         # recheck of updateing the blind positions
         if len(self._items) > 0:
-            AbLogger.info("Using AutoBlind for {} items".format(len(self._items)))
+            logger.info("Using AutoBlind for {} items".format(len(self._items)))
             time.sleep(10)
-            self.update_positions()
+            self.update_positions("init")
             if self.__cycle > 0:
                 self.sh.scheduler.add("autoblind", self.update_positions, cycle=self.__cycle)
         else:
-            AbLogger.info("AutoBlind deactivated because no items have been found.")
+            logger.info("AutoBlind deactivated because no items have been found.")
 
     # Stopping of plugin
     def stop(self):
         self.alive = False
 
     # Update the positions of all configured blinds
-    def update_positions(self):
-        AbLogger.info("Updating positions")
+    def update_positions(self, caller = "cycle"):
+        logger.info("Updating positions")
 
         condition_checker = AutoBlindConditionChecker.create(self.sh)
 
         # call position update for each AutoBlindItem
         for item in self._items:
-            AbLogger.set_section(self._items[item].id())
-            self._items[item].update_position(condition_checker)
-            AbLogger.clear_section()
+            self._items[item].update_position(condition_checker, caller)

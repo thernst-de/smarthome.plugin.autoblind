@@ -48,19 +48,17 @@ class AbItem:
     __manual_break = 0
     __can_not_leave_current_pos_since = 0
     __just_changing_active = False
+    __myLogger = None
 
     # set the value of the item "active"
     # @param value new value for item
     # @param reset_interval Interval after which the value should be reset to the previous value
-    def _set_active(self, value, reset_interval = None):
+    def _set_active(self, value, reset_interval=None):
         try:
             self.__just_changing_active = True
-            if reset_interval is None:
-                self.__item_active(value)
-            else:
-                previous_value = self._get_active()
-                self.__item_active(value)
-                self.__item_active.timer(reset_interval, previous_value)
+            self.__item_active(value)
+            if reset_interval is not None:
+                self.__item_active.timer(reset_interval, not value)
         finally:
             self.__just_changing_active = False
 
@@ -72,17 +70,21 @@ class AbItem:
     def _remove_active_trigger(self):
         self.__item_active.timer(0, self.__item_active())
 
-    # return time when trigger on item "active" will be called. None if no trigger is set
-    def _get_active_trigger_time(self):
-         # check if we can find a Timer-Entry for this item inside the scheduler-configuration
+    # return time when timer on item "active" will be called. None if no timer is set
+    def _get_active_timer_time(self):
+        # check if we can find a Timer-Entry for this item inside the scheduler-configuration
         timer_key = self.__item_active.id() + "-Timer"
         scheduler_next = self.sh.scheduler.return_next(timer_key)
         if not isinstance(scheduler_next, datetime.datetime):
             return None
         if scheduler_next <= datetime.datetime.now(scheduler_next.tzinfo):
-             return None
+            return None
 
         return scheduler_next
+
+    # indicates if a timer on item "active" is active
+    def _get_active_timer_active(self):
+        return self._get_active_timer_time() is not None
 
     # Constructor
     # @param smarthome: instance of smarthome.py
@@ -91,7 +93,6 @@ class AbItem:
     # @param item_id_lamella: name of item to controll the blind's lamella below the main item of the blind
     # @param manual_break_default: default value for "manual_break" if no value is set for specific item
     def __init__(self, smarthome, item, item_id_height="hoehe", item_id_lamella="lamelle", manual_break_default=3600):
-        AbLogger.info("Init AutoBlindItem {}".format(item.id()))
         self.sh = smarthome
         self.__item_id_height = item_id_height
         self.__item_id_lamella = item_id_lamella
@@ -99,135 +100,140 @@ class AbItem:
 
         # get required items for this AutoBlindItem
         self.__item = item
+        self.__myLogger = AbLogger.create(item)
 
-        AbLogger.set_section(self.id())
-        AbLogger.info(
-            "Initialize Position =====================================================================================")
-
+        self.__myLogger.header("Initialize Item")
         self.__item_height = AutoBlindTools.get_child_item(self.__item, self.__item_id_height)
         self.__item_lamella = AutoBlindTools.get_child_item(self.__item, self.__item_id_lamella)
         self.__item_autoblind = AutoBlindTools.get_child_item(self.__item, "AutoBlind")
-        if self.__item_autoblind is not None:
-            # get items
-            self.__item_active = AutoBlindTools.get_child_item(self.__item_autoblind, "active")
-            self.__item_lastpos_id = AutoBlindTools.get_child_item(self.__item_autoblind, "lastpos_id")
-            self.__item_lastpos_name = AutoBlindTools.get_child_item(self.__item_autoblind, "lastpos_name")
+        if self.__item_autoblind is None:
+            return
 
-            # get positions
-            items_position = self.__item_autoblind.return_children()
-            for item_position in items_position:
-                if "position" not in item_position.conf and "use" not in item_position.conf:
-                    continue
-                position = AutoBlindPosition.create(self.sh, item_position, self.__item_autoblind)
-                if position.validate():
-                    self.__positions.append(position)
+        # initialize everything else
+        self.__init_items()
+        self.__init_positions()
+        self.__init_watch_manual()
+        self.__init_watch_trigger()
+        self.__init_manual_break(manual_break_default)
 
-            # set triggers for watch_manual
-            if "watch_manual" in self.__item_autoblind.conf:
-                AbLogger.info("watch_manual items:")
-                AbLogger.increase_indent()
-                if isinstance(self.__item_autoblind.conf["watch_manual"], str):
-                    self.__item_autoblind.conf["watch_manual"] = [self.__item_autoblind.conf["watch_manual"]]
-                for entry in self.__item_autoblind.conf["watch_manual"]:
-                    for item in self.sh.match_items(entry):
-                        item.add_method_trigger(self.__watch_manual_callback)
-                        AbLogger.info(item.id())
-                self.__item_active.add_method_trigger(self.__reset_active_callback)
-                AbLogger.decrease_indent()
+    # initialize items
+    def __init_items(self):
+        self.__item_active = AutoBlindTools.get_child_item(self.__item_autoblind, "active")
+        self.__item_lastpos_id = AutoBlindTools.get_child_item(self.__item_autoblind, "lastpos_id")
+        self.__item_lastpos_name = AutoBlindTools.get_child_item(self.__item_autoblind, "lastpos_name")
 
-            if 'watch_trigger' in self.__item_autoblind.conf:
-                AbLogger.info("watch_trigger items:")
-                AbLogger.increase_indent()
-                if isinstance(self.__item_autoblind.conf["watch_trigger"], str):
-                    self.__item_autoblind.conf["watch_trigger"] = [self.__item_autoblind.conf["watch_trigger"]]
-                for entry in self.__item_autoblind.conf["watch_trigger"]:
-                    for item in self.sh.match_items(entry):
-                        item.add_method_trigger(self.__watch_trigger_callback)
-                        AbLogger.info(item.id())
-                AbLogger.decrease_indent()
+    # find positions and init them
+    def __init_positions(self):
+        items_position = self.__item_autoblind.return_children()
+        for item_position in items_position:
+            if "position" not in item_position.conf and "use" not in item_position.conf:
+                continue
+            position = AutoBlindPosition.create(self.sh, item_position, self.__item_autoblind, self.__myLogger)
+            if position.validate():
+                self.__positions.append(position)
 
-            # get manual_break time
-            if "manual_break" in self.__item_autoblind.conf:
-                self.__manual_break = int(self.__item_autoblind.conf["manual_break"])
-            else:
-                self.__manual_break = manual_break_default
+    # initialize "watch_manual" if configured
+    def __init_watch_manual(self):
+        if "watch_manual" not in self.__item_autoblind.conf:
+            return
 
-        AbLogger.clear_section()
+        self.__myLogger.info("watch_manual items:")
+        self.__myLogger.increase_indent()
+        if isinstance(self.__item_autoblind.conf["watch_manual"], str):
+            self.__item_autoblind.conf["watch_manual"] = [self.__item_autoblind.conf["watch_manual"]]
+        for entry in self.__item_autoblind.conf["watch_manual"]:
+            for item in self.sh.match_items(entry):
+                item.add_method_trigger(self.__watch_manual_callback)
+                self.__myLogger.info(item.id())
+        self.__item_active.add_method_trigger(self.__reset_active_callback)
+        self.__myLogger.decrease_indent()
+
+    # initialize "watch_trigger" if configured
+    def __init_watch_trigger(self):
+        if 'watch_trigger' not in self.__item_autoblind.conf:
+            return
+
+        self.__myLogger.info("watch_trigger items:")
+        self.__myLogger.increase_indent()
+        if isinstance(self.__item_autoblind.conf["watch_trigger"], str):
+            self.__item_autoblind.conf["watch_trigger"] = [self.__item_autoblind.conf["watch_trigger"]]
+        for entry in self.__item_autoblind.conf["watch_trigger"]:
+            for item in self.sh.match_items(entry):
+                item.add_method_trigger(self.__watch_trigger_callback)
+                self.__myLogger.info(item.id())
+        self.__myLogger.decrease_indent()
+
+    # initialize "manual_break"
+    def __init_manual_break(self, manual_break_default):
+        if "manual_break" in self.__item_autoblind.conf:
+            self.__manual_break = int(self.__item_autoblind.conf["manual_break"])
+        else:
+            self.__manual_break = manual_break_default
 
     # Validate data in instance
-    # @return: TRUE: Everything ok, FALSE: Errors occured
+    # A ValueError is being thown in case of errors
     def validate(self):
         if self.__item is None:
-            AbLogger.error("No item configured!")
-            return False
+            raise ValueError("No item configured!")
 
         item_id = self.__item.id()
 
         if self.__item_autoblind is None:
-            AbLogger.error("{0}: Item '{1}' does not have a sub-item 'AutoBlind'!".format(item_id, item_id))
-            return False
+            raise ValueError("{0}: Item '{1}' does not have a sub-item 'AutoBlind'!".format(item_id, item_id))
 
         autoblind_id = self.__item_autoblind.id()
 
         if self.__item_active is None:
-            AbLogger.error("{0}: Item '{1}' does not have a sub-item 'active'!".format(item_id, autoblind_id))
-            return False
+            raise ValueError("{0}: Item '{1}' does not have a sub-item 'active'!".format(item_id, autoblind_id))
 
         if self.__item_lastpos_id is None:
-            AbLogger.error("{0}: Item '{1}' does not have a sub-item 'lastpos_id'!".format(item_id, autoblind_id))
-            return False
+            raise ValueError("{0}: Item '{1}' does not have a sub-item 'lastpos_id'!".format(item_id, autoblind_id))
 
         if self.__item_lastpos_name is None:
-            AbLogger.error("{0}: Item '{1}' does not have a sub-item 'lastpos_name'!".format(item_id, autoblind_id))
-            return False
+            raise ValueError(
+                "{0}: Item '{1}' does not have a sub-item 'lastpos_name'!".format(item_id, autoblind_id))
 
         if self.__item_height is None:
-            AbLogger.error(
+            raise ValueError(
                 "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id, self.__item_id_height))
-            return False
 
         if self.__item_lamella is None:
-            AbLogger.error(
+            raise ValueError(
                 "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id, self.__item_id_lamella))
-            return False
 
         if len(self.__positions) == 0:
-            AbLogger.error("{0}: No positions defined!".format(item_id, item_id, self.__item_id_lamella))
-            return False
-
-        return True
+            raise ValueError("{0}: No positions defined!".format(item_id))
 
     # log item data
     def log(self):
-        AbLogger.set_section(self.id())
-        AbLogger.info(
-            "AutoBlind Configuration =================================================================================")
-        AbLogger.info("Item 'Height': {0}".format(self.__item_height.id()))
-        AbLogger.info("Item 'Lamella': {0}".format(self.__item_lamella.id()))
-        AbLogger.info("Item 'Active': {0}".format(self.__item_active.id()))
-        AbLogger.info("Item 'LastPos Id': {0}".format(self.__item_lastpos_id.id()))
-        AbLogger.info("Item 'LastPos Name': {0}".format(self.__item_lastpos_name.id()))
+        self.__myLogger.header("Configuration")
+        self.__myLogger.info("Item 'Height': {0}", self.__item_height.id())
+        self.__myLogger.info("Item 'Lamella': {0}", self.__item_lamella.id())
+        self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
+        self.__myLogger.info("Item 'LastPos Id': {0}", self.__item_lastpos_id.id())
+        self.__myLogger.info("Item 'LastPos Name': {0}", self.__item_lastpos_name.id())
         for position in self.__positions:
             position.log()
-        AbLogger.clear_section()
 
     # check if item is active and update lastpos_name if not
-    def check_active(self):
+    def __check_active(self, set_name_if_active=False):
         # item is active
         if self._get_active():
+            if set_name_if_active:
+                self.__item_lastpos_name("Wird beim nächsten Durchgang aktualisiert")
             return True
 
         # check if we can find a Timer-Entry for this item inside the scheduler-configuration
-        active_trigger_time = self._get_active_trigger_time()
-        if active_trigger_time is not None:
-            AbLogger.info(
-                "AutoBlind has been deactivated automatically after manual changes. Reactivating at {0}".format(
-                    active_trigger_time))
-            self.__item_lastpos_name(active_trigger_time.strftime("Automatisch deakviert bis %X"))
+        active_timer_time = self._get_active_timer_time()
+        if active_timer_time is not None:
+            self.__myLogger.info(
+                "AutoBlind has been deactivated automatically after manual changes. Reactivating at {0}",
+                active_timer_time)
+            self.__item_lastpos_name(active_timer_time.strftime("Automatisch deakviert bis %X"))
             return False
 
         # must have been manually deactivated
-        AbLogger.info("AutoBlind is inactive")
+        self.__myLogger.info("AutoBlind is inactive")
         self.__item_lastpos_name("Manuell deaktiviert")
         return False
 
@@ -236,12 +242,14 @@ class AbItem:
         return self.__item.id()
 
     # Find the position, matching the current conditions and move the blinds to this position
-    def update_position(self, condition_checker):
-        AbLogger.info(
-            "Update Position =========================================================================================")
+    def update_position(self, condition_checker, caller=None):
+        self.__myLogger.update_logfile()
+        self.__myLogger.header("Update Position")
+        if caller:
+            self.__myLogger.debug("Update triggered by {0}", caller)
 
         # Check if this AutoBlindItem is active. Leave if not
-        if not self.check_active():
+        if not self.__check_active():
             return
 
         # update item dependent conditions
@@ -250,11 +258,12 @@ class AbItem:
             condition_checker.set_current_delay(0)
         else:
             condition_checker.set_current_delay(time.time() - self.__can_not_leave_current_pos_since)
+        condition_checker.set_logger(self.__myLogger)
 
         # get last position
         last_pos_id = self.__item_lastpos_id()
         last_pos_name = self.__item_lastpos_name()
-        AbLogger.info("Last position: {0} ('{1}')".format(last_pos_id, last_pos_name))
+        self.__myLogger.info("Last position: {0} ('{1}')", last_pos_id, last_pos_name)
 
         # check if current position can be left
         can_leave_position = True
@@ -262,7 +271,7 @@ class AbItem:
         for position in self.__positions:
             if position.id() == last_pos_id:
                 if not condition_checker.can_leave(position):
-                    AbLogger.info("Can not leave current position.")
+                    self.__myLogger.info("Can not leave current position.")
                     can_leave_position = False
                     new_position = position
                     if self.__can_not_leave_current_pos_since == 0:
@@ -279,7 +288,7 @@ class AbItem:
 
             # no new position -> leave
             if new_position is None:
-                AbLogger.info("No matching position found.")
+                self.__myLogger.info("No matching position found.")
                 return
         else:
             # if current position can not be left, check if enter conditions are still valid.
@@ -291,12 +300,12 @@ class AbItem:
         new_pos_id = new_position.id()
         if new_pos_id == last_pos_id:
             # New position is last position
-            AbLogger.info("Position unchanged")
+            self.__myLogger.info("Position unchanged")
             if self.__item_lastpos_name() != new_position.name:
                 self.__item_lastpos_name(new_position.name)
         else:
             # New position is different from last position
-            AbLogger.info("New position: {0} ('{1}')".format(new_pos_id, new_position.name))
+            self.__myLogger.info("New position: {0} ('{1}')", new_pos_id, new_position.name)
             self.__item_lastpos_id(new_pos_id)
             self.__item_lastpos_name(new_position.name)
 
@@ -316,43 +325,47 @@ class AbItem:
     # called when one of the items given at "watch_manual" is being changed
     # noinspection PyUnusedLocal
     def __watch_manual_callback(self, item, caller=None, source=None, dest=None):
-        if caller != "plugin" and caller != "Timer":
-            AbLogger.set_section(self.__item.id())
-            AbLogger.info("Handling manual operation after change if item '{0}'".format(item.id()))
-            AbLogger.increase_indent()
-            # deactivate "active"
-            if not self._get_active():
-                AbLogger.debug("Automatic mode already inactive")
-                AbLogger.clear_section()
-                return
+        if caller == "plugin" or caller == "Timer":
+            return
 
-            AbLogger.debug("Deactivated automatic mode for {0} seconds.".format(self.__manual_break))
-            self._set_active(0,self.__manual_break)
-            self.check_active()
-            AbLogger.clear_section()
+        self.__myLogger.header("Watch_Manual triggered")
+        self.__myLogger.update_logfile()
+        self.__myLogger.info("Manual operation: Change of item '{0}' by '{1}'", item.id(), caller)
+
+        self.__myLogger.increase_indent()
+        if not self._get_active() and not self._get_active_timer_active():
+            self.__myLogger.debug("Automatic mode already deactivated manually")
+        else:
+            self.__myLogger.debug("Deactivating automatic mode for {0} seconds.".format(self.__manual_break))
+            self._set_active(0, self.__manual_break)
+            self.__check_active(True)
+        self.__myLogger.decrease_indent()
 
     # called when the item "active" is being changed
     # noinspection PyUnusedLocal
     def __reset_active_callback(self, item, caller=None, source=None, dest=None):
+        # we're just changing "active" ourselve, .. ignore
         if self.__just_changing_active:
             return
 
-        # reset timer for reactivation of "active"
-        AbLogger.set_section(self.__item.id())
-        AbLogger.info("Reactivate automatic mode.")
-        self._remove_active_trigger()
-        if self.check_active():
-            self.__item_lastpos_name("Wird beim nächsten Durchgang aktualisiert")
-        AbLogger.clear_section()
+        self.__myLogger.header("Item 'active' changed")
+        self.__myLogger.update_logfile()
+        if caller == "Timer" and self._get_active():
+            # triggered by timer and active is not TRUE: this was the reactivation by timer
+            self.__myLogger.info("Reactivating automatic mode")
+        elif self._get_active_timer_active():
+            # A timer is active: remove it as the value has been overwritten
+            self.__myLogger.info("Remove timer on 'Active' as value been set to '{0}' by '{1}'", self._get_active(),
+                                 caller)
+            self._remove_active_trigger()
+        else:
+            # Something else: Just log
+            self.__myLogger.debug("'Active' set to '{0}' by '{1}'", self._get_active(), caller)
+        self.__check_active(True)
 
     # called when item triggering an update is being changed
     # noinspection PyUnusedLocal
     def __watch_trigger_callback(self, item, caller=None, source=None, dest=None):
-        AbLogger.set_section(self.__item.id())
-        AbLogger.info('Updating {0} triggered by item {1}'.format(str(self.__item), item.id()))
-
-        condition_checker = AutoBlindConditionChecker.create(self.sh)
-
         # call position update for this AutoBlindItem
-        self.update_position(condition_checker)
-        AbLogger.clear_section()
+        condition_checker = AutoBlindConditionChecker.create(self.sh)
+        self.update_position(condition_checker, "item '{0}' changed by '{1}".format(item.id(), caller))

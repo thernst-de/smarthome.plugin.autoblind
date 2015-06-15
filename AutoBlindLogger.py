@@ -39,12 +39,6 @@ class AbLogger:
     # Target directory for log files
     __logdirectory = "/usr/local/smarthome/var/log/AutoBlind/"
 
-    # Section specific file name
-    __filename = None
-
-    # Indentation level
-    __indentlevel = 0
-
     # Set log level
     # @param loglevel loglevel
     @staticmethod
@@ -61,81 +55,92 @@ class AbLogger:
     def set_logdirectory(logdirectory):
         AbLogger.__logdirectory = logdirectory
 
-    # Set section
-    # @param section Name of section
+    # Return AbLogger instance for given item
+    # @param item item for which the detailed log is
     @staticmethod
-    def set_section(section):
-        if section is None:
-            AbLogger.__filename = None
-        else:
-            today = str(datetime.date.today())
-            section = section.replace(".", "_").replace("/", "")
-            AbLogger.__filename = AbLogger.__logdirectory + today + "-" + section + ".log"
-        AbLogger.__indentlevel = 0
+    def create(item):
+        return AbLogger(item)
 
-    # clear section
-    @staticmethod
-    def clear_section():
-        AbLogger.set_section(None)
+    # Log section
+    __section = ""
+
+    # Date of logfile
+    __date = None
+
+    # Indentation level
+    __indentlevel = 0
+
+    # Section specific file name
+    __filename = None
+
+    # Constructor
+    # @param item item for which the detailed log is
+    def __init__(self, item):
+        self.__section = item.id().replace(".", "_").replace("/", "")
+        self.__indentlevel = 0
+        self.update_logfile()
+
+    # Update name logfile if required
+    def update_logfile(self):
+        if self.__date == datetime.datetime.today() and self.__filename is not None:
+            return
+        self.__date = str(datetime.date.today())
+        self.__filename = str(AbLogger.__logdirectory + self.__date + '-' + self.__section + ".log")
 
     # Increase indentation level
     # @param by number of levels to increase
-    @staticmethod
-    def increase_indent(by=1):
-        AbLogger.__indentlevel += by
+    def increase_indent(self, by=1):
+        self.__indentlevel += by
 
     # Decrease indentation level
     # @param by number of levels to decrease
-    @staticmethod
-    def decrease_indent(by=1):
-        if AbLogger.__indentlevel > by:
-            AbLogger.__indentlevel -= by
+    def decrease_indent(self, by=1):
+        if self.__indentlevel > by:
+            self.__indentlevel -= by
         else:
-            AbLogger.__indentlevel = 0
+            self.__indentlevel = 0
 
     # log text something
     # @param level Loglevel
     # @param text  text to log
-    @staticmethod
-    def log(level, text):
-        if AbLogger.__filename is None:
-            # No section given, log to normal smarthome.py-log
-            # we ignore AutoBlindLogLevel as the logger has its own loglevel check
-            if level == 2:
-                logger.debug(text)
-            else:
-                logger.info(text)
-            return
-        else:
-            # Section givn: Check level
-            if level <= AbLogger.__loglevel:
-                # Log to section specific logfile
-                filename = str(AbLogger.__filename)
-                indent = "\t" * AbLogger.__indentlevel
-                logtext = "{0}{1} {2}\r\n".format(datetime.datetime.now(), indent, text)
-                with open(filename, mode="a", encoding="utf-8") as f:
-                    f.write(logtext)
+    def log(self, level, text, *args):
+        # Section givn: Check level
+        if level <= AbLogger.__loglevel:
+            indent = "\t" * self.__indentlevel
+            text = text.format(*args)
+            logtext = "{0}{1} {2}\r\n".format(datetime.datetime.now(), indent, text)
+            with open(self.__filename, mode="a", encoding="utf-8") as f:
+                f.write(logtext)
+
+    # log header line (as info)
+    # @param text header text
+    def header(self, text):
+        self.__indentlevel = 0
+        text = text + " "
+        self.log(1, text.ljust(80, "="))
 
     # log with level=info
     # @param text text to log
-    @staticmethod
-    def info(text):
-        AbLogger.log(1, text)
+    # @param *args parameters for text
+    def info(self, text, *args):
+        self.log(1, text, *args)
 
     # log with lebel=debug
     # @param text text to log
-    @staticmethod
-    def debug(text):
-        AbLogger.log(2, text)
+    # @param *args parameters for text
+    def debug(self, text, *args):
+        self.log(2, text, *args)
 
     # log warning (always to main smarthome.py log)
     # @param text text to log
-    @staticmethod
-    def warning(text):
-        logger.warning(text)
+    # @param *args parameters for text
+    # noinspection PyMethodMayBeStatic
+    def warning(self, text, *args):
+        logger.warning(text.format(*args))
 
     # log error (always to main smarthome.py log)
     # @param text text to log
-    @staticmethod
-    def error(text):
-        logger.error(text)
+    # @param *args parameters for text
+    # noinspection PyMethodMayBeStatic
+    def error(self, text, *args):
+        logger.error(text.format(*args))

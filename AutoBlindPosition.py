@@ -26,12 +26,11 @@
 #########################################################################
 from . import AutoBlindTools
 from . import AutoBlindConditionChecker
-from .AutoBlindLogger import AbLogger
 
 
 # Create abPosition-Instance
-def create(smarthome, item, item_autoblind):
-    return AbPosition(smarthome, item, item_autoblind)
+def create(smarthome, item, item_autoblind, item_logger):
+    return AbPosition(smarthome, item, item_autoblind, item_logger)
 
 
 class AbPosition:
@@ -51,6 +50,9 @@ class AbPosition:
 
     # Position (list [height, lamella] or "auto" for lamella following the sun)
     __position = [None, None]
+
+    # Item Logger
+    __item_logger = None
 
     # Return id of position (= id of defining item)
     def id(self):
@@ -72,12 +74,14 @@ class AbPosition:
     # Constructor
     # @param smarthome: instance of smarthome
     # @param item: item containing configuration of AutoBlind position
-    def __init__(self, smarthome, item, item_autoblind):
-        AbLogger.info("Init AutoBlindPosition {}".format(item.id()))
+    def __init__(self, smarthome, item, item_autoblind, item_logger):
         self.sh = smarthome
         self.__item = item
         self.__enterConditionSets = {}
         self.__leaveConditionSets = {}
+        self.__item_logger = item_logger
+
+        self.__item_logger.info("Init AutoBlindPosition {}", item.id())
         self.__fill(self.__item, 0, item_autoblind)
 
     # Read configuration from item and populate data in class
@@ -85,7 +89,7 @@ class AbPosition:
     # @param recursion_depth: current recursion_depth (recursion is canceled after five levels)
     def __fill(self, item, recursion_depth, item_autoblind):
         if recursion_depth > 5:
-            AbLogger.error("{0}/{1}: to many levels of 'use'".format(self.__item.id(), item.id()))
+            self.__item_logger.error("{0}/{1}: to many levels of 'use'", self.__item.id(), item.id())
             return
 
         # Import data from other item if attribute "use" is found
@@ -94,7 +98,7 @@ class AbPosition:
             if use_item is not None:
                 self.__fill(use_item, recursion_depth + 1, item_autoblind)
             else:
-                AbLogger.error("{0}: Referenced item '{1}' not found!".format(item.id(), item.conf["use"]))
+                self.__item_logger.error("{0}: Referenced item '{1}' not found!", item.id(), item.conf["use"])
 
         # Get condition sets
         parent_item = item.return_parent()
@@ -118,8 +122,10 @@ class AbPosition:
             self.__name = str(item)
 
         if recursion_depth == 0:
-            AutoBlindConditionChecker.complete_conditionsets(self.__enterConditionSets, item, self.sh)
-            AutoBlindConditionChecker.complete_conditionsets(self.__leaveConditionSets, item, self.sh)
+            AutoBlindConditionChecker.complete_conditionsets(self.__enterConditionSets, item, self.sh,
+                                                             self.__item_logger)
+            AutoBlindConditionChecker.complete_conditionsets(self.__leaveConditionSets, item, self.sh,
+                                                             self.__item_logger)
 
     # validate position data
     # @return TRUE: data ok, FALSE: data not ok
@@ -131,20 +137,20 @@ class AbPosition:
 
     # log position data
     def log(self):
-        AbLogger.info("Position {0}:".format(self.id()))
-        AbLogger.increase_indent()
-        AbLogger.info("Name: {0}".format(self.__name))
+        self.__item_logger.info("Position {0}:", self.id())
+        self.__item_logger.increase_indent()
+        self.__item_logger.info("Name: {0}", self.__name)
         if len(self.__enterConditionSets) > 0:
-            AbLogger.info("Condition sets to enter position:")
-            AbLogger.increase_indent()
-            AutoBlindConditionChecker.log_conditionsets(self.__enterConditionSets)
-            AbLogger.decrease_indent()
+            self.__item_logger.info("Condition sets to enter position:")
+            self.__item_logger.increase_indent()
+            AutoBlindConditionChecker.log_conditionsets(self.__item_logger, self.__enterConditionSets)
+            self.__item_logger.decrease_indent()
         if len(self.__leaveConditionSets) > 0:
-            AbLogger.info("Condition sets to leave position:")
-            AbLogger.increase_indent()
-            AutoBlindConditionChecker.log_conditionsets(self.__leaveConditionSets)
-            AbLogger.decrease_indent()
-        AbLogger.decrease_indent()
+            self.__item_logger.info("Condition sets to leave position:")
+            self.__item_logger.increase_indent()
+            AutoBlindConditionChecker.log_conditionsets(self.__item_logger, self.__leaveConditionSets)
+            self.__item_logger.decrease_indent()
+        self.__item_logger.decrease_indent()
 
     # return position data for position
     # @param sun_azimut: current azimut of sun
@@ -154,10 +160,10 @@ class AbPosition:
         if self.__position != "auto":
             return self.__position
 
-        AbLogger.debug("Calculating blind position based on sun position (altitude {0}°)".format(sun_altitude))
+        self.__item_logger.debug("Calculating blind position based on sun position (altitude {0}°)", sun_altitude)
 
         # Blinds at right angle to sun
         angel = 90 - sun_altitude
-        AbLogger.debug("Lamella angle to {0}°".format(angel))
+        self.__item_logger.debug("Lamella angle to {0}°", angel)
 
         return [100, angel]
