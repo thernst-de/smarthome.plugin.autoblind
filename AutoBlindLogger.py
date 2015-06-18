@@ -24,7 +24,6 @@
 # Extended logging functionality for debugging AutoBlind plugin
 # Enables to log into different files (e.g. depending on item, room or 
 # similar)
-#
 #########################################################################
 import logging
 import datetime
@@ -33,14 +32,14 @@ logger = logging.getLogger("")
 
 
 class AbLogger:
-    # Log-Level: (0= off 1=Info, 2 = Debug)
+    # Log-Level: (0=off 1=Info, 2=Debug)
     __loglevel = 2
 
     # Target directory for log files
     __logdirectory = "/usr/local/smarthome/var/log/AutoBlind/"
 
     # Set log level
-    # @param loglevel loglevel
+    # loglevel: current loglevel
     @staticmethod
     def set_loglevel(loglevel):
         try:
@@ -50,34 +49,24 @@ class AbLogger:
             logger.error("Das Log-Level muss numerisch angegeben werden.")
 
     # Set log directory
-    # @param logDirectory Target directory for AutoBlind log files
+    # logdirectory: Target directory for AutoBlind log files
     @staticmethod
     def set_logdirectory(logdirectory):
         AbLogger.__logdirectory = logdirectory
 
     # Return AbLogger instance for given item
-    # @param item item for which the detailed log is
+    # item: item for which the detailed log is
     @staticmethod
     def create(item):
         return AbLogger(item)
 
-    # Log section
-    __section = ""
-
-    # Date of logfile
-    __date = None
-
-    # Indentation level
-    __indentlevel = 0
-
-    # Section specific file name
-    __filename = None
-
     # Constructor
-    # @param item item for which the detailed log is
+    # item: item for which the detailed log is (used as part of file name)
     def __init__(self, item):
         self.__section = item.id().replace(".", "_").replace("/", "")
         self.__indentlevel = 0
+        self.__date = None
+        self.__filename = ""
         self.update_logfile()
 
     # Update name logfile if required
@@ -88,12 +77,12 @@ class AbLogger:
         self.__filename = str(AbLogger.__logdirectory + self.__date + '-' + self.__section + ".log")
 
     # Increase indentation level
-    # @param by number of levels to increase
+    # by: number of levels to increase
     def increase_indent(self, by=1):
         self.__indentlevel += by
 
     # Decrease indentation level
-    # @param by number of levels to decrease
+    # by: number of levels to decrease
     def decrease_indent(self, by=1):
         if self.__indentlevel > by:
             self.__indentlevel -= by
@@ -101,8 +90,8 @@ class AbLogger:
             self.__indentlevel = 0
 
     # log text something
-    # @param level Loglevel
-    # @param text  text to log
+    # level: required loglevel
+    # text: text to log
     def log(self, level, text, *args):
         # Section givn: Check level
         if level <= AbLogger.__loglevel:
@@ -113,10 +102,10 @@ class AbLogger:
                 f.write(logtext)
 
     # log header line (as info)
-    # @param text header text
+    # text: header text
     def header(self, text):
         self.__indentlevel = 0
-        text = text + " "
+        text += " "
         self.log(1, text.ljust(80, "="))
 
     # log with level=info
@@ -126,21 +115,29 @@ class AbLogger:
         self.log(1, text, *args)
 
     # log with lebel=debug
-    # @param text text to log
-    # @param *args parameters for text
+    # text: text to log
+    # *args: parameters for text
     def debug(self, text, *args):
         self.log(2, text, *args)
 
     # log warning (always to main smarthome.py log)
-    # @param text text to log
-    # @param *args parameters for text
+    # text: text to log
+    # *args: parameters for text
     # noinspection PyMethodMayBeStatic
     def warning(self, text, *args):
         logger.warning(text.format(*args))
 
     # log error (always to main smarthome.py log)
-    # @param text text to log
-    # @param *args parameters for text
+    # text: text to log
+    # *args: parameters for text
     # noinspection PyMethodMayBeStatic
     def error(self, text, *args):
         logger.error(text.format(*args))
+
+    # log exception (always to main smarthome.py log'
+    # msg: message to log
+    # *args: arguments for message
+    # **kwargs: known arguments for message
+    # noinspection PyMethodMayBeStatic
+    def exception(self, msg, *args, **kwargs):
+        logger.exception(msg, *args, **kwargs)

@@ -18,17 +18,17 @@
 #  You should have received a copy of the GNU General Public License
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
-#
-# AutoBlindTools
+import datetime
+
 #
 # Some general tool functions
-#########################################################################
+#
 
 
 # Find a certain item below a given item.
-# @param item: Item to search below
-# @param child_id: Id of child item to search (without prefixed id of "item")
-# @return child item if found, otherwise None
+# item: Item to search below
+# child_id: Id of child item to search (without prefixed id of "item")
+# returns: child item if found, otherwise None
 def get_child_item(item, child_id):
     search_id = item.id() + "." + child_id
     for child in item.return_children():
@@ -38,70 +38,16 @@ def get_child_item(item, child_id):
 
 
 # Returns the last part of the id of an item (everythig behind last .)
-# @param item: Item for which the last part of the id should be returned
-# @return last part of item id
+# item: Item for which the last part of the id should be returned
+# returns: last part of item id
 def get_last_part_of_item_id(item):
     return item.id().rsplit(".", 1)[1]
 
 
-# Return the value of a given attribute as integer
-# @param: item to read the attribute from
-# @param: name of attribute to return
-# @return: value of attribute as integer or None if value of attribute can not be converted into integer
-def get_int_attribute(item, attribute):
-    if attribute not in item.conf:
-        return None
-    value = item.conf[attribute]
-    try:
-        return int(value)
-    except ValueError:
-        raise ValueError(
-            "Das Konfigurations-Attribut '{0}' im Item '{1}' muss numerisch angegeben werden.".format(attribute,
-                                                                                                      item.id()))
-
-
-# Return the values of a given attribute as array
-# @param: item to read the attribute from
-# @param: name of attribute to return
-# @return: value of attribute as array or None if attribute is missing or empty
-def get_array_attribute(item, attribute):
-    if attribute not in item.conf:
-        return None
-    value = item.conf[attribute]
-    if value == "":
-        return None
-    return [v.strip() for v in value.split(",")]
-
-
-# Return the value of a given attribute as time [hour, minute]
-# @param: item to read the attribute from
-# @param: name of attribute to return
-# @return: value of attribute as time or None if value of attribute can not be converted into time
-def get_time_attribute(item, attribute):
-    if attribute not in item.conf:
-        return None
-
-    value = item.conf[attribute]
-    value_parts = value.split(",")
-    if len(value_parts) != 2:
-        raise ValueError(
-            "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                attribute, item.id()))
-    else:
-        try:
-            hour = int(value_parts[0])
-            minute = int(value_parts[1])
-            return [hour, minute]
-        except ValueError:
-            raise ValueError(
-                "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                    attribute, item.id()))
-
-
 # Return the value of a given attribute as position ([height, lamella] or 'auto')
-# @param: item to read the attribute from
-# @param: name of attribute to return
-# @return: value of attribute as position or None if value of attribute can not be converted into position
+# item: item to read the attribute from
+# attribute: name of attribute to return
+# returns: value of attribute as position or None if value of attribute can not be converted into position
 def get_position_attribute(item, attribute):
     if attribute not in item.conf:
         return None
@@ -125,19 +71,100 @@ def get_position_attribute(item, attribute):
                     attribute, item.id()))
 
 
-# Compares two times (as List [hour, minute])
-# -1: time1 < time2
-# 0: time1 = time2
-# 1: time1 > time2
-def compare_time(time1, time2):
-    if time1[0] < time2[0]:
-        return -1
-    elif time1[0] > time2[0]:
-        return 1
-    else:
-        if time1[1] < time2[1]:
-            return -1
-        elif time1[1] > time2[1]:
-            return 1
+# cast a value as numeric. Throws ValueError if cast not possible
+# Taken from smarthome.py/lib/item.py
+# value: value to cast
+# returns: value as num or float
+def cast_num(value):
+    if isinstance(value, float):
+        return value
+    try:
+        return int(value)
+    except:
+        pass
+    try:
+        return float(value)
+    except:
+        pass
+    raise ValueError
+
+
+# cast a value as boolean. Throws ValueError or TypeError if cast is not possible
+# Taken from smarthome.py/lib/item.py
+# value: value to cast
+# returs: value as boolean
+def cast_bool(value):
+    if type(value) in [bool, int, float]:
+        if value in [False, 0]:
+            return False
+        elif value in [True, 1]:
+            return True
         else:
-            return 0
+            raise ValueError
+    elif type(value) in [str, str]:
+        if value.lower() in ['0', 'false', 'no', 'off']:
+            return False
+        elif value.lower() in ['1', 'true', 'yes', 'on']:
+            return True
+        else:
+            raise ValueError
+    else:
+        raise TypeError
+
+
+# cast a value as string. Throws ValueError if cast is not possible
+# Taken from smarthome.py/lib/item.py
+# value: value to cast
+# returns: value as string
+def cast_str(value):
+    if isinstance(value, str):
+        return value
+    else:
+        raise ValueError
+
+
+# cast value as datetime.time. Throws ValueError if cast is not possible
+# value: value to cast
+# returns: value as datetime.time
+def cast_time(value):
+    if isinstance(value, datetime.time):
+        return value
+
+    orig_value = value
+    value = value.replace(",", ":")
+    value_parts = value.split(":")
+    if len(value_parts) != 2:
+        raise ValueError("Can not cast '{0}' to data type 'time' due to incorrect format!".format(orig_value))
+    else:
+        try:
+            hour = int(value_parts[0])
+            minute = int(value_parts[1])
+        except ValueError:
+            raise ValueError("Can not cast '{0}' to data type 'time' due to non-numeric parts!".format(orig_value))
+        if hour == 24 and minute == 0:
+            return datetime.time(23, 59, 59)
+        else:
+            return datetime.time(hour, minute)
+
+
+# find a certain attribute for a generic condition. If an "use"-attribute is found, the "use"-item is searched
+# recursively
+# smarthome: instance of smarthome.py base class
+# base_item: base item to search in
+# attribute: name of attribute to find
+def find_attribute(smarthome, base_item, attribute):
+    # 1: parent of given item could have attribute
+    parent_item = base_item.return_parent()
+    if parent_item is not None:
+        if attribute in parent_item.conf:
+            return parent_item.conf[attribute]
+
+    # 2: if item has attribute "use", get the item to use and search this item for required attribute
+    if "use" in base_item.conf:
+        use_item = smarthome.return_item(base_item.conf["use"])
+        result = find_attribute(smarthome, use_item, attribute)
+        if result is not None:
+            return result
+
+    # 3: nothing found
+    return None
