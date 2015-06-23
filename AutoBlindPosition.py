@@ -22,6 +22,10 @@ from . import AutoBlindTools
 from . import AutoBlindConditionSets
 from . import AutoBlindLogger
 from . import AutoBlindCurrent
+from . import AutoBlindActions
+import logging
+
+lg = logging.getLogger()
 
 
 # Class representing a blind position, consisting of name, conditions to be met and configured position of blind
@@ -43,6 +47,7 @@ class AbPosition:
         self.__sh = smarthome
         self.__name = ""
         self.__position = [None, None]
+        self.__actions = AutoBlindActions.AbActions(self.__sh)
         self.__item = item_position
         self.__enterConditionSets = AutoBlindConditionSets.AbConditionSets(self.__sh)
         self.__leaveConditionSets = AutoBlindConditionSets.AbConditionSets(self.__sh)
@@ -102,6 +107,11 @@ class AbPosition:
             logger.increase_indent()
             self.__leaveConditionSets.write_to_logger(logger)
             logger.decrease_indent()
+        if self.__actions.count() > 0:
+            logger.info("Actions to perform if position becomes active:")
+            logger.increase_indent()
+            self.__actions.write_to_logger(logger)
+            logger.decrease_indent()
         logger.decrease_indent()
 
     # return position data for position
@@ -154,6 +164,11 @@ class AbPosition:
         if "position" in item_position.conf:
             self.__position = AutoBlindTools.get_position_attribute(item_position, "position")
 
+        for attribute in item_position.conf:
+            if attribute.startswith("set_") and attribute != "set_":
+                lg.warning("Processing Item {0} attribute {1}".format(item_position.id(), attribute))
+                self.__actions.update(item_position,attribute)
+
         # if an item name is given, or if we do not have a name after returning from all recursions,
         # use item name as position name
         if str(item_position) != item_position.id() or (self.__name == "" and recursion_depth == 0):
@@ -163,3 +178,4 @@ class AbPosition:
         if recursion_depth == 0:
             self.__enterConditionSets.complete(item_position, abitem_object, logger)
             self.__leaveConditionSets.complete(item_position, abitem_object, logger)
+            self.__actions.complete(item_position)

@@ -51,6 +51,7 @@ class AbItem:
         self.__positions = []
         self.__manual_break = 0
         self.__delay = 0
+        self.__actions = {}
         self.__can_not_leave_current_pos_since = 0
         self.__just_changing_active = False
 

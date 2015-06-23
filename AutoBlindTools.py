@@ -19,6 +19,10 @@
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 import datetime
+import logging
+
+lg = logging.getLogger()
+
 
 #
 # Some general tool functions
@@ -176,6 +180,8 @@ def cast_time(value):
 # base_item: base item to search in
 # attribute: name of attribute to find
 def find_attribute(smarthome, base_item, attribute):
+    lg.warning("find attribute {0} in base_item {1}".format(attribute, base_item.id()))
+
     # 1: parent of given item could have attribute
     parent_item = base_item.return_parent()
     if parent_item is not None:
