@@ -30,33 +30,27 @@ logger = logging.getLogger()
 
 
 class AutoBlind:
-    _items = {}
+    __items = {}
     __item_regex = re.compile(".*\.AutoBlind\.active$")
-    __item_id_height = "hoehe"
-    __item_id_lamella = "lamelle"
-    __cycle = 300
-    __manual_break_default = 3600
     alive = False
 
     # Constructor
     # smarthome: instance of smarthome.py
-    # cycle: intervall to update the bind positions
-    # item_id_height: name of item to controll the blind's height below the main item of the blind
-    # item_id_lamella: name of item to controll the blind's lamella below the main item of the blind
-    def __init__(self, smarthome, cycle=300, item_id_height="hoehe", item_id_lamella="lamelle", log_level=0,
-                 log_directory="/usr/local/smarthome/var/log/AutoBlind/", manual_break_default=3600):
-
-        logger.info("Init AutoBlind (cycle={0}, item_id_height={1}, item_id_lamella={2}".format(cycle, item_id_height,
-                                                                                                item_id_lamella))
+    # cycle_default: default interval to update positions
+    # startup_delay_default: default startup delay
+    # manual_break_default: default break after manual changes of items
+    # log_level: loglevel for extended logging
+    # log_directory: directory for extended logging files
+    def __init__(self, smarthome, cycle_default=300, startup_delay_default=10, manual_break_default=3600,
+                 log_level=0, log_directory="/usr/local/smarthome/var/log/AutoBlind/"):
         self.sh = smarthome
-        self.__item_id_height = item_id_height
-        self.__item_id_lamella = item_id_lamella
-        self.__cycle = int(cycle)
 
-        AutoBlindDefaults.cycle = int(cycle)
+        logger.info("Init AutoBlind (log_level={0}, log_directory={1}".format(log_level, log_directory))
+
+        AutoBlindDefaults.cycle = int(cycle_default)
+        AutoBlindDefaults.startup_delay = int(startup_delay_default)
         AutoBlindDefaults.manual_break = int(manual_break_default)
-        AutoBlindDefaults.item_id_height = item_id_height
-        AutoBlindDefaults.item_id_lamella = item_id_lamella
+        AutoBlindDefaults.write_to_log()
 
         AutoBlindCurrent.init(smarthome)
 
@@ -68,7 +62,7 @@ class AutoBlind:
         # If item matches __item_regex, store it for later use
         if self.__item_regex.match(item.id()):
             use_item = item.return_parent().return_parent()
-            self._items[use_item.id()] = use_item
+            self.__items[use_item.id()] = use_item
 
         return None
 
@@ -78,24 +72,24 @@ class AutoBlind:
 
         # init AutoBlindItems based on previously stored items
         logger.info("Init AutoBlind Items")
-        items = self._items
-        self._items = {}
+        items = self.__items
+        self.__items = {}
         for item_id in items:
             item = AutoBlindItem.AbItem(self.sh, items[item_id])
             try:
                 item.validate()
-                self._items[item_id] = item
+                self.__items[item_id] = item
                 item.write_to_log()
             except ValueError as ex:
                 logger.exception(ex)
 
         # if we have items, wait some time, update the blind positions and afterwards schedule regular
         # recheck of updating the blind positions
-        if len(self._items) > 0:
-            logger.info("Using AutoBlind for {} items".format(len(self._items)))
+        if len(self.__items) > 0:
+            logger.info("Using AutoBlind for {} items".format(len(self.__items)))
 
-            for item_id in self._items:
-                self._items[item_id].startup()
+            for item_id in self.__items:
+                self.__items[item_id].startup()
 
         else:
             logger.info("AutoBlind deactivated because no items have been found.")

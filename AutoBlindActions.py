@@ -20,57 +20,36 @@
 #########################################################################
 from . import AutoBlindLogger
 from . import AutoBlindAction
-import logging
-
-lg = logging.getLogger()
 
 
-# Class representing a set of conditions
+# Class representing a list of actions
 class AbActions:
-    # Initialize the condition set
+    # Initialize the set of actions
     # smarthome: Instance of smarthome.py-class
-    # name: Name of condition set
     def __init__(self, smarthome):
         self.__sh = smarthome
         self.__actions = {}
 
-    # Return number of condition sets in list
+    # Return number of actions in list
     def count(self):
         return len(self.__actions)
-
-    # log action data
-    # logger: Instance of AbLogger to write log messages to
-    def write_to_log(self, logger: AutoBlindLogger.AbLogger):
-        pass
-
-    # Get a single action by name
-    # name: Name of action to return
-    # add: True = Add action if not existing, False = Return None if not existing
-    # returns: requested condition or "None" if not existing and add=False
-    def __get_action(self, name, add=False):
-        if name in self.__actions:
-            return self.__actions[name]
-        elif add:
-            action = AutoBlindAction.AbAction(self.__sh, name)
-            self.__set_action(action)
-            return action
-        else:
-            return None
-
-    # Set a single action
-    # condition: action to set
-    def __set_action(self, action):
-        self.__actions[action.name] = action
 
     # set a certain function to a given value
     # position_item: Item of position to which the action belongs
     # name: Name of action to update
     # value: value from set_(name) attribute
     def update(self, position_item, attribute):
+        # Split attribute in set_ and action name
         parts = attribute.partition("_")
         if parts[0] != "set":
             return
-        self.__get_action(parts[2], True)
+
+        # Ensure action exists
+        if not parts[2] in self.__actions:
+            action = AutoBlindAction.AbAction(self.__sh, parts[2])
+            self.__actions[action.name] = action
+
+        # Update action
         self.__actions[parts[2]].update(position_item, position_item.conf[attribute])
 
     # Check the actions optimize and complete them
@@ -80,8 +59,13 @@ class AbActions:
         for action_name in self.__actions:
             self.__actions[action_name].complete(item_position)
 
-    # Write condition to logger
-    # logger: Instance of AbLogger to write to
+    # Execute all actions
+    def execute(self, logger: AutoBlindLogger.AbLogger):
+        for action_name in self.__actions:
+            self.__actions[action_name].execute(logger)
+
+    # log all actions
+    # logger: Instance of AbLogger to write log messages to
     def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
         for action_name in self.__actions:
             logger.info("Action '{0}':", action_name)

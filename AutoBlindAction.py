@@ -20,14 +20,11 @@
 #########################################################################
 from . import AutoBlindTools
 from . import AutoBlindLogger
-import logging
-
-lg = logging.getLogger()
 
 
 # Class representing a single action
 class AbAction:
-    # Name of action
+    # name of action
     @property
     def name(self):
         return self.__name
@@ -36,7 +33,7 @@ class AbAction:
     def name(self, name):
         self.__name = AutoBlindTools.cast_str(name)
 
-    # Item to set value for action
+    # item to update if action is executed
     @property
     def item(self):
         return self.__item
@@ -48,7 +45,7 @@ class AbAction:
         else:
             self.__item = item
 
-    # Function to get value for action
+    # function to get the value if action is executed
     @property
     def eval(self):
         return self.__eval
@@ -57,7 +54,7 @@ class AbAction:
     def eval(self, eval_value):
         self.__eval = eval_value
 
-    # Value for the action
+    # static value to be set if action is executed
     @property
     def value(self):
         return self.__value
@@ -68,7 +65,7 @@ class AbAction:
             value = self.__item.cast(value)
         self.__value = value
 
-    # from-item for the action
+    # item to take the value from if action is executed
     @property
     def from_item(self):
         return self.__from_item
@@ -80,7 +77,7 @@ class AbAction:
         else:
             self.__item = from_item
 
-    # Name of eval-Object to be displayed in log
+    # Name of eval-object to be displayed in log
     @property
     def __eval_name(self):
         if self.__item is not None or self.__eval is None:
@@ -91,9 +88,9 @@ class AbAction:
             else:
                 return self.__eval.__module__ + "." + self.__eval.__name__
 
-    # Initialize the condition
+    # Initialize the action
     # smarthome: Instance of smarthome.py-class
-    # name: Name of condition
+    # name: Name of action
     def __init__(self, smarthome, name: str):
         self.__sh = smarthome
         self.__name = name
@@ -102,7 +99,8 @@ class AbAction:
         self.__eval = None
         self.__from_item = None
 
-    # set a certain function to a given value
+    # set the action based on the set_(action_name) attribute
+    # item_position: position item to read from
     # value: Value from set_(action_name) attribute
     def update(self, position_item, value):
 
@@ -130,23 +128,51 @@ class AbAction:
             self.eval = None
             self.from_item = set_value
 
-    # Complete condition (do some checks, cast value, min and max based on item or eval data types)
-    # item_position: item to read from
-    # abitem_object: Related AbItem instance for later determination of current age and current delay
-    # logger: Instance of AbLogger to write log messages to
+    # Complete action
+    # item_position: position item to read from
     def complete(self, item_position):
-        # missing item in condition: Try to find it
+        # missing item in action: Try to find it
         if self.item is None:
             result = AutoBlindTools.find_attribute(self.__sh, item_position, "item_" + self.name)
             if result is not None:
                 self.item = result
 
-    # Write condition to logger
+    # Execute action
+    # logger: Instance of AbLogger to write to
+    def execute(self, logger: AutoBlindLogger.AbLogger):
+        if self.__item is None:
+            logger.info("Action '{0}: No item defined. Ignoring.", self.__name)
+            return
+
+        value = None
+        if self.__value is not None:
+            value = self.__value
+        elif self.__eval is not None:
+            if isinstance(self.__eval, str):
+                # noinspection PyUnusedLocal
+                sh = self.__sh
+                try:
+                    value = eval(self.__eval)
+                except Exception as e:
+                    logger.info("Action '{0}: problem evaluating {1}: {2}.", self.__name, self.__eval_name, e)
+            else:
+                # noinspection PyCallingNonCallable
+                value = self.__eval()
+        elif self.__from_item is not None:
+            # noinspection PyCallingNonCallable
+            value = self.__from_item()
+
+        if value is not None:
+            logger.debug("Action '{0}: Set '{1}' to '{2}'", self.__name, self.__item.id(), value)
+            # noinspection PyCallingNonCallable
+            self.__item(value)
+
+    # Write action to logger
     # logger: Instance of AbLogger to write to
     def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
         if self.__item is not None:
             logger.debug("item: {0}", self.item.id())
         if self.__eval is not None:
             logger.debug("eval: {0}", self.__eval_name)
-        if self.__value is not None:
-            logger.debug("value: {0}", self.value)
+        if self.__from_item is not None:
+            logger.debug("value from item: {0}", self.from_item.id())

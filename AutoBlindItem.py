@@ -29,6 +29,7 @@ from . import AutoBlindDefaults
 # Class representing a blind item
 class AbItem:
     # return item id
+    @property
     def id(self):
         return self.__item.id()
 
@@ -59,9 +60,7 @@ class AbItem:
         self.__item = item
         self.__myLogger = AbLogger.create(item)
 
-        self.__myLogger.header("Initialize Item {0}".format(self.__name))
-        self.__item_height = AutoBlindTools.get_child_item(self.__item, AutoBlindDefaults.item_id_height)
-        self.__item_lamella = AutoBlindTools.get_child_item(self.__item, AutoBlindDefaults.item_id_lamella)
+        self.__myLogger.header("Initialize Item {0}".format(self.id))
         self.__item_autoblind = AutoBlindTools.get_child_item(self.__item, "AutoBlind")
         if self.__item_autoblind is None:
             return
@@ -95,16 +94,6 @@ class AbItem:
             raise ValueError(
                 "{0}: Item '{1}' does not have a sub-item 'lastpos_name'!".format(item_id, autoblind_id))
 
-        if self.__item_height is None:
-            raise ValueError(
-                "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id,
-                                                                         AutoBlindDefaults.item_id_height))
-
-        if self.__item_lamella is None:
-            raise ValueError(
-                "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id,
-                                                                         AutoBlindDefaults.item_id_lamella))
-
         if len(self.__positions) == 0:
             raise ValueError("{0}: No positions defined!".format(item_id))
 
@@ -113,8 +102,6 @@ class AbItem:
         self.__myLogger.header("Configuration of item {0}".format(self.__name))
         self.__myLogger.info("startup_delay: {0} seconds", self.__startup_delay)
         self.__myLogger.info("cycle: {0} seconds", self.__cycle)
-        self.__myLogger.info("Item 'Height': {0}", self.__item_height.id())
-        self.__myLogger.info("Item 'Lamella': {0}", self.__item_lamella.id())
         self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
         self.__myLogger.info("Item 'LastPos Id': {0}", self.__item_lastpos_id.id())
         self.__myLogger.info("Item 'LastPos Name': {0}", self.__item_lastpos_name.id())
@@ -145,7 +132,7 @@ class AbItem:
         # get last position
         last_position = self.__get_last_position()
         if last_position is not None:
-            self.__myLogger.info("Last position: {0} ('{1}')", last_position.id(), last_position.name)
+            self.__myLogger.info("Last position: {0} ('{1}')", last_position.id, last_position.name)
         if self.__can_not_leave_current_pos_since == 0:
             self.__delay = 0
         else:
@@ -153,7 +140,7 @@ class AbItem:
 
         # check if current position can be left
         if last_position is not None and not last_position.can_leave(self.__myLogger):
-            self.__myLogger.info("Can not leave current position, staying at {0} ('{1}')", last_position.id(),
+            self.__myLogger.info("Can not leave current position, staying at {0} ('{1}')", last_position.id,
                                  last_position.name)
             can_leave_position = False
             new_position = last_position
@@ -173,7 +160,7 @@ class AbItem:
 
             # no new position -> leave
             if new_position is None:
-                self.__myLogger.info("No matching position found, staying at {0} ('{1}')", last_position.id(),
+                self.__myLogger.info("No matching position found, staying at {0} ('{1}')", last_position.id,
                                      last_position.name)
                 return
         else:
@@ -183,38 +170,38 @@ class AbItem:
                 self.__can_not_leave_current_pos_since = 0
 
         # get data for new position
-        if new_position.id() == last_position.id():
+        if new_position.id == last_position.id:
             # New position is last position
             if self.__item_lastpos_name() != new_position.name:
                 self.__item_lastpos_name(new_position.name)
-            self.__myLogger.info("Staying at {0} ('{1}')", new_position.id(), new_position.name)
+            self.__myLogger.info("Staying at {0} ('{1}')", new_position.id, new_position.name)
         else:
             # New position is different from last position
-            self.__myLogger.info("Changing to {0} ('{1}')", new_position.id(), new_position.name)
+            self.__myLogger.info("Changing to {0} ('{1}')", new_position.id, new_position.name)
             self.__item_lastpos_id(new_position.id())
             self.__item_lastpos_name(new_position.name)
 
-        self.move_to(new_position)
+        new_position.activate(self.__myLogger)
 
-    # Move to given position
-    # position: Position to move to
-    def move_to(self, position: AutoBlindPosition.AbPosition):
-        # move blinds to this position
-        target_position = position.get_position(self.__myLogger)
-
-        # Change height only if we change for at least 10%
-        height_delta = self.__item_height() - target_position[0]
-        if abs(height_delta) >= 10:
-            self.__item_height(target_position[0])
-
-        # Change lamella only if we change for at least 5%
-        lamella_delta = self.__item_lamella() - target_position[1]
-        if abs(lamella_delta) >= 5:
-            self.__item_lamella(target_position[1])
+#    # Move to given position
+#    # position: Position to move to
+#    def move_to(self, position: AutoBlindPosition.AbPosition):
+#        # move blinds to this position
+#        target_position = position.get_position(self.__myLogger)
+#
+#        # Change height only if we change for at least 10%
+#        height_delta = self.__item_height() - target_position[0]
+#        if abs(height_delta) >= 10:
+#            self.__item_height(target_position[0])
+#
+#        # Change lamella only if we change for at least 5%
+#        lamella_delta = self.__item_lamella() - target_position[1]
+#        if abs(lamella_delta) >= 5:
+#            self.__item_lamella(target_position[1])
 
     # startup scheduler after startup_delay
     def startup(self):
-        name = "autoblind-" + self.id()
+        name = "autoblind-" + self.id
         self.sh.scheduler.add(name, self.update_position, cycle=self.__cycle, offset=self.__startup_delay)
 
     # get last position based on lastpos_id item
@@ -223,7 +210,7 @@ class AbItem:
         # noinspection PyCallingNonCallable
         last_pos_id = self.__item_lastpos_id()
         for position in self.__positions:
-            if position.id() == last_pos_id:
+            if position.id == last_pos_id:
                 return position
         return None
 

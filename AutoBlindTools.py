@@ -19,9 +19,6 @@
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 import datetime
-import logging
-
-lg = logging.getLogger()
 
 
 #
@@ -46,18 +43,19 @@ def get_child_item(item, child_id):
 # attribute_name: Name of attribute to search and return
 # default: Value to return if item does not contain attribute
 # returns: Attribute value if found. Otherwise given default value or None of no default value is given
-def get_str_attribute(item, attribute_name, default = None):
+def get_str_attribute(item, attribute_name, default=None):
     if attribute_name in item.conf:
         return cast_str(item.conf[attribute_name])
     else:
         return default
+
 
 # Find and return a certain num attribute of an item
 # item: Item to search attribute
 # attribute_name: Name of attribute to search and return
 # default: Value to return if item does not contain attribute
 # returns: Attribute value if found. Otherwise given default value or 0 of no default value is given
-def get_num_attribute(item, attribute_name, default = None):
+def get_num_attribute(item, attribute_name, default=None):
     if attribute_name in item.conf:
         return cast_num(item.conf[attribute_name])
     else:
@@ -69,33 +67,6 @@ def get_num_attribute(item, attribute_name, default = None):
 # returns: last part of item id
 def get_last_part_of_item_id(item):
     return item.id().rsplit(".", 1)[1]
-
-
-# Return the value of a given attribute as position ([height, lamella] or 'auto')
-# item: item to read the attribute from
-# attribute: name of attribute to return
-# returns: value of attribute as position or None if value of attribute can not be converted into position
-def get_position_attribute(item, attribute):
-    if attribute not in item.conf:
-        return None
-
-    value = item.conf[attribute]
-    if value == "auto":
-        return "auto"
-    value_parts = value.split(",")
-    if len(value_parts) != 2:
-        raise ValueError(
-            "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                attribute, item.id()))
-    else:
-        try:
-            height = int(value_parts[0])
-            lamella = int(value_parts[1])
-            return [height, lamella]
-        except ValueError:
-            raise ValueError(
-                "Das Konfigurations-Attribut '{0}' im Item '{1}' muss im Format '###, ###' angegeben werden.".format(
-                    attribute, item.id()))
 
 
 # cast a value as numeric. Throws ValueError if cast not possible
@@ -180,8 +151,6 @@ def cast_time(value):
 # base_item: base item to search in
 # attribute: name of attribute to find
 def find_attribute(smarthome, base_item, attribute):
-    lg.warning("find attribute {0} in base_item {1}".format(attribute, base_item.id()))
-
     # 1: parent of given item could have attribute
     parent_item = base_item.return_parent()
     if parent_item is not None:

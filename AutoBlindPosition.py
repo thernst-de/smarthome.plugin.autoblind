@@ -21,20 +21,17 @@
 from . import AutoBlindTools
 from . import AutoBlindConditionSets
 from . import AutoBlindLogger
-from . import AutoBlindCurrent
 from . import AutoBlindActions
-import logging
-
-lg = logging.getLogger()
 
 
 # Class representing a blind position, consisting of name, conditions to be met and configured position of blind
 class AbPosition:
     # Return id of position (= id of defining item)
+    @property
     def id(self):
         return self.__item.id()
 
-    # Return name of position ( = name of defining item)
+    # Return name of position
     @property
     def name(self):
         return self.__name
@@ -45,12 +42,11 @@ class AbPosition:
     # logger: Instance of AbLogger to write log messages to
     def __init__(self, smarthome, item_position, item_autoblind, abitem_object, logger: AutoBlindLogger.AbLogger):
         self.__sh = smarthome
-        self.__name = ""
-        self.__position = [None, None]
-        self.__actions = AutoBlindActions.AbActions(self.__sh)
         self.__item = item_position
+        self.__name = ""
         self.__enterConditionSets = AutoBlindConditionSets.AbConditionSets(self.__sh)
         self.__leaveConditionSets = AutoBlindConditionSets.AbConditionSets(self.__sh)
+        self.__actions = AutoBlindActions.AbActions(self.__sh)
 
         logger.info("Init AutoBlindPosition {}", item_position.id())
         self.__fill(self.__item, 0, item_autoblind, abitem_object, logger)
@@ -59,7 +55,7 @@ class AbPosition:
     # logger: Instance of AbLogger to write log messages to
     # returns: True = At least one enter condition set is fulfulled, False = No enter condition set is fulfilled
     def can_enter(self, logger: AutoBlindLogger.AbLogger):
-        logger.info("Check if position '{0}' ('{1}') can be entered:", self.id(), self.name)
+        logger.info("Check if position '{0}' ('{1}') can be entered:", self.id, self.name)
         logger.increase_indent()
         result = self.__enterConditionSets.one_conditionset_matching(logger)
         logger.decrease_indent()
@@ -73,7 +69,7 @@ class AbPosition:
     # logger: Instance of AbLogger to write log messages to
     # returns: True = At least one leave condition set is fulfulled, False = No leave condition set is fulfilled
     def can_leave(self, logger: AutoBlindLogger.AbLogger):
-        logger.info("Check if position '{0}' ('{1}') can be left:", self.id(), self.name)
+        logger.info("Check if position '{0}' ('{1}') can be left:", self.id, self.name)
         logger.increase_indent()
         result = self.__leaveConditionSets.one_conditionset_matching(logger)
         logger.decrease_indent()
@@ -86,7 +82,7 @@ class AbPosition:
     # validate position data
     # returns: TRUE = data ok, FALSE = data not ok
     def validate(self):
-        if self.__position is None:
+        if self.__actions.count() == 0:
             return False
 
         return True
@@ -94,7 +90,7 @@ class AbPosition:
     # log position data
     # logger: Instance of AbLogger to write log messages to
     def write_to_log(self, logger: AutoBlindLogger.AbLogger):
-        logger.info("Position {0}:", self.id())
+        logger.info("Position {0}:", self.id)
         logger.increase_indent()
         logger.info("Name: {0}", self.__name)
         if self.__enterConditionSets.count() > 0:
@@ -114,22 +110,29 @@ class AbPosition:
             logger.decrease_indent()
         logger.decrease_indent()
 
-    # return position data for position
-    # logger: Instance of AbLogger to write log messages to
-    # returns: list [%-heigth,%-lamella]: blind position
-    def get_position(self, logger: AutoBlindLogger.AbLogger):
-        if self.__position != "auto":
-            return self.__position
+    # activate position
+    def activate(self, logger: AutoBlindLogger.AbLogger):
+        logger.increase_indent()
+        self.__actions.execute(logger)
+        logger.decrease_indent()
 
-        sun_altitude = AutoBlindCurrent.values.get_sun_altitude()
 
-        logger.debug("Calculating blind position based on sun position (altitude {0}°)", sun_altitude)
-
-        # Blinds at right angle to sun
-        angel = 90 - sun_altitude
-        logger.debug("Lamella angle to {0}°", angel)
-
-        return [100, angel]
+#    # return position data for position
+#    # logger: Instance of AbLogger to write log messages to
+#    # returns: list [%-heigth,%-lamella]: blind position
+#    def get_position(self, logger: AutoBlindLogger.AbLogger):
+#        if self.__position != "auto":
+#            return self.__position
+#
+#        sun_altitude = AutoBlindCurrent.values.get_sun_altitude()
+#
+#        logger.debug("Calculating blind position based on sun position (altitude {0}°)", sun_altitude)
+#
+#        # Blinds at right angle to sun
+#        angel = 90 - sun_altitude
+#        logger.debug("Lamella angle to {0}°", angel)
+#
+#        return [100, angel]
 
     # Read configuration from item and populate data in class
     # item_position: item to read from
@@ -162,19 +165,18 @@ class AbPosition:
 
         # This is the blind position for this item
         if "position" in item_position.conf:
-            self.__position = AutoBlindTools.get_position_attribute(item_position, "position")
+            logger.error("Position '{0}': Attribute 'position' is no longer supported!", item_position.id())
 
         for attribute in item_position.conf:
             if attribute.startswith("set_") and attribute != "set_":
-                lg.warning("Processing Item {0} attribute {1}".format(item_position.id(), attribute))
-                self.__actions.update(item_position,attribute)
+                self.__actions.update(item_position, attribute)
 
         # if an item name is given, or if we do not have a name after returning from all recursions,
         # use item name as position name
         if str(item_position) != item_position.id() or (self.__name == "" and recursion_depth == 0):
             self.__name = str(item_position)
 
-        # Complete condition sets at the end
+        # Complete condition sets and actions at the end
         if recursion_depth == 0:
             self.__enterConditionSets.complete(item_position, abitem_object, logger)
             self.__leaveConditionSets.complete(item_position, abitem_object, logger)
