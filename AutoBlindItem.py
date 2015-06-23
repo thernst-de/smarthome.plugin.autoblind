@@ -18,16 +18,12 @@
 #  You should have received a copy of the GNU General Public License
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
-#
-# AutoBlindItem
-#
-# Class representing a blind item
-#########################################################################
 import time
 import datetime
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
+from . import AutoBlindDefaults
 
 
 # Class representing a blind item
@@ -42,12 +38,13 @@ class AbItem:
     # item_id_height: name of item to controll the blind's height below the main item of the blind
     # item_id_lamella: name of item to controll the blind's lamella below the main item of the blind
     # manual_break_default: default value for "manual_break" if no value is set for specific item
-    def __init__(self, smarthome, item, item_id_height="hoehe", item_id_lamella="lamelle", manual_break_default=3600):
+    def __init__(self, smarthome, item):
         self.sh = smarthome
-        self.__item_id_height = item_id_height
-        self.__item_id_lamella = item_id_lamella
         self.__positions = []
 
+        self.__cycle = None
+        self.__startup_delay = None
+        self.__name = None
         self.__item_active = None
         self.__item_lastpos_id = None
         self.__item_lastpos_name = None
@@ -61,19 +58,18 @@ class AbItem:
         self.__item = item
         self.__myLogger = AbLogger.create(item)
 
-        self.__myLogger.header("Initialize Item")
-        self.__item_height = AutoBlindTools.get_child_item(self.__item, self.__item_id_height)
-        self.__item_lamella = AutoBlindTools.get_child_item(self.__item, self.__item_id_lamella)
+        self.__myLogger.header("Initialize Item {0}".format(self.__name))
+        self.__item_height = AutoBlindTools.get_child_item(self.__item, AutoBlindDefaults.item_id_height)
+        self.__item_lamella = AutoBlindTools.get_child_item(self.__item, AutoBlindDefaults.item_id_lamella)
         self.__item_autoblind = AutoBlindTools.get_child_item(self.__item, "AutoBlind")
         if self.__item_autoblind is None:
             return
 
         # initialize everything else
-        self.__init_items()
+        self.__init_config()
         self.__init_positions()
         self.__init_watch_manual()
         self.__init_watch_trigger()
-        self.__init_manual_break(manual_break_default)
 
     # Validate data in instance
     # A ValueError is being thown in case of errors
@@ -100,18 +96,22 @@ class AbItem:
 
         if self.__item_height is None:
             raise ValueError(
-                "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id, self.__item_id_height))
+                "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id,
+                                                                         AutoBlindDefaults.item_id_height))
 
         if self.__item_lamella is None:
             raise ValueError(
-                "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id, self.__item_id_lamella))
+                "{0}: Item '{1}' does not have a sub-item '{2}'!".format(item_id, item_id,
+                                                                         AutoBlindDefaults.item_id_lamella))
 
         if len(self.__positions) == 0:
             raise ValueError("{0}: No positions defined!".format(item_id))
 
     # log item data
     def write_to_log(self):
-        self.__myLogger.header("Configuration")
+        self.__myLogger.header("Configuration of item {0}".format(self.__name))
+        self.__myLogger.info("startup_delay: {0} seconds", self.__startup_delay)
+        self.__myLogger.info("cycle: {0} seconds", self.__cycle)
         self.__myLogger.info("Item 'Height': {0}", self.__item_height.id())
         self.__myLogger.info("Item 'Lamella': {0}", self.__item_lamella.id())
         self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
@@ -133,7 +133,7 @@ class AbItem:
     # noinspection PyCallingNonCallable
     def update_position(self, caller=None):
         self.__myLogger.update_logfile()
-        self.__myLogger.header("Update Position")
+        self.__myLogger.header("Update Position of item {0}".format(self.__name))
         if caller:
             self.__myLogger.debug("Update triggered by {0}", caller)
 
@@ -210,6 +210,11 @@ class AbItem:
         lamella_delta = self.__item_lamella() - target_position[1]
         if abs(lamella_delta) >= 5:
             self.__item_lamella(target_position[1])
+
+    # startup scheduler after startup_delay
+    def startup(self):
+        name = "autoblind-" + self.id()
+        self.sh.scheduler.add(name, self.update_position, cycle=self.__cycle, offset=self.__startup_delay)
 
     # get last position based on lastpos_id item
     # returns: AbPosition instance of last position or "None" if no last position could be found
@@ -335,8 +340,17 @@ class AbItem:
         self.__item_lastpos_name("Manuell deaktiviert")
         return False
 
-    # initialize items
-    def __init_items(self):
+    # initialize configuration
+    def __init_config(self):
+        self.__name = str(self.__item_autoblind)
+        self.__cycle = AutoBlindTools.get_num_attribute(self.__item_autoblind, "cycle", AutoBlindDefaults.cycle)
+        if self.__cycle == 0:
+            self.__cycle = None
+        self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item_autoblind, "startup_delay",
+                                                                AutoBlindDefaults.startup_delay)
+        self.__manual_break = AutoBlindTools.get_num_attribute(self.__item_autoblind, "manual_break",
+                                                               AutoBlindDefaults.manual_break)
+
         self.__item_active = AutoBlindTools.get_child_item(self.__item_autoblind, "active")
         self.__item_lastpos_id = AutoBlindTools.get_child_item(self.__item_autoblind, "lastpos_id")
         self.__item_lastpos_name = AutoBlindTools.get_child_item(self.__item_autoblind, "lastpos_name")
@@ -382,11 +396,3 @@ class AbItem:
                 item.add_method_trigger(self.__watch_trigger_callback)
                 self.__myLogger.info(item.id())
         self.__myLogger.decrease_indent()
-
-    # initialize "manual_break"
-    # manual_break_default: default value for "manual_break" if no value is set for specific item
-    def __init_manual_break(self, manual_break_default):
-        if "manual_break" in self.__item_autoblind.conf:
-            self.__manual_break = int(self.__item_autoblind.conf["manual_break"])
-        else:
-            self.__manual_break = manual_break_default

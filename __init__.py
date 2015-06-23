@@ -20,10 +20,10 @@
 #########################################################################
 
 import re
-import time
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindItem
 from . import AutoBlindCurrent
+from . import AutoBlindDefaults
 import logging
 
 logger = logging.getLogger()
@@ -52,9 +52,14 @@ class AutoBlind:
         self.__item_id_height = item_id_height
         self.__item_id_lamella = item_id_lamella
         self.__cycle = int(cycle)
-        self.__manual_break_default = manual_break_default
+
+        AutoBlindDefaults.cycle = int(cycle)
+        AutoBlindDefaults.manual_break = int(manual_break_default)
+        AutoBlindDefaults.item_id_height = item_id_height
+        AutoBlindDefaults.item_id_lamella = item_id_lamella
 
         AutoBlindCurrent.init(smarthome)
+
         AbLogger.set_loglevel(log_level)
         AbLogger.set_logdirectory(log_directory)
 
@@ -76,8 +81,7 @@ class AutoBlind:
         items = self._items
         self._items = {}
         for item_id in items:
-            item = AutoBlindItem.AbItem(self.sh, items[item_id], self.__item_id_height, self.__item_id_lamella,
-                                        self.__manual_break_default)
+            item = AutoBlindItem.AbItem(self.sh, items[item_id])
             try:
                 item.validate()
                 self._items[item_id] = item
@@ -89,20 +93,13 @@ class AutoBlind:
         # recheck of updating the blind positions
         if len(self._items) > 0:
             logger.info("Using AutoBlind for {} items".format(len(self._items)))
-            time.sleep(10)
-            self.update_positions("init")
-            if self.__cycle > 0:
-                self.sh.scheduler.add("autoblind", self.update_positions, cycle=self.__cycle)
+
+            for item_id in self._items:
+                self._items[item_id].startup()
+
         else:
             logger.info("AutoBlind deactivated because no items have been found.")
 
     # Stopping of plugin
     def stop(self):
         self.alive = False
-
-    # Update the positions of all configured blinds
-    def update_positions(self, caller="cycle"):
-        logger.info("Updating positions")
-        AutoBlindCurrent.update()
-        for item in self._items:
-            self._items[item].update_position(caller)
