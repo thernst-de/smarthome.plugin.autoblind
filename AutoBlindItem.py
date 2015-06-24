@@ -24,6 +24,7 @@ from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindPosition
 from . import AutoBlindDefaults
+from . import AutoBlindCurrent
 
 
 # Class representing a blind item
@@ -119,6 +120,9 @@ class AbItem:
         # Check if this AutoBlindItem is active. Leave if not
         if not self.__check_active():
             return
+
+        # Update current values
+        AutoBlindCurrent.update()
 
         # get last position
         last_position = self.__get_last_position()
