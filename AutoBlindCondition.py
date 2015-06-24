@@ -178,6 +178,8 @@ class AbCondition:
                 self.eval = abitem_object.get_delay
             elif self.name == "time":
                 self.eval = AutoBlindCurrent.values.get_time
+            elif self.name == "random":
+                self.eval = AutoBlindCurrent.values.get_random
 
         # missing item in condition: Try to find it
         if self.item is None:

@@ -21,7 +21,7 @@
 import time
 import math
 import datetime
-
+from random import randint
 
 # Static current conditions object
 values = None
@@ -67,6 +67,9 @@ class AbCurrent:
     def get_sun_altitude(self):
         return self.__sun_altitude
 
+    def get_random(self):
+        return randint(0,100)
+
     # Update current values
     def update(self):
         now = time.localtime()
@@ -75,3 +78,5 @@ class AbCurrent:
         azimut, altitude = self.__sh.sun.pos()
         self.__sun_azimut = math.degrees(float(azimut))
         self.__sun_altitude = math.degrees(float(altitude))
+
+
