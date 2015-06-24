@@ -177,22 +177,6 @@ class AbItem:
 
         new_position.activate(self.__myLogger)
 
-    #    # Move to given position
-    #    # position: Position to move to
-    #    def move_to(self, position: AutoBlindPosition.AbPosition):
-    #        # move blinds to this position
-    #        target_position = position.get_position(self.__myLogger)
-    #
-    #        # Change height only if we change for at least 10%
-    #        height_delta = self.__item_height() - target_position[0]
-    #        if abs(height_delta) >= 10:
-    #            self.__item_height(target_position[0])
-    #
-    #        # Change lamella only if we change for at least 5%
-    #        lamella_delta = self.__item_lamella() - target_position[1]
-    #        if abs(lamella_delta) >= 5:
-    #            self.__item_lamella(target_position[1])
-
     # startup scheduler after startup_delay
     def startup(self):
         name = "autoblind-" + self.id

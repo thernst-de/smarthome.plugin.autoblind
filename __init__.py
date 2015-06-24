@@ -53,14 +53,6 @@ class AutoBlind:
         AbLogger.set_loglevel(log_level)
         AbLogger.set_logdirectory(log_directory)
 
-#    # Called during initialization of smarthome.py for each item
-#    def parse_item(self, item):
-#        # If item matches __item_regex, store it for later use
-#        if "autoblind_plugin" in item.conf and item.conf["autoblind_plugin"] == "active":
-#            self.__items[item.id()] = item
-#
-#        return None
-
     # Initialization of plugin
     def run(self):
         self.alive = True

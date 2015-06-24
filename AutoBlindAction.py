@@ -65,6 +65,17 @@ class AbAction:
             value = self.__item.cast(value)
         self.__value = value
 
+    # minimum delta, action is not executed if delta is below this value
+    @property
+    def mindelta(self):
+        return self.__mindelta
+
+    @mindelta.setter
+    def mindelta(self, mindelta):
+        if self.__mindelta is not None and mindelta is not None:
+            mindelta = self.__item.cast(mindelta)
+        self.__mindelta = mindelta
+
     # item to take the value from if action is executed
     @property
     def from_item(self):
@@ -98,6 +109,7 @@ class AbAction:
         self.__value = None
         self.__eval = None
         self.__from_item = None
+        self.__mindelta = None
 
     # set the action based on the set_(action_name) attribute
     # item_position: position item to read from
@@ -137,6 +149,17 @@ class AbAction:
             if result is not None:
                 self.item = result
 
+        if self.mindelta is None:
+            result = AutoBlindTools.find_attribute(self.__sh, item_position, "mindelta_" + self.name)
+            if result is not None:
+                self.mindelta = result
+
+        if self.__item is not None:
+            if self.__value is not None:
+                self.__value = self.__item.cast(self.__value)
+            if self.__mindelta is not None:
+                self.__mindelta = self.__item.cast(self.__mindelta)
+
     # Execute action
     # logger: Instance of AbLogger to write to
     def execute(self, logger: AutoBlindLogger.AbLogger):
@@ -163,6 +186,15 @@ class AbAction:
             value = self.__from_item()
 
         if value is not None:
+            if self.mindelta is not None:
+                # noinspection PyCallingNonCallable
+                delta = abs(self.__item() - value)
+                if delta < self.mindelta:
+                    logger.debug(
+                        "Action '{0}: Not setting '{1}' to '{2}' because delta '{3}' is lower than mindelta '{4}'",
+                        self.__name, self.__item.id(), value, delta, self.mindelta)
+                    return
+
             logger.debug("Action '{0}: Set '{1}' to '{2}'", self.__name, self.__item.id(), value)
             # noinspection PyCallingNonCallable
             self.__item(value)
@@ -172,6 +204,8 @@ class AbAction:
     def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
         if self.__item is not None:
             logger.debug("item: {0}", self.item.id())
+        if self.__mindelta is not None:
+            logger.debug("mindelta: {0}", self.__mindelta)
         if self.__value is not None:
             logger.debug("value: {0}", self.__value)
         if self.__eval is not None:

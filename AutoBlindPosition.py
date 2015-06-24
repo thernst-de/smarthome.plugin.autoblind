@@ -116,24 +116,6 @@ class AbPosition:
         self.__actions.execute(logger)
         logger.decrease_indent()
 
-
-#    # return position data for position
-#    # logger: Instance of AbLogger to write log messages to
-#    # returns: list [%-heigth,%-lamella]: blind position
-#    def get_position(self, logger: AutoBlindLogger.AbLogger):
-#        if self.__position != "auto":
-#            return self.__position
-#
-#        sun_altitude = AutoBlindCurrent.values.get_sun_altitude()
-#
-#        logger.debug("Calculating blind position based on sun position (altitude {0}°)", sun_altitude)
-#
-#        # Blinds at right angle to sun
-#        angel = 90 - sun_altitude
-#        logger.debug("Lamella angle to {0}°", angel)
-#
-#        return [100, angel]
-
     # Read configuration from item and populate data in class
     # item_position: item to read from
     # recursion_depth: current recursion_depth (recursion is canceled after five levels)
