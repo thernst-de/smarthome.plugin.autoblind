@@ -62,6 +62,12 @@ __Old configuration:__
             [[[[leave]]]]
                 (...)
             position = 100,25
+        [[[Position2]]]
+            [[[[enter]]]]
+                (...)            
+            [[[[leave]]]]
+                (...)
+            position = auto
 __New configuration:__
 
     (...)
@@ -81,9 +87,17 @@ __New configuration:__
                 (...)
             set_height = value: 100
             set_lamella = value:25
+        [[[Position2]]]
+            [[[[enter]]]]
+                (...)            
+            [[[[leave]]]]
+                (...)
+            set_height = value: 100
+            set_lamella = eval:AutoBlindEval.SunTracking()
  These changes also allow you to have your configuration completely separate from the items they relate to. You could e.g. have a separate configuration file for all your blind. Also, the plugin can easier be used if you have shutters only or for other things like ventilation systems
+
+ The file AutoBlindEval.py contains functions that can be used for "eval"
  
 ###Further planning###
-- The plugin should deliver some standard functions that can be used with "eval:" (e.g. track the sun)
 - It should be possible to trigger logics, too 
  

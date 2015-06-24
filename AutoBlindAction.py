@@ -20,6 +20,8 @@
 #########################################################################
 from . import AutoBlindTools
 from . import AutoBlindLogger
+# noinspection PyUnresolvedReferences
+from . import AutoBlindEval
 
 
 # Class representing a single action
@@ -91,7 +93,7 @@ class AbAction:
     # Name of eval-object to be displayed in log
     @property
     def __eval_name(self):
-        if self.__item is not None or self.__eval is None:
+        if self.__eval is None:
             return None
         if self.__eval is not None:
             if isinstance(self.__eval, str):
@@ -174,6 +176,9 @@ class AbAction:
             if isinstance(self.__eval, str):
                 # noinspection PyUnusedLocal
                 sh = self.__sh
+                if self.__eval.startswith("autoblind_eval"):
+                    # noinspection PyUnusedLocal
+                    autoblind_eval = AutoBlindEval.AbEval(self.__sh,logger)
                 try:
                     value = eval(self.__eval)
                 except Exception as e:
@@ -181,6 +186,11 @@ class AbAction:
             else:
                 # noinspection PyCallingNonCallable
                 value = self.__eval()
+            try:
+                value = self.__item.cast(value)
+            except Exception as e:
+                logger.debug("eval returned '{0}', trying to cast this returned exception '{1}'",value, e)
+                value = None
         elif self.__from_item is not None:
             # noinspection PyCallingNonCallable
             value = self.__from_item()
