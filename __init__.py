@@ -18,8 +18,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
-
-import re
 from .AutoBlindLogger import AbLogger
 from . import AutoBlindItem
 from . import AutoBlindCurrent
@@ -30,10 +28,6 @@ logger = logging.getLogger()
 
 
 class AutoBlind:
-    __items = {}
-    __item_regex = re.compile(".*\.AutoBlind\.active$")
-    alive = False
-
     # Constructor
     # smarthome: instance of smarthome.py
     # cycle_default: default interval to update positions
@@ -43,7 +37,9 @@ class AutoBlind:
     # log_directory: directory for extended logging files
     def __init__(self, smarthome, cycle_default=300, startup_delay_default=10, manual_break_default=3600,
                  log_level=0, log_directory="/usr/local/smarthome/var/log/AutoBlind/"):
-        self.sh = smarthome
+        self._sh = smarthome
+        self.__items = {}
+        self.alive = False
 
         logger.info("Init AutoBlind (log_level={0}, log_directory={1}".format(log_level, log_directory))
 
@@ -57,14 +53,13 @@ class AutoBlind:
         AbLogger.set_loglevel(log_level)
         AbLogger.set_logdirectory(log_directory)
 
-    # Called during initialization of smarthome.py for each item
-    def parse_item(self, item):
-        # If item matches __item_regex, store it for later use
-        if self.__item_regex.match(item.id()):
-            use_item = item.return_parent().return_parent()
-            self.__items[use_item.id()] = use_item
-
-        return None
+#    # Called during initialization of smarthome.py for each item
+#    def parse_item(self, item):
+#        # If item matches __item_regex, store it for later use
+#        if "autoblind_plugin" in item.conf and item.conf["autoblind_plugin"] == "active":
+#            self.__items[item.id()] = item
+#
+#        return None
 
     # Initialization of plugin
     def run(self):
@@ -72,13 +67,15 @@ class AutoBlind:
 
         # init AutoBlindItems based on previously stored items
         logger.info("Init AutoBlind Items")
-        items = self.__items
-        self.__items = {}
-        for item_id in items:
-            item = AutoBlindItem.AbItem(self.sh, items[item_id])
+        possible_items = self._sh.find_items("autoblind_plugin")
+        for possible_item in possible_items:
+            if possible_item.conf["autoblind_plugin"] != "active":
+                continue
+
+            item = AutoBlindItem.AbItem(self._sh, possible_item)
             try:
                 item.validate()
-                self.__items[item_id] = item
+                self.__items[item.id] = item
                 item.write_to_log()
             except ValueError as ex:
                 logger.exception(ex)

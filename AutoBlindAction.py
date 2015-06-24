@@ -172,6 +172,8 @@ class AbAction:
     def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
         if self.__item is not None:
             logger.debug("item: {0}", self.item.id())
+        if self.__value is not None:
+            logger.debug("value: {0}", self.__value)
         if self.__eval is not None:
             logger.debug("eval: {0}", self.__eval_name)
         if self.__from_item is not None:
