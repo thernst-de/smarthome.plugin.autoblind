@@ -38,7 +38,7 @@ class AbActions:
     # position_item: Item of position to which the action belongs
     # name: Name of action to update
     # value: value from set_(name) attribute
-    def update(self, position_item, attribute):
+    def update_set(self, position_item, attribute):
         # Split attribute in set_ and action name
         parts = attribute.partition("_")
         if parts[0] != "set":
@@ -50,7 +50,21 @@ class AbActions:
             self.__actions[action.name] = action
 
         # Update action
-        self.__actions[parts[2]].update(position_item, position_item.conf[attribute])
+        self.__actions[parts[2]].update_set(position_item, position_item.conf[attribute])
+
+    def update_trigger(self, position_item, attribute):
+        # Split attribute in set_ and action name
+        parts = attribute.partition("_")
+        if parts[0] != "set":
+            return
+
+        # Ensure action exists
+        if not parts[2] in self.__actions:
+            action = AutoBlindAction.AbAction(self.__sh, parts[2])
+            self.__actions[action.name] = action
+
+        # Update action
+        self.__actions[parts[2]].update_trigger(position_item, position_item.conf[attribute])
 
     # Check the actions optimize and complete them
     # item_position: item to read from

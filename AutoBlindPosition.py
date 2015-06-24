@@ -151,7 +151,9 @@ class AbPosition:
 
         for attribute in item_position.conf:
             if attribute.startswith("set_") and attribute != "set_":
-                self.__actions.update(item_position, attribute)
+                self.__actions.update_set(item_position, attribute)
+            if attribute.startswith("trigger_") and attribute != "trigger_":
+                self.__actions.update_trigger(item_position, attribute)
 
         # if an item name is given, or if we do not have a name after returning from all recursions,
         # use item name as position name

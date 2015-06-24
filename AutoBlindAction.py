@@ -101,6 +101,15 @@ class AbAction:
             else:
                 return self.__eval.__module__ + "." + self.__eval.__name__
 
+    # logic to trigger
+    @property
+    def logic(self):
+        return self.__logic
+
+    @logic.setter
+    def logic(self, logic):
+        self.__logic = logic
+
     # Initialize the action
     # smarthome: Instance of smarthome.py-class
     # name: Name of action
@@ -112,11 +121,12 @@ class AbAction:
         self.__eval = None
         self.__from_item = None
         self.__mindelta = None
+        self.__logic = None
 
     # set the action based on the set_(action_name) attribute
     # item_position: position item to read from
     # value: Value from set_(action_name) attribute
-    def update(self, position_item, value):
+    def update_set(self, position_item, value):
 
         if self.item is None:
             self.item = AutoBlindTools.find_attribute(self.__sh, position_item, "item_" + self.__name)
@@ -141,30 +151,50 @@ class AbAction:
             self.value = None
             self.eval = None
             self.from_item = set_value
+        self.logic = None
+
+    # set the action based on the trigger_(name) attribute
+    # item_position: position item to read from
+    # value: Value from set_(action_name) attribute
+    def update_trigger(self, position_item, value):
+        parts = value.partition(":")
+        self.__logic = parts[0]
+        if parts[2] != "":
+            self.__value = parts[2]
+        self.eval = None
+        self.from_item = None
+
 
     # Complete action
     # item_position: position item to read from
     def complete(self, item_position):
-        # missing item in action: Try to find it
-        if self.item is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_position, "item_" + self.name)
-            if result is not None:
-                self.item = result
+        if self.logic is None:
+            # missing item in action: Try to find it. Nothing to do in case of logic
+            if self.item is None:
+                result = AutoBlindTools.find_attribute(self.__sh, item_position, "item_" + self.name)
+                if result is not None:
+                    self.item = result
 
-        if self.mindelta is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_position, "mindelta_" + self.name)
-            if result is not None:
-                self.mindelta = result
+            if self.mindelta is None:
+                result = AutoBlindTools.find_attribute(self.__sh, item_position, "mindelta_" + self.name)
+                if result is not None:
+                    self.mindelta = result
 
-        if self.__item is not None:
-            if self.__value is not None:
-                self.__value = self.__item.cast(self.__value)
-            if self.__mindelta is not None:
-                self.__mindelta = self.__item.cast(self.__mindelta)
+            if self.__item is not None:
+                if self.__value is not None:
+                    self.__value = self.__item.cast(self.__value)
+                if self.__mindelta is not None:
+                    self.__mindelta = self.__item.cast(self.__mindelta)
 
     # Execute action
     # logger: Instance of AbLogger to write to
     def execute(self, logger: AutoBlindLogger.AbLogger):
+        if self.__logic is not None:
+            # Trigger logic
+            logger.info("Action '{0}: Triggering logic '{1}' using value '{2}'.", self.__name, self.__logic, self.__value)
+            self.__sh.trigger(self.__logic, by="AutoBlind Plugin", source = self.__name, value = self.__value  )
+            return
+
         if self.__item is None:
             logger.info("Action '{0}: No item defined. Ignoring.", self.__name)
             return
@@ -212,8 +242,10 @@ class AbAction:
     # Write action to logger
     # logger: Instance of AbLogger to write to
     def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
+        if self.__logic is not None:
+            logger.debug("logic: {0}", self.__logic)
         if self.__item is not None:
-            logger.debug("item: {0}", self.item.id())
+            logger.debug("item: {0}", self.__item.id())
         if self.__mindelta is not None:
             logger.debug("mindelta: {0}", self.__mindelta)
         if self.__value is not None:
@@ -221,4 +253,4 @@ class AbAction:
         if self.__eval is not None:
             logger.debug("eval: {0}", self.__eval_name)
         if self.__from_item is not None:
-            logger.debug("value from item: {0}", self.from_item.id())
+            logger.debug("value from item: {0}", self.__from_item.id())
