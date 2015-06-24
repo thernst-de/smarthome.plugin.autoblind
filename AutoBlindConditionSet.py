@@ -20,6 +20,7 @@
 #########################################################################
 from . import AutoBlindCondition
 from . import AutoBlindLogger
+from . import AutoBlindTools
 
 
 # Class representing a set of conditions
@@ -42,25 +43,6 @@ class AbConditionSet:
         self.__name = name
         self.__conditions = {}
 
-    # Get a single condition by name
-    # name: Name of condition to return
-    # add: True = Add condition if not existing, False = Return None if not existing
-    # returns: requested condition or "None" if not existing and add=False
-    def get_condition(self, name, add=False):
-        if name in self.__conditions:
-            return self.__conditions[name]
-        elif add:
-            condition = AutoBlindCondition.AbCondition(self.__sh, name)
-            self.set_condition(condition)
-            return condition
-        else:
-            return None
-
-    # Set a single condition
-    # condition: condition to set
-    def set_condition(self, condition):
-        self.__conditions[condition.name] = condition
-
     # Update condition set
     # item: item containing settings for condition set
     # grandparent_item: grandparent item of item (containing the definition if items and evals)
@@ -70,35 +52,29 @@ class AbConditionSet:
         if item is not None:
             for attribute in item.conf:
                 try:
-                    # split attribute in function and name
-                    part = attribute.partition("_")
-                    if part[2] == "":
+                    func, name = AutoBlindTools.split(attribute, "_")
+                    if name == "":
                         continue
-                    func = part[0]
-                    name = part[2]
 
                     # update this condition
-                    condition = self.get_condition(name, True)
-                    condition.set(func, item.conf[attribute])
-                    self.set_condition(condition)
+                    if name not in self.__conditions:
+                        self.__conditions[name] = AutoBlindCondition.AbCondition(self.__sh, name)
+                    self.__conditions[name].set(func, item.conf[attribute])
 
                 except ValueError as ex:
                     logger.exception(ex)
 
         # Update item from grandparent_item
         for attribute in grandparent_item.conf:
-            # split attribute in function and name
-            part = attribute.partition("_")
-            if part[2] == "":
+            func, name = AutoBlindTools.split(attribute, "_")
+            if name == "":
                 continue
-            func = part[0]
-            name = part[2]
 
             # update item/eval in this condition
             if func == "item" or func == "eval":
-                condition = self.get_condition(name, True)
-                condition.set(func, grandparent_item.conf[attribute])
-                self.set_condition(condition)
+                if name not in self.__conditions:
+                    self.__conditions[name] = AutoBlindCondition.AbCondition(self.__sh, name)
+                self.__conditions[name].set(func, grandparent_item.conf[attribute])
 
     # Check the condition set, optimize and complete it
     # item_position: item to read from
@@ -106,26 +82,21 @@ class AbConditionSet:
     # logger: Instance of AbLogger to write log messages to
     def complete(self, item_position, abitem_object, logger: AutoBlindLogger.AbLogger):
         conditions_to_remove = []
+        # try to complete conditions
         for condition_name in self.conditions:
-            condition = self.get_condition(condition_name, False)
-
-            # neither value nor min nor max in condition: Something to ignore. We remove it
-            if condition.value is None and condition.min is None and condition.max is None:
-                conditions_to_remove.append(condition.name)
-                continue
-
-            # complete condition
             try:
-                condition.complete(item_position, abitem_object)
-                error = condition.error
+                if not self.__conditions[condition_name].complete(item_position, abitem_object):
+                    conditions_to_remove.append(condition_name)
+                    continue
+                error = self.__conditions[condition_name].error
             except ValueError as ex:
                 error = str(ex)
             if error is not None:
                 logger.error(
                     "Item '{0}', Condition Set '{1}', condition '{2}': {3}".format(item_position.id(), self.name,
                                                                                    condition_name, error))
-            self.set_condition(condition)
 
+        # Remove incomplete conditions
         for condition_name in conditions_to_remove:
             del self.conditions[condition_name]
 

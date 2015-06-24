@@ -37,9 +37,6 @@ class AbItem:
     # Constructor
     # smarthome: instance of smarthome.py
     # item: item to use
-    # item_id_height: name of item to controll the blind's height below the main item of the blind
-    # item_id_lamella: name of item to controll the blind's lamella below the main item of the blind
-    # manual_break_default: default value for "manual_break" if no value is set for specific item
     def __init__(self, smarthome, item):
         self.sh = smarthome
         self.__positions = []

@@ -67,6 +67,7 @@ class AbCurrent:
     def get_sun_altitude(self):
         return self.__sun_altitude
 
+    # Return random number between 0 and 100
     def get_random(self):
         return randint(0,100)
 

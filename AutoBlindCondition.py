@@ -30,75 +30,21 @@ class AbCondition:
     def name(self):
         return self.__name
 
-    @name.setter
-    def name(self, name):
-        self.__name = AutoBlindTools.cast_str(name)
-
-    # Item to get current value for condition
+    # Error in condition
     @property
-    def item(self):
-        return self.__item
+    def error(self):
+        return self.__error
 
-    @item.setter
-    def item(self, item):
+    # set item
+    # item: value for item
+    def __set_item(self, item):
         if isinstance(item, str):
             self.__item = self.__sh.return_item(item)
         else:
             self.__item = item
 
-    # Function to get current value for condition
-    @property
-    def eval(self):
-        return self.__eval
-
-    @eval.setter
-    def eval(self, eval_value):
-        self.__eval = eval_value
-
-    # Required value for the condition to be matched
-    @property
-    def value(self):
-        return self.__value
-
-    @value.setter
-    def value(self, value):
-        self.__value = value
-
-    # Required minimum value for the condition to be matched
-    @property
-    def min(self):
-        return self.__min
-
-    @min.setter
-    def min(self, min_value):
-        self.__min = min_value
-
-    # Required maximum for the condition to be matched
-    @property
-    def max(self):
-        return self.__max
-
-    @max.setter
-    def max(self, max_value):
-        self.__max = max_value
-
-    # Flag: Negate condition (contition is matched if value/min/max are NOT matching)
-    @property
-    def negate(self):
-        return self.__negate
-
-    @negate.setter
-    def negate(self, negate):
-        self.__negate = AutoBlindTools.cast_bool(negate)
-
-    # Error that occurred while preparing the condition (empty if condition is OK)
-    @property
-    def error(self):
-        return self.__error
-
     # Current value of condition (based on item or eval)
-    @property
-    def current(self):
+    def __get_current(self):
         if self.__item is not None:
             # noinspection PyCallingNonCallable
             return self.__item()
@@ -118,8 +64,7 @@ class AbCondition:
         raise ValueError("Condition {}: Neither 'item' nor eval given!".format(self.__name))
 
     # Name of eval-Object to be displayed in log
-    @property
-    def __eval_name(self):
+    def __get_eval_name(self):
         if self.__item is not None or self.__eval is None:
             return None
         if self.__eval is not None:
@@ -147,54 +92,58 @@ class AbCondition:
     # value: Value for function
     def set(self, func, value):
         if func == "item":
-            self.item = value
+            self.__set_item(value)
         elif func == "eval":
-            self.eval = value
+            self.__eval = value
         elif func == "value":
-            self.value = value
+            self.__value = value
         elif func == "min":
-            self.min = value
+            self.__min = value
         elif func == "max":
-            self.max = value
+            self.__max = value
         elif func == "negate":
-            self.negate = value
+            self.__negate = value
 
     # Complete condition (do some checks, cast value, min and max based on item or eval data types)
     # item_position: item to read from
     # abitem_object: Related AbItem instance for later determination of current age and current delay
     # logger: Instance of AbLogger to write log messages to
     def complete(self, item_position, abitem_object):
+        # check if it is possible to complete this condition
+        if self.__min is None and self.__max is None and self.__value is None:
+            return False
+
         # set 'eval' for some known conditions if item and eval are not set, yet
-        if self.item is None and self.eval is None:
-            if self.name == "weekday":
-                self.eval = AutoBlindCurrent.values.get_weekday
-            elif self.name == "sun_azimut":
-                self.eval = AutoBlindCurrent.values.get_sun_azimut
-            elif self.name == "sun_altitude":
-                self.eval = AutoBlindCurrent.values.get_sun_altitude
-            elif self.name == "age":
-                self.eval = abitem_object.get_age
-            elif self.name == "delay":
-                self.eval = abitem_object.get_delay
-            elif self.name == "time":
-                self.eval = AutoBlindCurrent.values.get_time
-            elif self.name == "random":
-                self.eval = AutoBlindCurrent.values.get_random
+        if self.__item is None and self.__eval is None:
+            if self.__name == "weekday":
+                self.__eval = AutoBlindCurrent.values.get_weekday
+            elif self.__name == "sun_azimut":
+                self.__eval = AutoBlindCurrent.values.get_sun_azimut
+            elif self.__name == "sun_altitude":
+                self.__eval = AutoBlindCurrent.values.get_sun_altitude
+            elif self.__name == "age":
+                self.__eval = abitem_object.get_age
+            elif self.__name == "delay":
+                self.__eval = abitem_object.get_delay
+            elif self.__name == "time":
+                self.__eval = AutoBlindCurrent.values.get_time
+            elif self.__name == "random":
+                self.__eval = AutoBlindCurrent.values.get_random
 
         # missing item in condition: Try to find it
-        if self.item is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_position, "item_" + self.name)
+        if self.__item is None:
+            result = AutoBlindTools.find_attribute(self.__sh, item_position, "item_" + self.__name)
             if result is not None:
-                self.item = result
+                self.__set_item(result)
 
         # missing eval in condition: Try to find it
-        if self.eval is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_position, "eval_" + self.name)
+        if self.__eval is None:
+            result = AutoBlindTools.find_attribute(self.__sh, item_position, "eval_" + self.__name)
             if result is not None:
-                self.eval = result
+                self.__eval = result
 
         # no we should have either 'item' or 'eval' set. If not ... very bad ....
-        if self.item is None and self.eval is None:
+        if self.__item is None and self.__eval is None:
             self.__error = "Condition {}: Neither 'item' nor 'eval' given!".format(self.__name)
             raise ValueError(self.__error)
 
@@ -215,28 +164,30 @@ class AbCondition:
             self.__error = "Condition {}: 'min' must not be greater than 'max'!".format(self.__name)
             raise ValueError(self.__error)
 
+        return True
+
     # Check if condition is matching
     # logger: Instance of AbLogger to write log messages
     def check(self, logger: AutoBlindLogger.AbLogger):
         # Ignore if errors occured during preparing
-        if self.error is not None:
-            logger.info("condition'{0}': Ignoring because of error: {1}", self.name, self.error)
+        if self.__error is not None:
+            logger.info("condition'{0}': Ignoring because of error: {1}", self.__name, self.__error)
             return True
 
         # Ignore if no current value can be determined (should not happen as we check this earlier, but to be sure ...)
-        if self.item is None and self.eval is None:
-            logger.info("condition '{0}': no item or eval found! Considering condition as matching!", self.name)
+        if self.__item is None and self.__eval is None:
+            logger.info("condition '{0}': no item or eval found! Considering condition as matching!", self.__name)
             return True
 
-        current = self.current
+        current = self.__get_current()
         try:
-            if self.value is not None:
+            if self.__value is not None:
                 # 'value' is given. We ignore 'min' and 'max' and check only for the given value
-                logger.debug("Condition '{0}': value={1} negate={2} current={3}", self.name, self.value, self.negate,
-                             current)
+                logger.debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, self.__value,
+                             self.__negate, current)
                 logger.increase_indent()
 
-                if (not self.negate and current == self.value) or (self.negate and current != self.value):
+                if (not self.__negate and current == self.__value) or (self.__negate and current != self.__value):
                     logger.debug("OK -> matching")
                     return True
 
@@ -246,27 +197,27 @@ class AbCondition:
             else:
                 # 'value' is not given. We check 'min' and 'max' (if given)
                 logger.debug("Condition '{0}': min={1} max={2} negate={3} current={4}",
-                             self.name, self.min, self.max, self.negate, current)
+                             self.__name, self.__min, self.__max, self.__negate, current)
                 logger.increase_indent()
 
-                if self.min is None and self.max is None:
+                if self.__min is None and self.__max is None:
                     logger.debug("no limit given -> matching")
                     return True
 
-                if not self.negate:
-                    if self.min is not None and current < self.min:
+                if not self.__negate:
+                    if self.__min is not None and current < self.__min:
                         logger.debug("to low -> not matching")
                         return False
 
-                    if self.max is not None and current > self.max:
+                    if self.__max is not None and current > self.__max:
                         logger.debug("to high -> not matching")
                         return False
                 else:
-                    if self.min is not None and current > self.min and (self.max is None or current < self.max):
+                    if self.__min is not None and current > self.__min and (self.__max is None or current < self.__max):
                         logger.debug("not lower than min -> not matching")
                         return False
 
-                    if self.max is not None and current < self.max and (self.min is None or current > self.min):
+                    if self.__max is not None and current < self.__max and (self.__min is None or current > self.__min):
                         logger.debug("not higher than max -> not matching")
                         return False
 
@@ -279,19 +230,19 @@ class AbCondition:
     # logger: Instance of AbLogger to write to
     def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
         if self.__error is not None:
-            logger.debug("error: {0}", self.error)
+            logger.debug("error: {0}", self.__error)
         if self.__item is not None:
-            logger.debug("item: {0}", self.item.id())
+            logger.debug("item: {0}", self.__item.id())
         if self.__eval is not None:
-            logger.debug("eval: {0}", self.__eval_name)
+            logger.debug("eval: {0}", self.__get_eval_name())
         if self.__value is not None:
-            logger.debug("value: {0}", self.value)
+            logger.debug("value: {0}", self.__value)
         if self.__min is not None:
-            logger.debug("min: {0}", self.min)
+            logger.debug("min: {0}", self.__min)
         if self.__max is not None:
-            logger.debug("max: {0}", self.max)
+            logger.debug("max: {0}", self.__max)
         if self.__negate is not None:
-            logger.debug("negate: {0}", self.negate)
+            logger.debug("negate: {0}", self.__negate)
 
     # Cast 'value', 'min' and 'max' using given cast function
     # cast_func: cast function to use
@@ -302,3 +253,5 @@ class AbCondition:
             self.__min = cast_func(self.__min)
         if self.__max is not None:
             self.__max = cast_func(self.__max)
+        if self.__negate is not None:
+            self.__negate = AutoBlindTools.cast_bool(self.__negate)

@@ -166,3 +166,12 @@ def find_attribute(smarthome, base_item, attribute):
 
     # 3: nothing found
     return None
+
+
+# split value at the first occurrence of splitchar
+# value: what to split
+# splitchar: where to split
+# returns: Parts before and after split, whitespaces stripped
+def split(value, splitchar):
+    parts = value.partition(splitchar)
+    return parts[0].strip(), parts[2].strip()

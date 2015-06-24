@@ -34,37 +34,40 @@ class AbActions:
     def count(self):
         return len(self.__actions)
 
-    # set a certain function to a given value
+    # update action ("set_(name)")
+    # attribute: name of attribute that defines action
     # position_item: Item of position to which the action belongs
-    # name: Name of action to update
-    # value: value from set_(name) attribute
     def update_set(self, position_item, attribute):
-        # Split attribute in set_ and action name
-        parts = attribute.partition("_")
-        if parts[0] != "set":
-            return
-
-        # Ensure action exists
-        if not parts[2] in self.__actions:
-            action = AutoBlindAction.AbAction(self.__sh, parts[2])
-            self.__actions[action.name] = action
+        name = self.__update(attribute)
 
         # Update action
-        self.__actions[parts[2]].update_set(position_item, position_item.conf[attribute])
+        if name is not None:
+            self.__actions[name].update_set(position_item, position_item.conf[attribute])
 
+    # update action ("trigger_(name)")
+    # attribute: name of attribute that defines action
+    # position_item: Item of position to which the action belongs
     def update_trigger(self, position_item, attribute):
+        name = self.__update(attribute)
+
+        # Update action
+        if name is not None:
+            self.__actions[name].update_trigger(position_item.conf[attribute])
+
+    # get action name from attribute and ensure action exists (base for all updates)
+    # attribute: name of attribute that defines action
+    def __update(self, attribute):
         # Split attribute in set_ and action name
         parts = attribute.partition("_")
-        if parts[0] != "set":
-            return
+        if parts[0] != "set" and parts[0] != "trigger":
+            return None
 
         # Ensure action exists
         if not parts[2] in self.__actions:
             action = AutoBlindAction.AbAction(self.__sh, parts[2])
-            self.__actions[action.name] = action
+            self.__actions[parts[2]] = action
 
-        # Update action
-        self.__actions[parts[2]].update_trigger(position_item, position_item.conf[attribute])
+        return parts[2]
 
     # Check the actions optimize and complete them
     # item_position: item to read from
@@ -74,6 +77,7 @@ class AbActions:
             self.__actions[action_name].complete(item_position)
 
     # Execute all actions
+    # logger: Instance of AbLogger to write log messages to
     def execute(self, logger: AutoBlindLogger.AbLogger):
         for action_name in self.__actions:
             self.__actions[action_name].execute(logger)

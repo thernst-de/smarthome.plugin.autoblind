@@ -22,10 +22,12 @@ from . import AutoBlindCurrent
 from . import AutoBlindLogger
 
 class AbEval:
+    # Initialize
     def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger):
         self.__sh = smarthome
         self.__logger = logger
 
+    # Get lamella angle based on sun_altitute for sun tracking
     def SunTracking(self):
         self.__logger.debug("Executing method 'SunTracking'")
         self.__logger.increase_indent()
