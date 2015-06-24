@@ -1,5 +1,9 @@
 #Automatic Blind Control plugin for smarthome.py#
 
+##IMPORTANT:##
+##This documentation is not up to date. There have been several changes regarding the configuration of the plugin that are not yet reflected in this file. Please see the file UPDATE.md for a brief description of required configuration changes. This file will be updated after all planned changes have been made and properly tested.##
+
+
 ##Description of functionality##
 
 Via additional items, user-defined positions can be defined for each blind in items/*.conf files. Each position can have a set of enter and leave conditions. In regular intervals the positions for each blind are checked:
