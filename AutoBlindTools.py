@@ -50,6 +50,18 @@ def get_str_attribute(item, attribute_name, default=None):
         return default
 
 
+# Find and return a certain item that is named as attribute of another item
+# item: Item to search attribute
+# attribute_name: Name of attribute to search
+# smarthome: Instance of smarthome.py base class
+# returns: item which is named in the given attribute of the given item or None if attribute or named item not found
+def get_item_attribute(item, attribute_name, smarthome):
+    item_name = get_str_attribute(item, attribute_name)
+    if item_name is None:
+        return None
+    return smarthome.return_item(item_name)
+
+
 # Find and return a certain num attribute of an item
 # item: Item to search attribute
 # attribute_name: Name of attribute to search and return

@@ -64,13 +64,13 @@ class AutoBlind:
             if possible_item.conf["autoblind_plugin"] != "active":
                 continue
 
-            item = AutoBlindItem.AbItem(self._sh, possible_item)
             try:
+                item = AutoBlindItem.AbItem(self._sh, possible_item)
                 item.validate()
                 self.__items[item.id] = item
                 item.write_to_log()
             except ValueError as ex:
-                logger.exception(ex)
+                logger.error(ex)
 
         # startup schedulers for items
         if len(self.__items) > 0:

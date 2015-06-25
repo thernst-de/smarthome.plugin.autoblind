@@ -72,14 +72,13 @@ class AbItem:
         item_id = self.__item.id()
 
         if self.__item_active is None:
-            raise ValueError("{0}: Item does not have a sub-item 'active'!".format(item_id))
+            raise ValueError("{0}: Item does not have an item for 'active' configured!".format(item_id))
 
         if self.__item_laststate_id is None:
-            raise ValueError("{0}: Item does not have a sub-item 'state_id'!".format(item_id))
+            raise ValueError("{0}: Item does not have an item for 'state_id' configured!".format(item_id))
 
         if self.__item_laststate_name is None:
-            raise ValueError(
-                "{0}: Item does not have a sub-item 'state_name'!".format(item_id))
+            raise ValueError("{0}: Item does not have an item for 'state_name' configured!".format(item_id))
 
         if len(self.__states) == 0:
             raise ValueError("{0}: No states defined!".format(item_id))
@@ -315,14 +314,20 @@ class AbItem:
         self.__manual_break = AutoBlindTools.get_num_attribute(self.__item, "manual_break",
                                                                AutoBlindDefaults.manual_break)
 
-        self.__item_active = AutoBlindTools.get_child_item(self.__item, "active")
-        self.__item_laststate_id = AutoBlindTools.get_child_item(self.__item, "state_id")
-        self.__item_laststate_name = AutoBlindTools.get_child_item(self.__item, "state_name")
+        self.__item_active = AutoBlindTools.get_item_attribute(self.__item, "item_active", self.sh)
+        self.__item_laststate_id = AutoBlindTools.get_item_attribute(self.__item, "item_state_id", self.sh)
+        self.__item_laststate_name = AutoBlindTools.get_item_attribute(self.__item, "item_state_name", self.sh)
 
     # find states and init them
     def __init_states(self):
         items_states = self.__item.return_children()
-        non_state_item_ids = [self.__item_active.id(), self.__item_laststate_id.id(), self.__item_laststate_name.id()]
+        non_state_item_ids = []
+        if self.__item_active is not None:
+            non_state_item_ids.append(self.__item_active.id())
+        if self.__item_laststate_id is not None:
+            non_state_item_ids.append(self.__item_laststate_id.id())
+        if self.__item_laststate_name is not None:
+            non_state_item_ids.append(self.__item_laststate_name.id())
         for item_state in items_states:
             if item_state.id() in non_state_item_ids:
                 continue
@@ -344,7 +349,8 @@ class AbItem:
             for item in self.sh.match_items(entry):
                 item.add_method_trigger(self.__watch_manual_callback)
                 self.__myLogger.info(item.id())
-        self.__item_active.add_method_trigger(self.__reset_active_callback)
+        if self.__item_active is not None:
+            self.__item_active.add_method_trigger(self.__reset_active_callback)
         self.__myLogger.decrease_indent()
 
     # initialize "watch_trigger" if configured
