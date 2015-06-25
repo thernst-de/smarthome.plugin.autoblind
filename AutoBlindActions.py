@@ -36,23 +36,23 @@ class AbActions:
 
     # update action ("set_(name)")
     # attribute: name of attribute that defines action
-    # position_item: Item of position to which the action belongs
-    def update_set(self, position_item, attribute):
+    # item_state: Item of state to which the action belongs
+    def update_set(self, item_state, attribute):
         name = self.__update(attribute)
 
         # Update action
         if name is not None:
-            self.__actions[name].update_set(position_item, position_item.conf[attribute])
+            self.__actions[name].update_set(item_state, item_state.conf[attribute])
 
     # update action ("trigger_(name)")
     # attribute: name of attribute that defines action
-    # position_item: Item of position to which the action belongs
-    def update_trigger(self, position_item, attribute):
+    # item_state: Item of state to which the action belongs
+    def update_trigger(self, item_state, attribute):
         name = self.__update(attribute)
 
         # Update action
         if name is not None:
-            self.__actions[name].update_trigger(position_item.conf[attribute])
+            self.__actions[name].update_trigger(item_state.conf[attribute])
 
     # get action name from attribute and ensure action exists (base for all updates)
     # attribute: name of attribute that defines action
@@ -70,11 +70,11 @@ class AbActions:
         return parts[2]
 
     # Check the actions optimize and complete them
-    # item_position: item to read from
+    # item_state: item to read from
     # logger: Instance of AbLogger to write log messages to
-    def complete(self, item_position):
+    def complete(self, item_state):
         for action_name in self.__actions:
-            self.__actions[action_name].complete(item_position)
+            self.__actions[action_name].complete(item_state)
 
     # Execute all actions
     # logger: Instance of AbLogger to write log messages to

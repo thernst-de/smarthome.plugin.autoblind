@@ -24,62 +24,62 @@ from . import AutoBlindLogger
 from . import AutoBlindActions
 
 
-# Class representing a blind position, consisting of name, conditions to be met and configured position of blind
-class AbPosition:
-    # Return id of position (= id of defining item)
+# Class representing an object state, consisting of name, conditions to be met and configured actions for state
+class AbState:
+    # Return id of state (= id of defining item)
     @property
     def id(self):
         return self.__item.id()
 
-    # Return name of position
+    # Return name of state
     @property
     def name(self):
         return self.__name
 
     # Constructor
     # smarthome: instance of smarthome
-    # item_position: item containing configuration of AutoBlind position
+    # item_state: item containing configuration of state
     # logger: Instance of AbLogger to write log messages to
-    def __init__(self, smarthome, item_position, item_autoblind, abitem_object, logger: AutoBlindLogger.AbLogger):
+    def __init__(self, smarthome, item_state, item_autoblind, abitem_object, logger: AutoBlindLogger.AbLogger):
         self.__sh = smarthome
-        self.__item = item_position
+        self.__item = item_state
         self.__name = ""
         self.__enterConditionSets = AutoBlindConditionSets.AbConditionSets(self.__sh)
         self.__leaveConditionSets = AutoBlindConditionSets.AbConditionSets(self.__sh)
         self.__actions = AutoBlindActions.AbActions(self.__sh)
 
-        logger.info("Init AutoBlindPosition {}", item_position.id())
+        logger.info("Init state {}", item_state.id())
         self.__fill(self.__item, 0, item_autoblind, abitem_object, logger)
 
-    # Check conditions if position can be entered
+    # Check conditions if state can be entered
     # logger: Instance of AbLogger to write log messages to
     # returns: True = At least one enter condition set is fulfulled, False = No enter condition set is fulfilled
     def can_enter(self, logger: AutoBlindLogger.AbLogger):
-        logger.info("Check if position '{0}' ('{1}') can be entered:", self.id, self.name)
+        logger.info("Check if state '{0}' ('{1}') can be entered:", self.id, self.name)
         logger.increase_indent()
         result = self.__enterConditionSets.one_conditionset_matching(logger)
         logger.decrease_indent()
         if result:
-            logger.info("Position can be entered")
+            logger.info("State can be entered")
         else:
-            logger.info("Position can not be entered")
+            logger.info("State can not be entered")
         return result
 
-    # Check conditions if position can be left
+    # Check conditions if state can be left
     # logger: Instance of AbLogger to write log messages to
     # returns: True = At least one leave condition set is fulfulled, False = No leave condition set is fulfilled
     def can_leave(self, logger: AutoBlindLogger.AbLogger):
-        logger.info("Check if position '{0}' ('{1}') can be left:", self.id, self.name)
+        logger.info("Check if state '{0}' ('{1}') can be left:", self.id, self.name)
         logger.increase_indent()
         result = self.__leaveConditionSets.one_conditionset_matching(logger)
         logger.decrease_indent()
         if result:
-            logger.info("Position can be left")
+            logger.info("State can be left")
         else:
-            logger.info("Position can not be left")
+            logger.info("State can not be left")
         return result
 
-    # validate position data
+    # validate state data
     # returns: TRUE = data ok, FALSE = data not ok
     def validate(self):
         if self.__actions.count() == 0:
@@ -87,57 +87,57 @@ class AbPosition:
 
         return True
 
-    # log position data
+    # log state data
     # logger: Instance of AbLogger to write log messages to
     def write_to_log(self, logger: AutoBlindLogger.AbLogger):
-        logger.info("Position {0}:", self.id)
+        logger.info("State {0}:", self.id)
         logger.increase_indent()
         logger.info("Name: {0}", self.__name)
         if self.__enterConditionSets.count() > 0:
-            logger.info("Condition sets to enter position:")
+            logger.info("Condition sets to enter state:")
             logger.increase_indent()
             self.__enterConditionSets.write_to_logger(logger)
             logger.decrease_indent()
         if self.__leaveConditionSets.count() > 0:
-            logger.info("Condition sets to leave position:")
+            logger.info("Condition sets to leave state:")
             logger.increase_indent()
             self.__leaveConditionSets.write_to_logger(logger)
             logger.decrease_indent()
         if self.__actions.count() > 0:
-            logger.info("Actions to perform if position becomes active:")
+            logger.info("Actions to perform if state becomes active:")
             logger.increase_indent()
             self.__actions.write_to_logger(logger)
             logger.decrease_indent()
         logger.decrease_indent()
 
-    # activate position
+    # activate state
     def activate(self, logger: AutoBlindLogger.AbLogger):
         logger.increase_indent()
         self.__actions.execute(logger)
         logger.decrease_indent()
 
     # Read configuration from item and populate data in class
-    # item_position: item to read from
+    # item_state: item to read from
     # recursion_depth: current recursion_depth (recursion is canceled after five levels)
     # item_autoblind: AutoBlind-Item defining items for conditions
     # abitem_object: Related AbItem instance for later determination of current age and current delay
     # logger: Instance of AbLogger to write log messages to
-    def __fill(self, item_position, recursion_depth, item_autoblind, abitem_object, logger: AutoBlindLogger.AbLogger):
+    def __fill(self, item_state, recursion_depth, item_autoblind, abitem_object, logger: AutoBlindLogger.AbLogger):
         if recursion_depth > 5:
-            logger.error("{0}/{1}: to many levels of 'use'", self.__item.id(), item_position.id())
+            logger.error("{0}/{1}: to many levels of 'use'", self.__item.id(), item_state.id())
             return
 
         # Import data from other item if attribute "use" is found
-        if "use" in item_position.conf:
-            use_item = self.__sh.return_item(item_position.conf["use"])
+        if "use" in item_state.conf:
+            use_item = self.__sh.return_item(item_state.conf["use"])
             if use_item is not None:
                 self.__fill(use_item, recursion_depth + 1, item_autoblind, abitem_object, logger)
             else:
-                logger.error("{0}: Referenced item '{1}' not found!", item_position.id(), item_position.conf["use"])
+                logger.error("{0}: Referenced item '{1}' not found!", item_state.id(), item_state.conf["use"])
 
         # Get condition sets
-        parent_item = item_position.return_parent()
-        items_conditionsets = item_position.return_children()
+        parent_item = item_state.return_parent()
+        items_conditionsets = item_state.return_children()
         for item_conditionset in items_conditionsets:
             condition_name = AutoBlindTools.get_last_part_of_item_id(item_conditionset)
             if condition_name == "enter" or condition_name.startswith("enter_"):
@@ -145,23 +145,23 @@ class AbPosition:
             elif condition_name == "leave" or condition_name.startswith("leave_"):
                 self.__leaveConditionSets.fill(condition_name, item_conditionset, parent_item, logger)
 
-        # This is the blind position for this item
-        if "position" in item_position.conf:
-            logger.error("Position '{0}': Attribute 'position' is no longer supported!", item_position.id())
+        # This was the blind position for this item
+        if "position" in item_state.conf:
+            logger.error("State '{0}': Attribute 'position' is no longer supported!".format(item_state.id()))
 
-        for attribute in item_position.conf:
+        for attribute in item_state.conf:
             if attribute.startswith("set_") and attribute != "set_":
-                self.__actions.update_set(item_position, attribute)
+                self.__actions.update_set(item_state, attribute)
             if attribute.startswith("trigger_") and attribute != "trigger_":
-                self.__actions.update_trigger(item_position, attribute)
+                self.__actions.update_trigger(item_state, attribute)
 
         # if an item name is given, or if we do not have a name after returning from all recursions,
-        # use item name as position name
-        if str(item_position) != item_position.id() or (self.__name == "" and recursion_depth == 0):
-            self.__name = str(item_position)
+        # use item name as state name
+        if str(item_state) != item_state.id() or (self.__name == "" and recursion_depth == 0):
+            self.__name = str(item_state)
 
         # Complete condition sets and actions at the end
         if recursion_depth == 0:
-            self.__enterConditionSets.complete(item_position, abitem_object, logger)
-            self.__leaveConditionSets.complete(item_position, abitem_object, logger)
-            self.__actions.complete(item_position)
+            self.__enterConditionSets.complete(item_state, abitem_object, logger)
+            self.__leaveConditionSets.complete(item_state, abitem_object, logger)
+            self.__actions.complete(item_state)

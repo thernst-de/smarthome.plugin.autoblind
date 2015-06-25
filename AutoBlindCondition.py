@@ -105,10 +105,10 @@ class AbCondition:
             self.__negate = value
 
     # Complete condition (do some checks, cast value, min and max based on item or eval data types)
-    # item_position: item to read from
+    # item_state: item to read from
     # abitem_object: Related AbItem instance for later determination of current age and current delay
     # logger: Instance of AbLogger to write log messages to
-    def complete(self, item_position, abitem_object):
+    def complete(self, item_state, abitem_object):
         # check if it is possible to complete this condition
         if self.__min is None and self.__max is None and self.__value is None:
             return False
@@ -132,13 +132,13 @@ class AbCondition:
 
         # missing item in condition: Try to find it
         if self.__item is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_position, "item_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "item_" + self.__name)
             if result is not None:
                 self.__set_item(result)
 
         # missing eval in condition: Try to find it
         if self.__eval is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_position, "eval_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "eval_" + self.__name)
             if result is not None:
                 self.__eval = result
 

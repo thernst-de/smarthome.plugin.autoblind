@@ -22,7 +22,7 @@ import time
 import datetime
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
-from . import AutoBlindPosition
+from . import AutoBlindState
 from . import AutoBlindDefaults
 from . import AutoBlindCurrent
 
@@ -39,19 +39,17 @@ class AbItem:
     # item: item to use
     def __init__(self, smarthome, item):
         self.sh = smarthome
-        self.__positions = []
-
         self.__cycle = None
         self.__startup_delay = None
         self.__name = None
         self.__item_active = None
-        self.__item_lastpos_id = None
-        self.__item_lastpos_name = None
-        self.__positions = []
+        self.__item_laststate_id = None
+        self.__item_laststate_name = None
+        self.__states = []
         self.__manual_break = 0
         self.__delay = 0
         self.__actions = {}
-        self.__can_not_leave_current_pos_since = 0
+        self.__can_not_leave_current_state_since = 0
         self.__just_changing_active = False
 
         # get required items for this AutoBlindItem
@@ -61,7 +59,7 @@ class AbItem:
 
         # initialize everything else
         self.__init_config()
-        self.__init_positions()
+        self.__init_states()
         self.__init_watch_manual()
         self.__init_watch_trigger()
 
@@ -76,15 +74,15 @@ class AbItem:
         if self.__item_active is None:
             raise ValueError("{0}: Item does not have a sub-item 'active'!".format(item_id))
 
-        if self.__item_lastpos_id is None:
-            raise ValueError("{0}: Item does not have a sub-item 'lastpos_id'!".format(item_id))
+        if self.__item_laststate_id is None:
+            raise ValueError("{0}: Item does not have a sub-item 'state_id'!".format(item_id))
 
-        if self.__item_lastpos_name is None:
+        if self.__item_laststate_name is None:
             raise ValueError(
-                "{0}: Item does not have a sub-item 'lastpos_name'!".format(item_id))
+                "{0}: Item does not have a sub-item 'state_name'!".format(item_id))
 
-        if len(self.__positions) == 0:
-            raise ValueError("{0}: No positions defined!".format(item_id))
+        if len(self.__states) == 0:
+            raise ValueError("{0}: No states defined!".format(item_id))
 
     # log item data
     def write_to_log(self):
@@ -92,25 +90,25 @@ class AbItem:
         self.__myLogger.info("startup_delay: {0} seconds", self.__startup_delay)
         self.__myLogger.info("cycle: {0} seconds", self.__cycle)
         self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
-        self.__myLogger.info("Item 'LastPos Id': {0}", self.__item_lastpos_id.id())
-        self.__myLogger.info("Item 'LastPos Name': {0}", self.__item_lastpos_name.id())
-        for position in self.__positions:
-            position.write_to_log(self.__myLogger)
+        self.__myLogger.info("Item 'State Id': {0}", self.__item_laststate_id.id())
+        self.__myLogger.info("Item 'State Name': {0}", self.__item_laststate_name.id())
+        for state in self.__states:
+            state.write_to_log(self.__myLogger)
 
     # return age of item
     def get_age(self):
-        return self.__item_lastpos_id.age()
+        return self.__item_laststate_id.age()
 
     # return delay of item
     def get_delay(self):
         return self.__delay
 
-    # Find the position, matching the current conditions and move the blinds to this position
+    # Find the state, matching the current conditions and perform the actions of this state
     # caller: Caller that triggered the update
     # noinspection PyCallingNonCallable
-    def update_position(self, caller=None):
+    def update_state(self, caller=None):
         self.__myLogger.update_logfile()
-        self.__myLogger.header("Update Position of item {0}".format(self.__name))
+        self.__myLogger.header("Update state of item {0}".format(self.__name))
         if caller:
             self.__myLogger.debug("Update triggered by {0}", caller)
 
@@ -121,76 +119,75 @@ class AbItem:
         # Update current values
         AutoBlindCurrent.update()
 
-        # get last position
-        last_position = self.__get_last_position()
-        if last_position is not None:
-            self.__myLogger.info("Last position: {0} ('{1}')", last_position.id, last_position.name)
-        if self.__can_not_leave_current_pos_since == 0:
+        # get last state
+        last_state = self.__get_last_state()
+        if last_state is not None:
+            self.__myLogger.info("Last state: {0} ('{1}')", last_state.id, last_state.name)
+        if self.__can_not_leave_current_state_since == 0:
             self.__delay = 0
         else:
-            self.__delay = time.time() - self.__can_not_leave_current_pos_since
+            self.__delay = time.time() - self.__can_not_leave_current_state_since
 
-        # check if current position can be left
-        if last_position is not None and not last_position.can_leave(self.__myLogger):
-            self.__myLogger.info("Can not leave current position, staying at {0} ('{1}')", last_position.id,
-                                 last_position.name)
-            can_leave_position = False
-            new_position = last_position
-            if self.__can_not_leave_current_pos_since == 0:
-                self.__can_not_leave_current_pos_since = time.time()
+        # check if current state can be left
+        if last_state is not None and not last_state.can_leave(self.__myLogger):
+            self.__myLogger.info("Can not leave current state, staying at {0} ('{1}')", last_state.id, last_state.name)
+            can_leave_state = False
+            new_state = last_state
+            if self.__can_not_leave_current_state_since == 0:
+                self.__can_not_leave_current_state_since = time.time()
         else:
-            can_leave_position = True
-            new_position = None
+            can_leave_state = True
+            new_state = None
 
-        if can_leave_position:
-            # find new position
-            for position in self.__positions:
-                if position.can_enter(self.__myLogger):
-                    new_position = position
-                    self.__can_not_leave_current_pos_since = 0
+        if can_leave_state:
+            # find new state
+            for state in self.__states:
+                if state.can_enter(self.__myLogger):
+                    new_state = state
+                    self.__can_not_leave_current_state_since = 0
                     break
 
-            # no new position -> leave
-            if new_position is None:
-                if last_position is None:
-                    self.__myLogger.info("No matching position found, no previous position available. Doing nothing.")
+            # no new state -> leave
+            if new_state is None:
+                if last_state is None:
+                    self.__myLogger.info("No matching state found, no previous state available. Doing nothing.")
                 else:
-                    self.__myLogger.info("No matching position found, staying at {0} ('{1}')", last_position.id,
-                                         last_position.name)
+                    self.__myLogger.info("No matching state found, staying at {0} ('{1}')", last_state.id,
+                                         last_state.name)
                 return
         else:
-            # if current position can not be left, check if enter conditions are still valid.
-            # If yes, set "can_not_leave_current_pos_since" to 0
-            if new_position.can_enter(self.__myLogger):
-                self.__can_not_leave_current_pos_since = 0
+            # if current state can not be left, check if enter conditions are still valid.
+            # If yes, set "can_not_leave_current_state_since" to 0
+            if new_state.can_enter(self.__myLogger):
+                self.__can_not_leave_current_state_since = 0
 
-        # get data for new position
-        if last_position is not None and new_position.id == last_position.id:
-            # New position is last position
-            if self.__item_lastpos_name() != new_position.name:
-                self.__item_lastpos_name(new_position.name)
-            self.__myLogger.info("Staying at {0} ('{1}')", new_position.id, new_position.name)
+        # get data for new state
+        if last_state is not None and new_state.id == last_state.id:
+            # New state is last state
+            if self.__item_laststate_name() != new_state.name:
+                self.__item_laststate_name(new_state.name)
+            self.__myLogger.info("Staying at {0} ('{1}')", new_state.id, new_state.name)
         else:
-            # New position is different from last position
-            self.__myLogger.info("Changing to {0} ('{1}')", new_position.id, new_position.name)
-            self.__item_lastpos_id(new_position.id)
-            self.__item_lastpos_name(new_position.name)
+            # New state is different from last state
+            self.__myLogger.info("Changing to {0} ('{1}')", new_state.id, new_state.name)
+            self.__item_laststate_id(new_state.id)
+            self.__item_laststate_name(new_state.name)
 
-        new_position.activate(self.__myLogger)
+        new_state.activate(self.__myLogger)
 
     # startup scheduler after startup_delay
     def startup(self):
         name = "autoblind-" + self.id
-        self.sh.scheduler.add(name, self.update_position, cycle=self.__cycle, offset=self.__startup_delay)
+        self.sh.scheduler.add(name, self.update_state, cycle=self.__cycle, offset=self.__startup_delay)
 
-    # get last position based on lastpos_id item
-    # returns: AbPosition instance of last position or "None" if no last position could be found
-    def __get_last_position(self):
+    # get last state based on laststate_id item
+    # returns: AbState instance of last state or "None" if no last state could be found
+    def __get_last_state(self):
         # noinspection PyCallingNonCallable
-        last_pos_id = self.__item_lastpos_id()
-        for position in self.__positions:
-            if position.id == last_pos_id:
-                return position
+        last_state_id = self.__item_laststate_id()
+        for state in self.__states:
+            if state.id == last_state_id:
+                return state
         return None
 
     # callback function that is called when one of the items given at "watch_manual" is being changed
@@ -237,7 +234,7 @@ class AbItem:
     # callback function called when item triggering an update is being changed
     # noinspection PyUnusedLocal
     def __watch_trigger_callback(self, item, caller=None, source=None, dest=None):
-        self.update_position("item '{0}' changed by '{1}".format(item.id(), caller))
+        self.update_state("item '{0}' changed by '{1}".format(item.id(), caller))
 
     # set the value of the item "active"
     # value: new value for item
@@ -281,14 +278,14 @@ class AbItem:
     def __get_active_timer_active(self):
         return self.__get_active_timer_time() is not None
 
-    # check if item is active and update lastpos_name if not
-    # set_name_if_active: True = Update lastpos_name if active, too, False = Leave lastpos_name unchanged if active
+    # check if item is active and update laststate_name if not
+    # set_name_if_active: True = Update laststate_name if active, too, False = Leave laststate_name unchanged if active
     def __check_active(self, set_name_if_active=False):
         # item is active
         if self.__get_active():
             if set_name_if_active:
                 # noinspection PyCallingNonCallable
-                self.__item_lastpos_name("Wird beim nächsten Durchgang aktualisiert")
+                self.__item_laststate_name("Wird beim nächsten Durchgang aktualisiert")
             return True
 
         # check if we can find a Timer-Entry for this item inside the scheduler-configuration
@@ -298,13 +295,13 @@ class AbItem:
                 "AutoBlind has been deactivated automatically after manual changes. Reactivating at {0}",
                 active_timer_time)
             # noinspection PyCallingNonCallable
-            self.__item_lastpos_name(active_timer_time.strftime("Automatisch deakviert bis %X"))
+            self.__item_laststate_name(active_timer_time.strftime("Automatisch deaktviert bis %X"))
             return False
 
         # must have been manually deactivated
         self.__myLogger.info("AutoBlind is inactive")
         # noinspection PyCallingNonCallable
-        self.__item_lastpos_name("Manuell deaktiviert")
+        self.__item_laststate_name("Manuell deaktiviert")
         return False
 
     # initialize configuration
@@ -319,20 +316,20 @@ class AbItem:
                                                                AutoBlindDefaults.manual_break)
 
         self.__item_active = AutoBlindTools.get_child_item(self.__item, "active")
-        self.__item_lastpos_id = AutoBlindTools.get_child_item(self.__item, "lastpos_id")
-        self.__item_lastpos_name = AutoBlindTools.get_child_item(self.__item, "lastpos_name")
+        self.__item_laststate_id = AutoBlindTools.get_child_item(self.__item, "state_id")
+        self.__item_laststate_name = AutoBlindTools.get_child_item(self.__item, "state_name")
 
-    # find positions and init them
-    def __init_positions(self):
-        items_position = self.__item.return_children()
-        non_position_item_ids = [self.__item_active.id(), self.__item_lastpos_id.id(), self.__item_lastpos_name.id()]
-        for item_position in items_position:
-            if item_position.id() in non_position_item_ids:
+    # find states and init them
+    def __init_states(self):
+        items_states = self.__item.return_children()
+        non_state_item_ids = [self.__item_active.id(), self.__item_laststate_id.id(), self.__item_laststate_name.id()]
+        for item_state in items_states:
+            if item_state.id() in non_state_item_ids:
                 continue
 
-            position = AutoBlindPosition.AbPosition(self.sh, item_position, self.__item, self, self.__myLogger)
-            if position.validate():
-                self.__positions.append(position)
+            state = AutoBlindState.AbState(self.sh, item_state, self.__item, self, self.__myLogger)
+            if state.validate():
+                self.__states.append(state)
 
     # initialize "watch_manual" if configured
     def __init_watch_manual(self):

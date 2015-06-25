@@ -30,7 +30,7 @@ logger = logging.getLogger()
 class AutoBlind:
     # Constructor
     # smarthome: instance of smarthome.py
-    # cycle_default: default interval to update positions
+    # cycle_default: default interval to update states
     # startup_delay_default: default startup delay
     # manual_break_default: default break after manual changes of items
     # log_level: loglevel for extended logging
@@ -57,7 +57,7 @@ class AutoBlind:
     def run(self):
         self.alive = True
 
-        # init AutoBlindItems based on previously stored items
+        # init items
         logger.info("Init AutoBlind Items")
         possible_items = self._sh.find_items("autoblind_plugin")
         for possible_item in possible_items:
@@ -72,8 +72,7 @@ class AutoBlind:
             except ValueError as ex:
                 logger.exception(ex)
 
-        # if we have items, wait some time, update the blind positions and afterwards schedule regular
-        # recheck of updating the blind positions
+        # startup schedulers for items
         if len(self.__items) > 0:
             logger.info("Using AutoBlind for {} items".format(len(self.__items)))
 

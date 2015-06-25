@@ -77,15 +77,15 @@ class AbConditionSet:
                 self.__conditions[name].set(func, grandparent_item.conf[attribute])
 
     # Check the condition set, optimize and complete it
-    # item_position: item to read from
+    # item_state: item to read from
     # abitem_object: Related AbItem instance for later determination of current age and current delay
     # logger: Instance of AbLogger to write log messages to
-    def complete(self, item_position, abitem_object, logger: AutoBlindLogger.AbLogger):
+    def complete(self, item_state, abitem_object, logger: AutoBlindLogger.AbLogger):
         conditions_to_remove = []
         # try to complete conditions
         for condition_name in self.conditions:
             try:
-                if not self.__conditions[condition_name].complete(item_position, abitem_object):
+                if not self.__conditions[condition_name].complete(item_state, abitem_object):
                     conditions_to_remove.append(condition_name)
                     continue
                 error = self.__conditions[condition_name].error
@@ -93,7 +93,7 @@ class AbConditionSet:
                 error = str(ex)
             if error is not None:
                 logger.error(
-                    "Item '{0}', Condition Set '{1}', condition '{2}': {3}".format(item_position.id(), self.name,
+                    "Item '{0}', Condition Set '{1}', condition '{2}': {3}".format(item_state.id(), self.name,
                                                                                    condition_name, error))
 
         # Remove incomplete conditions

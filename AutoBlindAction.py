@@ -65,11 +65,11 @@ class AbAction:
         self.__logic = None
 
     # set the action based on a set_(action_name) attribute
-    # position_item: position item to read from
+    # item_state: state item to read from
     # value: Value of the set_(action_name) attribute
-    def update_set(self, position_item, value):
+    def update_set(self, item_state, value):
         if self.__item is None:
-            self.__set_item(AutoBlindTools.find_attribute(self.__sh, position_item, "item_" + self.__name))
+            self.__set_item(AutoBlindTools.find_attribute(self.__sh, item_state, "item_" + self.__name))
 
         func, set_value = AutoBlindTools.split(value, ":")
         if set_value == "":
@@ -104,20 +104,20 @@ class AbAction:
         self.__from_item = None
 
     # Complete action
-    # item_position: position item to read from
-    def complete(self, item_position):
+    # item_state: state item to read from
+    def complete(self, item_state):
         # Nothing to complete if this action triggers a logic
         if self.__logic is not None:
             return
 
         # missing item in action: Try to find it.
         if self.__item is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_position, "item_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "item_" + self.__name)
             if result is not None:
                 self.__set_item(result)
 
         if self.__mindelta is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_position, "mindelta_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "mindelta_" + self.__name)
             if result is not None:
                 self.__mindelta = result
 

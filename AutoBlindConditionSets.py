@@ -49,12 +49,12 @@ class AbConditionSets:
         self.__condition_sets[conditionset_name].update(item, grandparent_item, logger)
 
     # Check the condition sets, optimize and complete them
-    # item_position: item to read from
+    # item_state: item to read from
     # abitem_object: Related AbItem instance for later determination of current age and current delay
     # logger: Instance of AbLogger to write log messages to
-    def complete(self, item_position, abitem_object, logger):
+    def complete(self, item_state, abitem_object, logger):
         for conditionset_name in self.__condition_sets:
-            self.__condition_sets[conditionset_name].complete(item_position, abitem_object, logger)
+            self.__condition_sets[conditionset_name].complete(item_state, abitem_object, logger)
 
     # Write all condition sets to logger
     # logger: Instance of AbLogger to write log messages to
