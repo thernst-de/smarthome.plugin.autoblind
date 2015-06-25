@@ -20,6 +20,8 @@
 #########################################################################
 from . import AutoBlindCurrent
 from . import AutoBlindLogger
+from random import randint
+
 
 class AbEval:
     # Initialize
@@ -28,15 +30,22 @@ class AbEval:
         self.__logger = logger
 
     # Get lamella angle based on sun_altitute for sun tracking
-    def SunTracking(self):
+    def sun_tracking(self):
         self.__logger.debug("Executing method 'SunTracking'")
         self.__logger.increase_indent()
 
         altitude = AutoBlindCurrent.values.get_sun_altitude()
-        self.__logger.debug("Current sun altitude is {0}°",altitude)
+        self.__logger.debug("Current sun altitude is {0}°", altitude)
 
         value = 90 - altitude
         self.__logger.debug("Blinds at right angle to the sun at {0}°", value)
 
         self.__logger.decrease_indent()
         return value
+
+    # Return random integer
+    # min_value: minimum value for random integer (default 0)
+    # max_value: maximum value for random integer (default 255)
+    def get_random_int(self, min_value=0, max_value=255):
+        self.__logger.debug("Executing method 'GetRandomInt({0},{1}'", min_value, max_value)
+        return randint(min_value, max_value)
