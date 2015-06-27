@@ -38,15 +38,14 @@ class AbItem:
     # smarthome: instance of smarthome.py
     # item: item to use
     def __init__(self, smarthome, item):
-        self.sh = smarthome
-        self.__cycle = None
-        self.__startup_delay = None
+        self.__sh = smarthome
         self.__name = None
         self.__item_active = None
         self.__item_laststate_id = None
         self.__item_laststate_name = None
         self.__states = []
         self.__manual_break = 0
+        self.__startup_delay = 0
         self.__delay = 0
         self.__actions = {}
         self.__can_not_leave_current_state_since = 0
@@ -58,10 +57,14 @@ class AbItem:
         self.__myLogger.header("Initialize Item {0}".format(self.id))
 
         # initialize everything else
+        self.__check_item_config()
         self.__init_config()
         self.__init_states()
         self.__init_watch_manual()
-        self.__init_watch_trigger()
+
+        # timer with startup-delay
+        if self.__startup_delay != 0:
+            self.__item.timer(self.__startup_delay, 1)
 
     # Validate data in instance
     # A ValueError is being thown in case of errors
@@ -85,9 +88,32 @@ class AbItem:
 
     # log item data
     def write_to_log(self):
+        cycles = ""
+        crons = ""
+
+        # noinspection PyProtectedMember
+        job = self.__sh.scheduler._scheduler.get(self.__item.id())
+        if job is not None:
+            if "cycle" in job and job["cycle"] is not None:
+                cycle = list(job["cycle"].keys())[0]
+                cycles = "every {0} Seconds".format(cycle)
+
+        # inject value into cron if required
+        if "cron" in job and job["cron"] is not None:
+            for entry in job['cron']:
+                if crons != "":
+                    crons += ", "
+                crons += entry
+
+        if cycles == "":
+            cycles = "Inactive"
+        if crons == "":
+            crons = "Inactive"
+
         self.__myLogger.header("Configuration of item {0}".format(self.__name))
-        self.__myLogger.info("startup_delay: {0} seconds", self.__startup_delay)
-        self.__myLogger.info("cycle: {0} seconds", self.__cycle)
+        self.__myLogger.info("Cycle: {0}", cycles)
+        self.__myLogger.info("Cron: {0}", crons)
+        self.__myLogger.info("Startup Delay: {0}", self.__startup_delay)
         self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
         self.__myLogger.info("Item 'State Id': {0}", self.__item_laststate_id.id())
         self.__myLogger.info("Item 'State Name': {0}", self.__item_laststate_name.id())
@@ -104,12 +130,12 @@ class AbItem:
 
     # Find the state, matching the current conditions and perform the actions of this state
     # caller: Caller that triggered the update
-    # noinspection PyCallingNonCallable
-    def update_state(self, caller=None):
+    # noinspection PyCallingNonCallable,PyUnusedLocal
+    def update_state(self, item, caller=None, source=None, dest=None):
         self.__myLogger.update_logfile()
         self.__myLogger.header("Update state of item {0}".format(self.__name))
         if caller:
-            self.__myLogger.debug("Update triggered by {0}", caller)
+            self.__myLogger.debug("Update triggered by {0} (source={1} dest={2})", caller, source, dest)
 
         # Check if this AutoBlindItem is active. Leave if not
         if not self.__check_active():
@@ -174,11 +200,6 @@ class AbItem:
 
         new_state.activate(self.__myLogger)
 
-    # startup scheduler after startup_delay
-    def startup(self):
-        name = "autoblind-" + self.id
-        self.sh.scheduler.add(name, self.update_state, cycle=self.__cycle, offset=self.__startup_delay)
-
     # get last state based on laststate_id item
     # returns: AbState instance of last state or "None" if no last state could be found
     def __get_last_state(self):
@@ -230,11 +251,6 @@ class AbItem:
             self.__myLogger.debug("'Active' set to '{0}' by '{1}'", self.__get_active(), caller)
         self.__check_active(True)
 
-    # callback function called when item triggering an update is being changed
-    # noinspection PyUnusedLocal
-    def __watch_trigger_callback(self, item, caller=None, source=None, dest=None):
-        self.update_state("item '{0}' changed by '{1}".format(item.id(), caller))
-
     # set the value of the item "active"
     # value: new value for item
     # reset_interval: Interval after which the value should be reset to the previous value
@@ -264,7 +280,7 @@ class AbItem:
     def __get_active_timer_time(self):
         # check if we can find a Timer-Entry for this item inside the scheduler-configuration
         timer_key = self.__item_active.id() + "-Timer"
-        scheduler_next = self.sh.scheduler.return_next(timer_key)
+        scheduler_next = self.__sh.scheduler.return_next(timer_key)
         if not isinstance(scheduler_next, datetime.datetime):
             return None
         if scheduler_next <= datetime.datetime.now(scheduler_next.tzinfo):
@@ -303,20 +319,59 @@ class AbItem:
         self.__item_laststate_name("Manuell deaktiviert")
         return False
 
+    # Check item settings and update if required
+    # noinspection PyProtectedMember
+    def __check_item_config(self):
+        # set "enforce updates" for item
+        self.__item._enforce_updates = True
+
+        # set "eval" for item if initial
+        if self.__item._eval_trigger and self.__item._eval == None:
+            self.__item._eval = 1
+
+        # Check scheduler settings and update if requred
+        job = self.__sh.scheduler._scheduler.get(self.__item.id())
+        if job is None:
+            # We do not have an scheduler job so there is nothing to check and update
+            return
+
+        changed = False
+
+        # inject value into cycle if required
+        if "cycle" in job and job["cycle"] is not None:
+            cycle = list(job["cycle"].keys())[0]
+            value = job["cycle"][cycle]
+            if value is None:
+                value = "1"
+                changed = True
+            new_cycle = {cycle: value}
+        else:
+            new_cycle = None
+
+        # inject value into cron if required
+        if "cron" in job and job["cron"] is not None:
+            new_cron = {}
+            for entry, value in job['cron'].items():
+                if value is None:
+                    value = 1
+                    changed = True
+                new_cron[entry] = value
+        else:
+            new_cron = None
+
+        if changed:
+            self.__sh.scheduler.change(self.__item.id(), cycle=new_cycle, cron=new_cron)
+
     # initialize configuration
     def __init_config(self):
         self.__name = str(self.__item)
-        self.__cycle = AutoBlindTools.get_num_attribute(self.__item, "cycle", AutoBlindDefaults.cycle)
-        if self.__cycle == 0:
-            self.__cycle = None
-        self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item, "startup_delay",
-                                                                AutoBlindDefaults.startup_delay)
         self.__manual_break = AutoBlindTools.get_num_attribute(self.__item, "manual_break",
                                                                AutoBlindDefaults.manual_break)
-
-        self.__item_active = AutoBlindTools.get_item_attribute(self.__item, "item_active", self.sh)
-        self.__item_laststate_id = AutoBlindTools.get_item_attribute(self.__item, "item_state_id", self.sh)
-        self.__item_laststate_name = AutoBlindTools.get_item_attribute(self.__item, "item_state_name", self.sh)
+        self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item, "startup_delay",
+                                                                AutoBlindDefaults.startup_delay)
+        self.__item_active = AutoBlindTools.get_item_attribute(self.__item, "item_active", self.__sh)
+        self.__item_laststate_id = AutoBlindTools.get_item_attribute(self.__item, "item_state_id", self.__sh)
+        self.__item_laststate_name = AutoBlindTools.get_item_attribute(self.__item, "item_state_name", self.__sh)
 
     # find states and init them
     def __init_states(self):
@@ -332,7 +387,7 @@ class AbItem:
             if item_state.id() in non_state_item_ids:
                 continue
 
-            state = AutoBlindState.AbState(self.sh, item_state, self.__item, self, self.__myLogger)
+            state = AutoBlindState.AbState(self.__sh, item_state, self.__item, self, self.__myLogger)
             if state.validate():
                 self.__states.append(state)
 
@@ -346,24 +401,9 @@ class AbItem:
         if isinstance(self.__item.conf["watch_manual"], str):
             self.__item.conf["watch_manual"] = [self.__item.conf["watch_manual"]]
         for entry in self.__item.conf["watch_manual"]:
-            for item in self.sh.match_items(entry):
+            for item in self.__sh.match_items(entry):
                 item.add_method_trigger(self.__watch_manual_callback)
                 self.__myLogger.info(item.id())
         if self.__item_active is not None:
             self.__item_active.add_method_trigger(self.__reset_active_callback)
-        self.__myLogger.decrease_indent()
-
-    # initialize "watch_trigger" if configured
-    def __init_watch_trigger(self):
-        if 'watch_trigger' not in self.__item.conf:
-            return
-
-        self.__myLogger.info("watch_trigger items:")
-        self.__myLogger.increase_indent()
-        if isinstance(self.__item.conf["watch_trigger"], str):
-            self.__item.conf["watch_trigger"] = [self.__item.conf["watch_trigger"]]
-        for entry in self.__item.conf["watch_trigger"]:
-            for item in self.sh.match_items(entry):
-                item.add_method_trigger(self.__watch_trigger_callback)
-                self.__myLogger.info(item.id())
         self.__myLogger.decrease_indent()

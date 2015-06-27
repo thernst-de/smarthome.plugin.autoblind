@@ -30,12 +30,11 @@ logger = logging.getLogger()
 class AutoBlind:
     # Constructor
     # smarthome: instance of smarthome.py
-    # cycle_default: default interval to update states
     # startup_delay_default: default startup delay
     # manual_break_default: default break after manual changes of items
     # log_level: loglevel for extended logging
     # log_directory: directory for extended logging files
-    def __init__(self, smarthome, cycle_default=300, startup_delay_default=10, manual_break_default=3600,
+    def __init__(self, smarthome, startup_delay_default=10, manual_break_default=3600,
                  log_level=0, log_directory="/usr/local/smarthome/var/log/AutoBlind/"):
         self._sh = smarthome
         self.__items = {}
@@ -43,7 +42,6 @@ class AutoBlind:
 
         logger.info("Init AutoBlind (log_level={0}, log_directory={1}".format(log_level, log_directory))
 
-        AutoBlindDefaults.cycle = int(cycle_default)
         AutoBlindDefaults.startup_delay = int(startup_delay_default)
         AutoBlindDefaults.manual_break = int(manual_break_default)
         AutoBlindDefaults.write_to_log()
@@ -53,32 +51,28 @@ class AutoBlind:
         AbLogger.set_loglevel(log_level)
         AbLogger.set_logdirectory(log_directory)
 
+    def parse_item(self, item):
+        if 'autoblind_plugin' not in item.conf or item.conf["autoblind_plugin"] != "active":
+            return None
+
+        try:
+            # Create AbItem object and return update_state method to be triggered on item changes
+            ab_item = AutoBlindItem.AbItem(self._sh, item)
+            ab_item.validate()
+            self.__items[ab_item.id] = ab_item
+            ab_item.write_to_log()
+            return ab_item.update_state
+
+        except ValueError as ex:
+            logger.error(ex)
+            return None
+
     # Initialization of plugin
     def run(self):
         self.alive = True
 
-        # init items
-        logger.info("Init AutoBlind Items")
-        possible_items = self._sh.find_items("autoblind_plugin")
-        for possible_item in possible_items:
-            if possible_item.conf["autoblind_plugin"] != "active":
-                continue
-
-            try:
-                item = AutoBlindItem.AbItem(self._sh, possible_item)
-                item.validate()
-                self.__items[item.id] = item
-                item.write_to_log()
-            except ValueError as ex:
-                logger.error(ex)
-
-        # startup schedulers for items
         if len(self.__items) > 0:
             logger.info("Using AutoBlind for {} items".format(len(self.__items)))
-
-            for item_id in self.__items:
-                self.__items[item_id].startup()
-
         else:
             logger.info("AutoBlind deactivated because no items have been found.")
 

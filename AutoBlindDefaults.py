@@ -22,13 +22,10 @@ import logging
 
 logger = logging.getLogger()
 
-cycle = 300
-
 startup_delay = 10
 
 manual_break = 3600
 
 def write_to_log():
-    logger.info("AutoBlind default cycle = {0}".format(cycle))
     logger.info("AutoBlind default startup delay = {0}".format(startup_delay))
     logger.info("AutoBlind default manual break time = {0}".format(manual_break))
