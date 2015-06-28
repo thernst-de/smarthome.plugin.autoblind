@@ -226,20 +226,20 @@ class AbItem:
         else:
             self.__myLogger.debug("Deactivating automatic mode for {0} seconds.", self.__manual_break)
             self.__set_active(0, self.__manual_break)
-            self.__check_active(True)
+            self.__check_active()
         self.__myLogger.decrease_indent()
 
     # callback function that is called when the item "active" is being changed
     # noinspection PyUnusedLocal
     def __reset_active_callback(self, item, caller=None, source=None, dest=None):
-        # we're just changing "active" ourselve, .. ignore
+        # we're just changing "active" ourselves, .. ignore
         if self.__just_changing_active:
             return
 
         self.__myLogger.update_logfile()
         self.__myLogger.header("Item 'active' changed")
         if caller == "Timer" and self.__get_active():
-            # triggered by timer and active is not TRUE: this was the reactivation by timer
+            # triggered by timer and active is now TRUE: this was the reactivation by timer
             self.__myLogger.info("Reactivating automatic mode")
         elif self.__get_active_timer_active():
             # A timer is active: remove it as the value has been overwritten
@@ -249,7 +249,10 @@ class AbItem:
         else:
             # Something else: Just log
             self.__myLogger.debug("'Active' set to '{0}' by '{1}'", self.__get_active(), caller)
-        self.__check_active(True)
+
+        # trigger update if automatic is active
+        if self.__check_active():
+            self.__item(1, source="AuoBlind: active callback")
 
     # set the value of the item "active"
     # value: new value for item
@@ -294,13 +297,9 @@ class AbItem:
         return self.__get_active_timer_time() is not None
 
     # check if item is active and update laststate_name if not
-    # set_name_if_active: True = Update laststate_name if active, too, False = Leave laststate_name unchanged if active
-    def __check_active(self, set_name_if_active=False):
+    def __check_active(self):
         # item is active
         if self.__get_active():
-            if set_name_if_active:
-                # noinspection PyCallingNonCallable
-                self.__item_laststate_name("Wird beim nächsten Durchgang aktualisiert")
             return True
 
         # check if we can find a Timer-Entry for this item inside the scheduler-configuration
@@ -326,7 +325,7 @@ class AbItem:
         self.__item._enforce_updates = True
 
         # set "eval" for item if initial
-        if self.__item._eval_trigger and self.__item._eval == None:
+        if self.__item._eval_trigger and self.__item._eval is None:
             self.__item._eval = "1"
 
         # Check scheduler settings and update if requred
