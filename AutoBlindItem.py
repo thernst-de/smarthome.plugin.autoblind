@@ -327,7 +327,7 @@ class AbItem:
 
         # set "eval" for item if initial
         if self.__item._eval_trigger and self.__item._eval == None:
-            self.__item._eval = 1
+            self.__item._eval = "1"
 
         # Check scheduler settings and update if requred
         job = self.__sh.scheduler._scheduler.get(self.__item.id())
