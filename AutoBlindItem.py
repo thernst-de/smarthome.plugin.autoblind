@@ -372,6 +372,9 @@ class AbItem:
         self.__item_laststate_id = AutoBlindTools.get_item_attribute(self.__item, "item_state_id", self.__sh)
         self.__item_laststate_name = AutoBlindTools.get_item_attribute(self.__item, "item_state_name", self.__sh)
 
+        if self.__item_active is not None:
+            self.__item_active.add_method_trigger(self.__reset_active_callback)
+
     # find states and init them
     def __init_states(self):
         items_states = self.__item.return_children()
@@ -403,6 +406,4 @@ class AbItem:
             for item in self.__sh.match_items(entry):
                 item.add_method_trigger(self.__watch_manual_callback)
                 self.__myLogger.info(item.id())
-        if self.__item_active is not None:
-            self.__item_active.add_method_trigger(self.__reset_active_callback)
         self.__myLogger.decrease_indent()
