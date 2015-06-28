@@ -253,13 +253,16 @@ There are some "special" condition names explained later
 The limits are defined inside the condition set items. The following limits are possible:
 limit | attribute | function
 ------|-----------|----------
-minimum | min_(condition name) | The condition is fulfilled if the current value is lower than the given minimum
-maximum | max_(condition name) | The condition is fulfilled if the current value is greater than the given maximum
+minimum | min_(condition name) | The condition is fulfilled if the current value is greater than the given minimum
+maximum | max_(condition name) | The condition is fulfilled if the current value is lower than the given maximum
 distinct value | value_(condition name) | The condition is fulfilled if the current value is equal the given value
-negate | negate_(condition name) | The whole condition is negated
+negate | negate_(condition name) | The value condition is negated
+minimum age | agemin_(condition_name) | The condition is fulflled if the age of the item used to retrieve the value is greater than the given minimum
+maximum age | agemax_(condition_name) | The condition is fulflled if the age of the item used to retrieve the value is lower than the given maximum
+negate age | agenegate_(condition_name) | The age condition is negated
 
 The current value to check agains can either be provided by an item or by an eval function. If both are given, the item is used and eval is ignored.
-The name of the item or the eval function are set by specific attributes `item_(condition name)` or `eval_(condition name)` in the object item. Their name has also to correspond with the condidion name.
+The name of the item or the eval function are set by specific attributes `item_(condition name)` or `eval_(condition name)` in the object item. Their name has also to correspond with the condidion name. Obviously, age related conditions (`agemin_(condition name)`, `agemax_(condition name)`, `agenegate_(condition_name)`) can only be used when the value is provided by an item.
 
 ####Example####
 

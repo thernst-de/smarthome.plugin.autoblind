@@ -85,6 +85,9 @@ class AbCondition:
         self.__min = None
         self.__max = None
         self.__negate = False
+        self.__agemin = None
+        self.__agemax = None
+        self.__agenegate = None
         self.__error = None
 
     # set a certain function to a given value
@@ -103,6 +106,12 @@ class AbCondition:
             self.__max = value
         elif func == "negate":
             self.__negate = value
+        elif func == "agemin":
+            self.__agemin = value
+        elif func == "agemax":
+            self.__agemax = value
+        elif func == "agenegate":
+            self.__agenegate = value
 
     # Complete condition (do some checks, cast value, min and max based on item or eval data types)
     # item_state: item to read from
@@ -164,6 +173,11 @@ class AbCondition:
             self.__error = "Condition {}: 'min' must not be greater than 'max'!".format(self.__name)
             raise ValueError(self.__error)
 
+        # 'agemin' and 'agemax' can only be used for items, not for eval
+        if self.__item is None and (self.__agemin is not None or self.__agemax is not None):
+            self.__error = "Condition {}: 'agemin'/'agemax' can not be used for eval!".format(self.__name)
+            raise ValueError(self.__error)
+
         return True
 
     # Check if condition is matching
@@ -176,9 +190,54 @@ class AbCondition:
 
         # Ignore if no current value can be determined (should not happen as we check this earlier, but to be sure ...)
         if self.__item is None and self.__eval is None:
-            logger.info("condition '{0}': no item or eval found! Considering condition as matching!", self.__name)
+            logger.info("condition '{0}': No item or eval found! Considering condition as matching!", self.__name)
             return True
 
+        if not self.__check_value(logger):
+            return False
+        if not self.__check_age(logger):
+            return False
+        return True
+
+    # Write condition to logger
+    # logger: Instance of AbLogger to write to
+    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
+        if self.__error is not None:
+            logger.debug("error: {0}", self.__error)
+        if self.__item is not None:
+            logger.debug("item: {0}", self.__item.id())
+        if self.__eval is not None:
+            logger.debug("eval: {0}", self.__get_eval_name())
+        if self.__value is not None:
+            logger.debug("value: {0}", self.__value)
+        if self.__min is not None:
+            logger.debug("min: {0}", self.__min)
+        if self.__max is not None:
+            logger.debug("max: {0}", self.__max)
+        if self.__negate is not None:
+            logger.debug("negate: {0}", self.__negate)
+
+    # Cast 'value', 'min' and 'max' using given cast function
+    # cast_func: cast function to use
+    def __cast_all(self, cast_func):
+        if self.__value is not None:
+            self.__value = cast_func(self.__value)
+        if self.__min is not None:
+            self.__min = cast_func(self.__min)
+        if self.__max is not None:
+            self.__max = cast_func(self.__max)
+        if self.__negate is not None:
+            self.__negate = AutoBlindTools.cast_bool(self.__negate)
+        if self.__agemin is not None:
+            self.__agemin = AutoBlindTools.cast_num(self.__agemin)
+        if self.__agemax is not None:
+            self.__agemax = AutoBlindTools.cast_num(self.__agemax)
+        if self.__agenegate is not None:
+            self.__agenegate = AutoBlindTools.cast_bool(self.__agenegate)
+
+    # Check if value conditions match
+    # logger: Instance of AbLogger to write to
+    def __check_value(self, logger: AutoBlindLogger.AbLogger):
         current = self.__get_current()
         try:
             if self.__value is not None:
@@ -226,32 +285,46 @@ class AbCondition:
         finally:
             logger.decrease_indent()
 
-    # Write condition to logger
+    # Check if age conditions match
     # logger: Instance of AbLogger to write to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
-        if self.__error is not None:
-            logger.debug("error: {0}", self.__error)
-        if self.__item is not None:
-            logger.debug("item: {0}", self.__item.id())
-        if self.__eval is not None:
-            logger.debug("eval: {0}", self.__get_eval_name())
-        if self.__value is not None:
-            logger.debug("value: {0}", self.__value)
-        if self.__min is not None:
-            logger.debug("min: {0}", self.__min)
-        if self.__max is not None:
-            logger.debug("max: {0}", self.__max)
-        if self.__negate is not None:
-            logger.debug("negate: {0}", self.__negate)
+    def __check_age(self, logger: AutoBlindLogger.AbLogger):
+        # No limits given -> OK
+        if self.__agemin is None and self.__agemax is None:
+            logger.info("Age of '{0}': No limits given", self.__name)
+            return True
 
-    # Cast 'value', 'min' and 'max' using given cast function
-    # cast_func: cast function to use
-    def __cast_all(self, cast_func):
-        if self.__value is not None:
-            self.__value = cast_func(self.__value)
-        if self.__min is not None:
-            self.__min = cast_func(self.__min)
-        if self.__max is not None:
-            self.__max = cast_func(self.__max)
-        if self.__negate is not None:
-            self.__negate = AutoBlindTools.cast_bool(self.__negate)
+        # Ignore if no current value can be determined (should not happen as we check this earlier, but to be sure ...)
+        if self.__item is None:
+            logger.info("Age of '{0}': No item found! Considering condition as matching!", self.__name)
+            return True
+
+        current = self.__item.age()
+        try:
+            # We check 'min' and 'max' (if given)
+            logger.debug("Age of '{0}': min={1} max={2} negate={3} current={4}",
+                         self.__name, self.__agemin, self.__agemax, self.__agenegate, current)
+            logger.increase_indent()
+
+            if not self.__agenegate:
+                if self.__agemin is not None and current < self.__agemin:
+                    logger.debug("to young -> not matching")
+                    return False
+
+                if self.__agemax is not None and current > self.__agemax:
+                    logger.debug("to old -> not matching")
+                    return False
+            else:
+                if self.__agemin is not None and current > self.__agemin and (
+                        self.__agemax is None or current < self.__agemax):
+                    logger.debug("not younger than min -> not matching")
+                    return False
+
+                if self.__agemax is not None and current < self.__agemax and (
+                        self.__agemin is None or current > self.__agemin):
+                    logger.debug("not older than max -> not matching")
+                    return False
+
+            logger.debug("given age limits ok -> matching")
+            return True
+        finally:
+            logger.decrease_indent()
