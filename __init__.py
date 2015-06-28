@@ -51,7 +51,10 @@ class AutoBlind:
         AbLogger.set_loglevel(log_level)
         AbLogger.set_logdirectory(log_directory)
 
+    # Parse an item
+    # item: item to parse
     def parse_item(self, item):
+        # leave if this is not an autoblind object item
         if 'autoblind_plugin' not in item.conf or item.conf["autoblind_plugin"] != "active":
             return None
 

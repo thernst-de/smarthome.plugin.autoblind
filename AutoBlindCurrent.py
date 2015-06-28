@@ -68,8 +68,9 @@ class AbCurrent:
         return self.__sun_altitude
 
     # Return random number between 0 and 100
+    # noinspection PyMethodMayBeStatic
     def get_random(self):
-        return randint(0,100)
+        return randint(0, 100)
 
     # Update current values
     def update(self):
@@ -79,5 +80,3 @@ class AbCurrent:
         azimut, altitude = self.__sh.sun.pos()
         self.__sun_azimut = math.degrees(float(azimut))
         self.__sun_altitude = math.degrees(float(altitude))
-
-

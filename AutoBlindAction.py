@@ -25,32 +25,6 @@ from . import AutoBlindEval
 
 # Class representing a single action
 class AbAction:
-    # set item
-    # item: value for item
-    def __set_item(self, item):
-        if isinstance(item, str):
-            self.__item = self.__sh.return_item(item)
-        else:
-            self.__item = item
-
-    # set from-item
-    # from_item: value for from-item
-    def __set_from_item(self, from_item):
-        if isinstance(from_item, str):
-            self.__item = self.__sh.return_item(from_item)
-        else:
-            self.__item = from_item
-
-    # Name of eval-object to be displayed in log
-    def __get_eval_name(self):
-        if self.__eval is None:
-            return None
-        if self.__eval is not None:
-            if isinstance(self.__eval, str):
-                return self.__eval
-            else:
-                return self.__eval.__module__ + "." + self.__eval.__name__
-
     # Initialize the action
     # smarthome: Instance of smarthome.py-class
     # name: Name of action
@@ -71,7 +45,7 @@ class AbAction:
         if self.__item is None:
             self.__set_item(AutoBlindTools.find_attribute(self.__sh, item_state, "item_" + self.__name))
 
-        func, set_value = AutoBlindTools.split(value, ":")
+        func, set_value = AutoBlindTools.partition_strip(value, ":")
         if set_value == "":
             set_value = func
             func = "value"
@@ -94,7 +68,7 @@ class AbAction:
     # set the action based on a trigger_(name) attribute
     # value: Value of the trigger_(action_name) attribute
     def update_trigger(self, value):
-        logic, value = AutoBlindTools.split(value, ":")
+        logic, value = AutoBlindTools.partition_strip(value, ":")
         self.__logic = logic
         if value != "":
             self.__value = value
@@ -164,6 +138,22 @@ class AbAction:
             # noinspection PyCallingNonCallable
             self.__item(value)
 
+    # Write action to logger
+    # logger: Instance of AbLogger to write to
+    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
+        if self.__logic is not None:
+            logger.debug("trigger logic: {0}", self.__logic)
+        if self.__item is not None:
+            logger.debug("item: {0}", self.__item.id())
+        if self.__mindelta is not None:
+            logger.debug("mindelta: {0}", self.__mindelta)
+        if self.__value is not None:
+            logger.debug("value: {0}", self.__value)
+        if self.__eval is not None:
+            logger.debug("eval: {0}", self.__get_eval_name())
+        if self.__from_item is not None:
+            logger.debug("value from item: {0}", self.__from_item.id())
+
     # Execute eval and return result. In case of errors, write message to log and return None
     # logger: Instance of AbLogger to write to
     def __do_eval(self, logger: AutoBlindLogger.AbLogger):
@@ -191,18 +181,28 @@ class AbAction:
             logger.debug("eval returned '{0}', trying to cast this returned exception '{1}'", value, e)
             return None
 
-    # Write action to logger
-    # logger: Instance of AbLogger to write to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
-        if self.__logic is not None:
-            logger.debug("trigger logic: {0}", self.__logic)
-        if self.__item is not None:
-            logger.debug("item: {0}", self.__item.id())
-        if self.__mindelta is not None:
-            logger.debug("mindelta: {0}", self.__mindelta)
-        if self.__value is not None:
-            logger.debug("value: {0}", self.__value)
+    # set item
+    # item: value for item
+    def __set_item(self, item):
+        if isinstance(item, str):
+            self.__item = self.__sh.return_item(item)
+        else:
+            self.__item = item
+
+    # set from-item
+    # from_item: value for from-item
+    def __set_from_item(self, from_item):
+        if isinstance(from_item, str):
+            self.__item = self.__sh.return_item(from_item)
+        else:
+            self.__item = from_item
+
+    # Name of eval-object to be displayed in log
+    def __get_eval_name(self):
+        if self.__eval is None:
+            return None
         if self.__eval is not None:
-            logger.debug("eval: {0}", self.__get_eval_name())
-        if self.__from_item is not None:
-            logger.debug("value from item: {0}", self.__from_item.id())
+            if isinstance(self.__eval, str):
+                return self.__eval
+            else:
+                return self.__eval.__module__ + "." + self.__eval.__name__

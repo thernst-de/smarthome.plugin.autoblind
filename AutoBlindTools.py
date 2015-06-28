@@ -85,6 +85,7 @@ def get_last_part_of_item_id(item):
 # Taken from smarthome.py/lib/item.py
 # value: value to cast
 # returns: value as num or float
+# noinspection PyBroadException
 def cast_num(value):
     if isinstance(value, float):
         return value
@@ -180,10 +181,10 @@ def find_attribute(smarthome, base_item, attribute):
     return None
 
 
-# split value at the first occurrence of splitchar
+# partition value at splitchar and strip resulting parts
 # value: what to split
 # splitchar: where to split
 # returns: Parts before and after split, whitespaces stripped
-def split(value, splitchar):
-    parts = value.partition(splitchar)
-    return parts[0].strip(), parts[2].strip()
+def partition_strip(value, splitchar):
+    part1, __, part2 = value.partition(splitchar)
+    return part1.strip(), part2.strip()

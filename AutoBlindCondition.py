@@ -35,44 +35,6 @@ class AbCondition:
     def error(self):
         return self.__error
 
-    # set item
-    # item: value for item
-    def __set_item(self, item):
-        if isinstance(item, str):
-            self.__item = self.__sh.return_item(item)
-        else:
-            self.__item = item
-
-    # Current value of condition (based on item or eval)
-    def __get_current(self):
-        if self.__item is not None:
-            # noinspection PyCallingNonCallable
-            return self.__item()
-        if self.__eval is not None:
-            if isinstance(self.__eval, str):
-                # noinspection PyUnusedLocal
-                sh = self.__sh
-                try:
-                    value = eval(self.__eval)
-                except Exception as e:
-                    raise ValueError("Condition {}: problem evaluating {}: {}".format(self.__name, str(self.__eval), e))
-                else:
-                    return value
-            else:
-                # noinspection PyCallingNonCallable
-                return self.__eval()
-        raise ValueError("Condition {}: Neither 'item' nor eval given!".format(self.__name))
-
-    # Name of eval-Object to be displayed in log
-    def __get_eval_name(self):
-        if self.__item is not None or self.__eval is None:
-            return None
-        if self.__eval is not None:
-            if isinstance(self.__eval, str):
-                return self.__eval
-            else:
-                return self.__eval.__module__ + "." + self.__eval.__name__
-
     # Initialize the condition
     # smarthome: Instance of smarthome.py-class
     # name: Name of condition
@@ -216,6 +178,12 @@ class AbCondition:
             logger.debug("max: {0}", self.__max)
         if self.__negate is not None:
             logger.debug("negate: {0}", self.__negate)
+        if self.__agemin is not None:
+            logger.debug("age min: {0}", self.__agemin)
+        if self.__agemax is not None:
+            logger.debug("age max: {0}", self.__agemax)
+        if self.__agenegate is not None:
+            logger.debug("age negate: {0}", self.__agenegate)
 
     # Cast 'value', 'min' and 'max' using given cast function
     # cast_func: cast function to use
@@ -328,3 +296,41 @@ class AbCondition:
             return True
         finally:
             logger.decrease_indent()
+
+    # set item
+    # item: value for item
+    def __set_item(self, item):
+        if isinstance(item, str):
+            self.__item = self.__sh.return_item(item)
+        else:
+            self.__item = item
+
+    # Current value of condition (based on item or eval)
+    def __get_current(self):
+        if self.__item is not None:
+            # noinspection PyCallingNonCallable
+            return self.__item()
+        if self.__eval is not None:
+            if isinstance(self.__eval, str):
+                # noinspection PyUnusedLocal
+                sh = self.__sh
+                try:
+                    value = eval(self.__eval)
+                except Exception as e:
+                    raise ValueError("Condition {}: problem evaluating {}: {}".format(self.__name, str(self.__eval), e))
+                else:
+                    return value
+            else:
+                # noinspection PyCallingNonCallable
+                return self.__eval()
+        raise ValueError("Condition {}: Neither 'item' nor eval given!".format(self.__name))
+
+    # Name of eval-Object to be displayed in log
+    def __get_eval_name(self):
+        if self.__item is not None or self.__eval is None:
+            return None
+        if self.__eval is not None:
+            if isinstance(self.__eval, str):
+                return self.__eval
+            else:
+                return self.__eval.__module__ + "." + self.__eval.__name__

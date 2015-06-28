@@ -34,40 +34,24 @@ class AbActions:
     def count(self):
         return len(self.__actions)
 
-    # update action ("set_(name)")
-    # attribute: name of attribute that defines action
-    # item_state: Item of state to which the action belongs
-    def update_set(self, item_state, attribute):
-        name = self.__update(attribute)
-
-        # Update action
-        if name is not None:
-            self.__actions[name].update_set(item_state, item_state.conf[attribute])
-
-    # update action ("trigger_(name)")
-    # attribute: name of attribute that defines action
-    # item_state: Item of state to which the action belongs
-    def update_trigger(self, item_state, attribute):
-        name = self.__update(attribute)
-
-        # Update action
-        if name is not None:
-            self.__actions[name].update_trigger(item_state.conf[attribute])
-
     # get action name from attribute and ensure action exists (base for all updates)
     # attribute: name of attribute that defines action
-    def __update(self, attribute):
-        # Split attribute in set_ and action name
-        parts = attribute.partition("_")
-        if parts[0] != "set" and parts[0] != "trigger":
-            return None
+    def update(self, item_state, attribute):
+        # Split attribute in function and action name
+        func, __, action_name = attribute.partition("_")
+        if func not in ("set", "trigger") or action_name == "":
+            return
 
         # Ensure action exists
-        if not parts[2] in self.__actions:
-            action = AutoBlindAction.AbAction(self.__sh, parts[2])
-            self.__actions[parts[2]] = action
+        if action_name not in self.__actions:
+            action = AutoBlindAction.AbAction(self.__sh, action_name)
+            self.__actions[action_name] = action
 
-        return parts[2]
+        # Set action depending on function
+        if func == "set":
+            self.__actions[action_name].update_set(item_state, item_state.conf[attribute])
+        elif func == "trigger":
+            self.__actions[action_name].update_trigger(item_state.conf[attribute])
 
     # Check the actions optimize and complete them
     # item_state: item to read from

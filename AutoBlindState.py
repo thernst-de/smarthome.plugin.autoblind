@@ -150,10 +150,7 @@ class AbState:
             logger.error("State '{0}': Attribute 'position' is no longer supported!".format(item_state.id()))
 
         for attribute in item_state.conf:
-            if attribute.startswith("set_") and attribute != "set_":
-                self.__actions.update_set(item_state, attribute)
-            if attribute.startswith("trigger_") and attribute != "trigger_":
-                self.__actions.update_trigger(item_state, attribute)
+            self.__actions.update(item_state, attribute)
 
         # if an item name is given, or if we do not have a name after returning from all recursions,
         # use item name as state name

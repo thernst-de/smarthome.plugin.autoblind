@@ -52,7 +52,7 @@ class AbConditionSet:
         if item is not None:
             for attribute in item.conf:
                 try:
-                    func, name = AutoBlindTools.split(attribute, "_")
+                    func, name = AutoBlindTools.partition_strip(attribute, "_")
                     if name == "":
                         continue
 
@@ -66,7 +66,7 @@ class AbConditionSet:
 
         # Update item from grandparent_item
         for attribute in grandparent_item.conf:
-            func, name = AutoBlindTools.split(attribute, "_")
+            func, name = AutoBlindTools.partition_strip(attribute, "_")
             if name == "":
                 continue
 
