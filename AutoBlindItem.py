@@ -100,12 +100,12 @@ class AbItem:
                 cycle = list(job["cycle"].keys())[0]
                 cycles = "every {0} Seconds".format(cycle)
 
-        # inject value into cron if required
-        if "cron" in job and job["cron"] is not None:
-            for entry in job['cron']:
-                if crons != "":
-                    crons += ", "
-                crons += entry
+            # inject value into cron if required
+            if "cron" in job and job["cron"] is not None:
+                for entry in job['cron']:
+                    if crons != "":
+                        crons += ", "
+                    crons += entry
 
         if cycles == "":
             cycles = "Inactive"
