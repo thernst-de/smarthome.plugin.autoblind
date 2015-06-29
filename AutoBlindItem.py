@@ -50,10 +50,15 @@ class AbItem:
         self.__actions = {}
         self.__can_not_leave_current_state_since = 0
         self.__just_changing_active = False
-
-        # get required items for this AutoBlindItem
         self.__item = item
-        self.__myLogger = AbLogger.create(item)
+
+    # Complete everything
+    def complete(self):
+        if self.__item is None:
+            raise ValueError("No item configured!")
+
+        # initialize logging
+        self.__myLogger = AbLogger.create(self.__item)
         self.__myLogger.header("Initialize Item {0}".format(self.id))
 
         # initialize everything else
@@ -62,18 +67,8 @@ class AbItem:
         self.__init_states()
         self.__init_watch_manual()
 
-        # timer with startup-delay
-        if self.__startup_delay != 0:
-            self.__item.timer(self.__startup_delay, 1)
-
-    # Validate data in instance
-    # A ValueError is being thown in case of errors
-    def validate(self):
-        if self.__item is None:
-            raise ValueError("No item configured!")
-
+        # do some checks
         item_id = self.__item.id()
-
         if self.__item_active is None:
             raise ValueError("{0}: Item does not have an item for 'active' configured!".format(item_id))
 
@@ -85,6 +80,13 @@ class AbItem:
 
         if len(self.__states) == 0:
             raise ValueError("{0}: No states defined!".format(item_id))
+
+        # add item trigger
+        self.__item.add_method_trigger(self.update_state)
+
+        # timer with startup-delay
+        if self.__startup_delay != 0:
+            self.__item.timer(self.__startup_delay, 1)
 
     # log item data
     def write_to_log(self):

@@ -61,10 +61,8 @@ class AutoBlind:
         try:
             # Create AbItem object and return update_state method to be triggered on item changes
             ab_item = AutoBlindItem.AbItem(self._sh, item)
-            ab_item.validate()
             self.__items[ab_item.id] = ab_item
-            ab_item.write_to_log()
-            return ab_item.update_state
+            return None
 
         except ValueError as ex:
             logger.error(ex)
@@ -73,6 +71,21 @@ class AutoBlind:
     # Initialization of plugin
     def run(self):
         self.alive = True
+
+        # Complete all items
+        logger.info("Complete AutoBlind items")
+        incomplete = []
+        for name, item in self.__items.items():
+            try:
+                item.complete()
+                item.write_to_log()
+            except ValueError as ex:
+                logger.error(ex)
+                incomplete.append(name)
+
+        # Remove items which caused errors during completion
+        for name in incomplete:
+            del self.__items[name]
 
         if len(self.__items) > 0:
             logger.info("Using AutoBlind for {} items".format(len(self.__items)))
