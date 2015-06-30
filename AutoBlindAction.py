@@ -193,9 +193,9 @@ class AbAction:
     # from_item: value for from-item
     def __set_from_item(self, from_item):
         if isinstance(from_item, str):
-            self.__item = self.__sh.return_item(from_item)
+            self.__from_item = self.__sh.return_item(from_item)
         else:
-            self.__item = from_item
+            self.__from_item = from_item
 
     # Name of eval-object to be displayed in log
     def __get_eval_name(self):
