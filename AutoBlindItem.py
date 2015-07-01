@@ -51,6 +51,9 @@ class AbItem:
         self.__can_not_leave_current_state_since = 0
         self.__just_changing_active = False
         self.__item = item
+        self.__internal_laststate_name = ""
+        self.__internal_laststate_id = ""
+        self.__myLogger = None
 
     # Complete everything
     def complete(self):
@@ -69,15 +72,6 @@ class AbItem:
 
         # do some checks
         item_id = self.__item.id()
-        if self.__item_active is None:
-            raise ValueError("{0}: Item does not have an item for 'active' configured!".format(item_id))
-
-        if self.__item_laststate_id is None:
-            raise ValueError("{0}: Item does not have an item for 'state_id' configured!".format(item_id))
-
-        if self.__item_laststate_name is None:
-            raise ValueError("{0}: Item does not have an item for 'state_name' configured!".format(item_id))
-
         if len(self.__states) == 0:
             raise ValueError("{0}: No states defined!".format(item_id))
 
@@ -116,15 +110,22 @@ class AbItem:
         self.__myLogger.info("Cycle: {0}", cycles)
         self.__myLogger.info("Cron: {0}", crons)
         self.__myLogger.info("Startup Delay: {0}", self.__startup_delay)
-        self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
-        self.__myLogger.info("Item 'State Id': {0}", self.__item_laststate_id.id())
-        self.__myLogger.info("Item 'State Name': {0}", self.__item_laststate_name.id())
+        if self.__item_active is not None:
+            self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
+        if self.__item_laststate_id is not None:
+            self.__myLogger.info("Item 'State Id': {0}", self.__item_laststate_id.id())
+        if self.__item_laststate_name is not None:
+            self.__myLogger.info("Item 'State Name': {0}", self.__item_laststate_name.id())
         for state in self.__states:
             state.write_to_log(self.__myLogger)
 
     # return age of item
     def get_age(self):
-        return self.__item_laststate_id.age()
+        if self.__item_laststate_id is not None:
+            return self.__item_laststate_id.age()
+        else:
+            self.__myLogger.warning('No item for last state id given. Can not determine age!')
+            return 0
 
     # return delay of item
     def get_delay(self):
@@ -191,14 +192,14 @@ class AbItem:
         # get data for new state
         if last_state is not None and new_state.id == last_state.id:
             # New state is last state
-            if self.__item_laststate_name() != new_state.name:
-                self.__item_laststate_name(new_state.name)
+            if self.__get_laststate_name() != new_state.name:
+                self.__set_laststate_name(new_state.name)
             self.__myLogger.info("Staying at {0} ('{1}')", new_state.id, new_state.name)
         else:
             # New state is different from last state
             self.__myLogger.info("Changing to {0} ('{1}')", new_state.id, new_state.name)
-            self.__item_laststate_id(new_state.id)
-            self.__item_laststate_name(new_state.name)
+            self.__set_laststate_id(new_state.id)
+            self.__set_laststate_name(new_state.name)
 
         new_state.activate(self.__myLogger)
 
@@ -206,7 +207,7 @@ class AbItem:
     # returns: AbState instance of last state or "None" if no last state could be found
     def __get_last_state(self):
         # noinspection PyCallingNonCallable
-        last_state_id = self.__item_laststate_id()
+        last_state_id = self.__get_laststate_id()
         for state in self.__states:
             if state.id == last_state_id:
                 return state
@@ -260,6 +261,9 @@ class AbItem:
     # value: new value for item
     # reset_interval: Interval after which the value should be reset to the previous value
     def __set_active(self, value, reset_interval=None):
+        if self.__item_active is None:
+            return
+
         try:
             self.__just_changing_active = True
             # noinspection PyCallingNonCallable
@@ -272,17 +276,25 @@ class AbItem:
     # get the value of the item "active"
     # returns: value of item "active"
     def __get_active(self):
+        if self.__item_active is None:
+            return True
+
         # noinspection PyCallingNonCallable
         return self.__item_active()
 
     # remove timer on item "active"
     def __remove_active_trigger(self):
-        # noinspection PyCallingNonCallable
-        self.__item_active.timer(0, self.__item_active())
+        if self.__item_active is not None:
+            # noinspection PyCallingNonCallable
+            self.__item_active.timer(0, self.__item_active())
 
     # return time when timer on item "active" will be called. None if no timer is set
     # returns: time that has been set for the timer on item "active"
     def __get_active_timer_time(self):
+        # without item "active" there can not be an active-timer
+        if self.__item_active is None:
+            return None
+
         # check if we can find a Timer-Entry for this item inside the scheduler-configuration
         timer_key = self.__item_active.id() + "-Timer"
         scheduler_next = self.__sh.scheduler.return_next(timer_key)
@@ -310,14 +322,12 @@ class AbItem:
             self.__myLogger.info(
                 "AutoBlind has been deactivated automatically after manual changes. Reactivating at {0}",
                 active_timer_time)
-            # noinspection PyCallingNonCallable
-            self.__item_laststate_name(active_timer_time.strftime("Automatisch deaktviert bis %X"))
+            self.__set_laststate_name(active_timer_time.strftime("Automatisch deaktviert bis %X"))
             return False
 
         # must have been manually deactivated
         self.__myLogger.info("AutoBlind is inactive")
-        # noinspection PyCallingNonCallable
-        self.__item_laststate_name("Manuell deaktiviert")
+        self.__set_laststate_name("Manuell deaktiviert")
         return False
 
     # Check item settings and update if required
@@ -362,6 +372,41 @@ class AbItem:
 
         if changed:
             self.__sh.scheduler.change(self.__item.id(), cycle=new_cycle, cron=new_cron)
+
+    # Set laststate_id
+    # text: Text for laststate_id
+    def __set_laststate_id(self, text):
+        if self.__item_laststate_id is not None:
+            # noinspection PyCallingNonCallable
+            self.__item_laststate_id(text)
+        else:
+            self.__internal_laststate_id = text
+
+    # Get laststate_id
+    def __get_laststate_id(self):
+        if self.__item_laststate_id is not None:
+            # noinspection PyCallingNonCallable
+            return self.__item_laststate_id()
+        else:
+            return self.__internal_laststate_id
+
+    # Set laststate_name
+    # text: Text for laststate_name
+    def __set_laststate_name(self, text):
+        if self.__item_laststate_name is not None:
+            # noinspection PyCallingNonCallable
+            self.__item_laststate_name(text)
+        else:
+            self.__internal_laststate_name = text
+
+    # Get laststate_name if available
+    # text: Text for laststate_name
+    def __get_laststate_name(self):
+        if self.__item_laststate_name is not None:
+            # noinspection PyCallingNonCallable
+            return self.__item_laststate_name()
+        else:
+            return self.__internal_laststate_name
 
     # initialize configuration
     def __init_config(self):
