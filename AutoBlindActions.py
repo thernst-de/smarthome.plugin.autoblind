@@ -39,7 +39,7 @@ class AbActions:
     def update(self, item_state, attribute):
         # Split attribute in function and action name
         func, __, action_name = attribute.partition("_")
-        if func not in ("set", "trigger") or action_name == "":
+        if func not in ("set", "trigger", "run") or action_name == "":
             return
 
         # Ensure action exists
@@ -52,6 +52,8 @@ class AbActions:
             self.__actions[action_name].update_set(item_state, item_state.conf[attribute])
         elif func == "trigger":
             self.__actions[action_name].update_trigger(item_state.conf[attribute])
+        elif func == "run":
+            self.__actions[action_name].update_run(item_state.conf[attribute])
 
     # Check the actions optimize and complete them
     # item_state: item to read from

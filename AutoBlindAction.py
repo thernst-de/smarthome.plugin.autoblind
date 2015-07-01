@@ -37,6 +37,7 @@ class AbAction:
         self.__from_item = None
         self.__mindelta = None
         self.__logic = None
+        self.__isRun = False
 
     # set the action based on a set_(action_name) attribute
     # item_state: state item to read from
@@ -64,6 +65,7 @@ class AbAction:
             self.__set_from_item(set_value)
 
         self.__logic = None
+        self.__isRun = False
 
     # set the action based on a trigger_(name) attribute
     # value: Value of the trigger_(action_name) attribute
@@ -76,12 +78,29 @@ class AbAction:
             self.__value = None
         self.__eval = None
         self.__from_item = None
+        self.__isRun = False
+
+    # set the action based on a run_(action_name) attribute
+    # value: Value of the set_(action_name) attribute
+    def update_run(self, value):
+        func, set_value = AutoBlindTools.partition_strip(value, ":")
+        if set_value == "":
+            set_value = func
+            func = "eval"
+
+        if func == "eval":
+            self.__value = None
+            self.__eval = set_value
+            self.__from_item = None
+            self.__isRun = True
+
+        self.__logic = None
 
     # Complete action
     # item_state: state item to read from
     def complete(self, item_state):
-        # Nothing to complete if this action triggers a logic
-        if self.__logic is not None:
+        # Nothing to complete if this action triggers a logic or is a "run"-Action
+        if self.__logic is not None or self.__isRun:
             return
 
         # missing item in action: Try to find it.
@@ -111,7 +130,7 @@ class AbAction:
             self.__sh.trigger(self.__logic, by="AutoBlind Plugin", source=self.__name, value=self.__value)
             return
 
-        if self.__item is None:
+        if self.__item is None and not self.__isRun:
             logger.info("Action '{0}: No item defined. Ignoring.", self.__name)
             return
 
@@ -124,7 +143,7 @@ class AbAction:
             # noinspection PyCallingNonCallable
             value = self.__from_item()
 
-        if value is not None:
+        if value is not None and not self.__isRun:
             if self.__mindelta is not None:
                 # noinspection PyCallingNonCallable
                 delta = float(abs(self.__item() - value))
@@ -176,7 +195,9 @@ class AbAction:
                 logger.info("Action '{0}: problem calling {1}: {2}.", self.__name, self.__get_eval_name(), e)
                 return None
         try:
-            return self.__item.cast(value)
+            if self.__item is not None:
+                value = self.__item.cast(value)
+            return value
         except Exception as e:
             logger.debug("eval returned '{0}', trying to cast this returned exception '{1}'", value, e)
             return None
