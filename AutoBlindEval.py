@@ -21,6 +21,7 @@
 from . import AutoBlindCurrent
 from . import AutoBlindLogger
 from random import randint
+import subprocess
 
 
 class AbEval:
@@ -49,3 +50,11 @@ class AbEval:
     def get_random_int(self, min_value=0, max_value=255):
         self.__logger.debug("Executing method 'GetRandomInt({0},{1}'", min_value, max_value)
         return randint(min_value, max_value)
+
+    # Execute a command
+    # command: command to execute
+    def execute(self, command):
+        try:
+            return subprocess.call(command, shell = True)
+        except Exception as ex:
+            self.__logger.exception(ex)
