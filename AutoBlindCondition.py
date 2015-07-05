@@ -76,31 +76,35 @@ class AbCondition:
             self.__agenegate = value
 
     def set_split(self, func, value):
-        source, value = AutoBlindTools.partition_strip(value, ":")
-        if value == "":
-            value = source
+        source, field_value = AutoBlindTools.partition_strip(value, ":")
+
+        if self.name == "time" and source.isdigit() and field_value.isdigit():
+            field_value = value
+            source = "value"
+        elif field_value == "":
+            field_value = source
             source = "value"
 
         if source == "value":
             if func == "value":
-                self.__value = value
+                self.__value = field_value
                 self.__value_item = None
             elif func == "min":
-                self.__min = value
+                self.__min = field_value
                 self.__min_item = None
             elif func == "max":
-                self.__max = value
+                self.__max = field_value
                 self.__max_item = None
         elif source == "item":
             if func == "value":
                 self.__value = None
-                self.__value_item = self.__sh.return_item(value)
+                self.__value_item = self.__sh.return_item(field_value)
             elif func == "min":
                 self.__min = None
-                self.__min_item = self.__sh.return_item(value)
+                self.__min_item = self.__sh.return_item(field_value)
             elif func == "max":
                 self.__max = None
-                self.__max_item = self.__sh.return_item(value)
+                self.__max_item = self.__sh.return_item(field_value)
 
     # Complete condition (do some checks, cast value, min and max based on item or eval data types)
     # item_state: item to read from
