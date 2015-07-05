@@ -49,6 +49,7 @@ class AbCurrent:
         self.__time = None
         self.__sun_azimut = None
         self.__sun_altitude = None
+        self.__month = None
         self.update()
 
     # Return current weekday
@@ -67,6 +68,10 @@ class AbCurrent:
     def get_sun_altitude(self):
         return self.__sun_altitude
 
+    # Return current month
+    def get_month(self):
+        return self.__month
+
     # Return random number between 0 and 100
     # noinspection PyMethodMayBeStatic
     def get_random(self):
@@ -77,6 +82,7 @@ class AbCurrent:
         now = time.localtime()
         self.__weekday = now.tm_wday
         self.__time = datetime.datetime.time(datetime.datetime.now())
+        self.__month = now.tm_mon
         azimut, altitude = self.__sh.sun.pos()
         self.__sun_azimut = math.degrees(float(azimut))
         self.__sun_altitude = math.degrees(float(altitude))

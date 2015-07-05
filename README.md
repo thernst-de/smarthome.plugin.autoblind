@@ -312,6 +312,9 @@ Values for `value_time`, `min_time` and `max_time` need to be given in format "h
 **weekday:**
 Day of week as number. 0 represents Monday, 6 represents Sunday
 
+**month:**
+Month as number. 1 represents January, 12 represents December
+
 **sun_azimut:**
 Sun position (horizontal angle)
 

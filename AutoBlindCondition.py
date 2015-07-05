@@ -128,6 +128,8 @@ class AbCondition:
                 self.__eval = AutoBlindCurrent.values.get_time
             elif self.__name == "random":
                 self.__eval = AutoBlindCurrent.values.get_random
+            elif self.__name == "month":
+                self.__eval = AutoBlindCurrent.values.get_month
 
         # missing item in condition: Try to find it
         if self.__item is None:
