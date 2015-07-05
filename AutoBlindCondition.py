@@ -248,6 +248,11 @@ class AbCondition:
                 # noinspection PyCallingNonCallable
                 value = self.__value if self.__value_item is None else self.__value_item()
 
+                # If current and value have different types, convert both to string
+                if type(value) != type(current):
+                    value = str(value)
+                    current = str(current)
+
                 logger.debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value,
                              self.__negate, current)
                 logger.increase_indent()
