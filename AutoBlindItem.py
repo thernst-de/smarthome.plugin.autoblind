@@ -437,8 +437,7 @@ class AbItem:
                 continue
 
             state = AutoBlindState.AbState(self.__sh, item_state, self.__item, self, self.__myLogger)
-            if state.validate():
-                self.__states.append(state)
+            self.__states.append(state)
 
     # initialize "watch_manual" if configured
     def __init_watch_manual(self):

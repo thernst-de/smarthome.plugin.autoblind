@@ -79,14 +79,6 @@ class AbState:
             logger.info("State can not be left")
         return result
 
-    # validate state data
-    # returns: TRUE = data ok, FALSE = data not ok
-    def validate(self):
-        if self.__actions.count() == 0:
-            return False
-
-        return True
-
     # log state data
     # logger: Instance of AbLogger to write log messages to
     def write_to_log(self, logger: AutoBlindLogger.AbLogger):
