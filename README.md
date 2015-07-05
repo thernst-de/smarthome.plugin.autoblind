@@ -1,9 +1,5 @@
 #Automatic Blind Control plugin for smarthome.py#
 
-##IMPORTANT:##
-##This documentation is not up to date. There have been several changes regarding the configuration of the plugin that are not yet reflected in this file. Please see the file UPDATE.md for a brief description of required configuration changes. This file will be updated after all planned changes have been made and properly tested.##
-
-
 ##Description of functionality##
 
 Via additional items objects can be defined that have an arbitrary number of user-defined states in items/*.conf files of smarthome.py. Each state can have a set of enter and leave conditions as well as several actions that are perfomed once the state becomes current. In regular intervals the states for each object are checked:
@@ -95,7 +91,9 @@ item_active           | Id of the item which is used to activate and deactivate 
 item_state_id         | Id of the item which is used to store the id of the current state
 item_state_name       | Id of the item which is used to store the nane of the current state (use this item for display purposes)
 
-`startup_delay` may be left out. In this case the value for this setting is taken from the plugin configuration value `startup_delay_default`
+
+`item_active`, `item_state_id` and `item_state_name` are optional. If you leave out `item_active`, the automatic control for this object is always active ( missing). If you leave out `item_state_id`, the current state is recorded internally and not preserved when restarting smarthome.py. If you leave out `item_state_name`, the name of the current state is not available (e.g. for display purposes).  
+`startup_delay` may also be left out. In this case the value for this setting is taken from the plugin configuration value `startup_delay_default`
 
 The following attributes are optional:
 
@@ -160,7 +158,7 @@ __It is not recommended to use this any trigger method for security related stat
 ###States###             
 All subitems of a object item are considered as object states ("state item"). Their ids are arbitrary and used as values for the item given as `item_state_id`. If you configure names for the items, they are used as values for the item given as `item_state_name`. (otherwise the item id is used here, too)
 
-Every state can have an arbitrary number of "enter" and "leave" condition sets. An state can become current if one of the "enter" condition sets is fulfilled. Once the state is current, it can only be left if one of the "leave" condition sets is fulfilled. Inside every condition set an arbitrary number of conditions can be defined.
+Every state can have an arbitrary number of "enter" and "leave" condition sets. An state can become current if one of the "enter" condition sets is fulfilled. Once the state is current, it can only be left if one of the "leave" condition sets is fulfilled. Inside every condition set an arbitrary number of conditions can be defined. If a state does not have any condition sets, the state can always be entered/left. This can be used to have a default state.
 
 Every state can have an arbitray number of "actions" defined. Once the state becomes current, all actions are performed. If an state stays current in further checks, the actios are reperformed under several conditions. Actions are defined as attribute "set_(action_name)".
 
@@ -210,7 +208,7 @@ The following rules apply:
 - A single condition set is fulfilled if each condition defined in the condition set is being matched ("AND"). Possible limits that are not defined in this condition are not checked.
 - A state can be left if any of the defined leave condition sets is fulfilled ("OR"). Checking stops at the first fulfilled condition set.
 - A state can be entered if any of the defined enter condition sets is fulfilled ("OR"). Checking stops at the first filfilled condition set.
-
+- A state that does not have condition sets can always be entered and left. You can define such a state as last state in the list to have a default state
 
 ####Example####
     
@@ -261,8 +259,11 @@ minimum age | agemin_(condition_name) | The condition is fulflled if the age of 
 maximum age | agemax_(condition_name) | The condition is fulflled if the age of the item used to retrieve the value is lower than the given maximum
 negate age | agenegate_(condition_name) | The age condition is negated
 
-The current value to check agains can either be provided by an item or by an eval function. If both are given, the item is used and eval is ignored.
+The current value can either be provided by an item or by an eval function. If both are given, the item is used and eval is ignored.
 The name of the item or the eval function are set by specific attributes `item_(condition name)` or `eval_(condition name)` in the object item. Their name has also to correspond with the condidion name. Obviously, age related conditions (`agemin_(condition name)`, `agemax_(condition name)`, `agenegate_(condition_name)`) can only be used when the value is provided by an item.
+
+For `min_(condition name)`, `max_(condition name)` and `value_(condition name)` value to check against can either be a static value, or provided from an item, too.
+To use a static value, just set the condition to `(some value)` or `value:(some value)` To use an item, set the condition to `item:(item id)`:
 
 ####Example####
 
@@ -275,20 +276,31 @@ The name of the item or the eval function are set by specific attributes `item_(
                 type = foo
                 name = Twilight                
                 use = some.default.item
-                [[[enter]]]                    
-                    min_brightness = 500
-                    max_brightness = 1000
                 set_height = value:100
                 set_lamella = value:25
+                [[[enter]]]                    
+                    min_brightness = 500
+                    max_brightness = value:1000
+                
             [[night]]
                 type = foo
                 name = Night                
                 use = some.default.item
-                [[[enter_todark]]]
-                    max_brightness = 500
                 set_height = value:100
                 set_lamella = value:0
-            
+                [[[enter_todark]]]
+                    max_brightness = 500
+                
+            [[special]]
+                type = foo
+                name = Some special condition
+                use = some.default.item
+                set_height = value:66
+                set_lamella = value:33
+                [[[enter]]]
+                    min_brightness = item:an.item.returning.the.value
+                          
+                          
 ###"Special" conditions###
 For some conditions you do not need to set an item or eval-function to determine the current value. The plugin will do this for you if you use some predefined condition names. These condition names should therefore not be used for your other conditions.
 
@@ -336,13 +348,14 @@ If you want to do something randomly with a propability of 60%, e.g. use conditi
 ##Actions##
 Like conditions, every action requires a name, too. The action name is again arbitrary and just used in the attribute naming. The names of all attributes belonging to one action follow the same pattern `(function name)_(action name)`
 
-Currently there are two types of actions that can be performed:
+Currently there are three types of actions that can be performed:
 * An item can be set to a value
+* A function can be run
 * A logic can be triggered
 
 ###Setting an item to value###
-The item to be changed has to be defined as attribute in the object item as `item_(action name)`.
-The value for the item has to be defined as attribute in the state item as `set_(action name)`.
+The item to be changed has to be defined as attribute in the object item named `item_(action name)`.
+The value for the item has to be defined as attribute in the state item named `set_(action name)`.
 
 The value can either be a static value, the result of executing a function or the current value of another item. A prefix in the attribute value defines which one is being used.
 
@@ -351,6 +364,14 @@ attibute value | function
 value:(static value) | use the given static value
 eval:(function name) | execute the given function and use the result returned by the function as value
 item:(item id) | Use the current value of the given item as value
+
+####Using a delta to prevent small changes####
+It is possible to define a minimum delta for changes. If the difference between the current value of an item and the new value is less than the configured delta, no change will be made. This can be done with attribute `mindelta_(action name)` in the object item
+
+###Running a function###
+A function to run van be defined as attribute in the state item named `run_(actionname)`. This is similar to execute a function to get the value for an item, but it does not need an item and just ignores any return value of the function.
+
+    run_(action name) = eval:(function)
 
 ###Predefined action functions###
 The AutoBlind plugin provides a set of predefined functions that can easily be used for actions. These functions are contained in a class which is instanciated just before executing an action if required. The following functions can be used:
@@ -365,8 +386,11 @@ The AutoBlind plugin provides a set of predefined functions that can easily be u
     
 Set `min` and `max` to the minimum/maximum value of the number you want to receive. You can omit min and max, the defaults are 0 for min and 255 for max.
 
-###Using a delta to prevent small changes###
-It is possible to define a minimum delta for changes. If the difference between the current value of an item and the new value is less than the configured delta, no change will be made. This can be done with attribute `mindelta_(action name)` in the object item
+####Run a shell command####
+
+    set_(action name) = eval:autoblind_eval.execute(command)
+    
+Run shell command `command`
 
 ###Trigger logics###
 Instead of setting an item to an value it is also possible to trigger a logic. To do so, the logic to trigger has to be named using the attribute `trigger_(some name)`.
@@ -483,27 +507,27 @@ First, we are defining some default states:
             item_temperature = weatherstation.temperature
             [[[night]]]
                 name = Night
+                set_height = value:100
+                set_lamella = 0
                 [[[[enter]]]]
                     max_brightness = 500
                     min_time = 09:00
                     max_time = 19:00
                     negate_time = True
-                set_height = value:100
-                set_lamella = 0
             [[[dawn]]]
                 name = "Twilight in the morning"
+                set_height = value:100
+                set_lamella = 25          
                 [[[[enter]]]]
                     min_brightness = 500
-                    max_brightness = 1000
-                set_height = value:100
-                set_lamella = 25                
+                    max_brightness = 1000      
             [[[dusk]]]
                 name = "Twilight in the evening"
+                set_height = value:100
+                set_lamella = 75
                 [[[[enter]]]]
                     min_brightness = 500
                     max_brightness = 1000
-                set_height = value:100
-                set_lamella = 75
             [[[suntrack]]]
                 name =  "Day (suntracking)"
                 [[[[enter]]]]
