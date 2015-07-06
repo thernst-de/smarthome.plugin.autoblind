@@ -236,7 +236,7 @@ class AbItem:
     # noinspection PyUnusedLocal
     def __reset_active_callback(self, item, caller=None, source=None, dest=None):
         # we're just changing "active" ourselves, .. ignore
-        if self.__just_changing_active:
+        if self.__just_changing_active or (caller == 'KNX' and source == '0.0.0'):
             return
 
         self.__myLogger.update_logfile()
@@ -246,7 +246,7 @@ class AbItem:
             self.__myLogger.info("Reactivating automatic mode")
         elif self.__get_active_timer_active():
             # A timer is active: remove it as the value has been overwritten
-            self.__myLogger.info("Remove timer on 'Active' as value been set to '{0}' by '{1}'", self.__get_active(),
+            self.__myLogger.info("Remove timer on 'Active' as value has been set to '{0}' by '{1}'", self.__get_active(),
                                  caller)
             self.__remove_active_trigger()
         else:
