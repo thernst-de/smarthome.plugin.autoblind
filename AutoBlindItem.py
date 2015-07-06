@@ -286,7 +286,7 @@ class AbItem:
     def __remove_active_trigger(self):
         if self.__item_active is not None:
             # noinspection PyCallingNonCallable
-            self.__item_active.timer(0, self.__item_active())
+            self.__item_active.remove_timer()
 
     # return time when timer on item "active" will be called. None if no timer is set
     # returns: time that has been set for the timer on item "active"
