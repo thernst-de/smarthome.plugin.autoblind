@@ -19,7 +19,9 @@
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 import datetime
+import logging
 
+logger = logging.getLogger()
 
 #
 # Some general tool functions
@@ -43,11 +45,19 @@ def get_child_item(item, child_id):
 # attribute_name: Name of attribute to search and return
 # default: Value to return if item does not contain attribute
 # returns: Attribute value if found. Otherwise given default value or None of no default value is given
-def get_str_attribute(item, attribute_name, default=None):
+def get_str_attribute(item, attribute_name, default=None, fallback_attribute_name=None):
     if attribute_name in item.conf:
         return cast_str(item.conf[attribute_name])
+    elif fallback_attribute_name is not None and fallback_attribute_name in item.conf:
+        log_obsolete(item, fallback_attribute_name)
+        return cast_str(item.conf[fallback_attribute_name])
     else:
         return default
+
+
+# log obsolete attribute usage
+def log_obsolete(item, attribute_name):
+    logger.warning("Item '{0}': Using obsolete attribute '{1}'.".format(item.id(),attribute_name))
 
 
 # Find and return a certain item that is named as attribute of another item
@@ -55,8 +65,8 @@ def get_str_attribute(item, attribute_name, default=None):
 # attribute_name: Name of attribute to search
 # smarthome: Instance of smarthome.py base class
 # returns: item which is named in the given attribute of the given item or None if attribute or named item not found
-def get_item_attribute(item, attribute_name, smarthome):
-    item_name = get_str_attribute(item, attribute_name)
+def get_item_attribute(item, attribute_name, smarthome, fallback_attribute_name=None):
+    item_name = get_str_attribute(item, attribute_name, fallback_attribute_name)
     if item_name is None:
         return None
     return smarthome.return_item(item_name)
@@ -67,9 +77,12 @@ def get_item_attribute(item, attribute_name, smarthome):
 # attribute_name: Name of attribute to search and return
 # default: Value to return if item does not contain attribute
 # returns: Attribute value if found. Otherwise given default value or 0 of no default value is given
-def get_num_attribute(item, attribute_name, default=None):
+def get_num_attribute(item, attribute_name, default=None, fallback_attribute_name=None):
     if attribute_name in item.conf:
         return cast_num(item.conf[attribute_name])
+    elif fallback_attribute_name is not None and fallback_attribute_name in item.conf:
+        logger.warning("Item '{0}': Using obsolete attribute '{1}'.".format(item.id(),fallback_attribute_name))
+        return cast_num(item.conf[fallback_attribute_name])
     else:
         return default
 

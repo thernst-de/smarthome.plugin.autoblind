@@ -34,7 +34,7 @@ class AutoBlind:
     # manual_break_default: default break after manual changes of items
     # log_level: loglevel for extended logging
     # log_directory: directory for extended logging files
-    def __init__(self, smarthome, startup_delay_default=10, manual_break_default=3600,
+    def __init__(self, smarthome, startup_delay_default=10, suspend_time_default=3600, manual_break_default=0,
                  log_level=0, log_directory="/usr/local/smarthome/var/log/AutoBlind/"):
         self._sh = smarthome
         self.__items = {}
@@ -43,8 +43,12 @@ class AutoBlind:
         logger.info("Init AutoBlind (log_level={0}, log_directory={1}".format(log_level, log_directory))
 
         AutoBlindDefaults.startup_delay = int(startup_delay_default)
-        AutoBlindDefaults.manual_break = int(manual_break_default)
+        AutoBlindDefaults.suspend_time = int(suspend_time_default)
         AutoBlindDefaults.write_to_log()
+
+        if manual_break_default != 0:
+            logger.warning("Using obsolete plugin configuration attribute 'manual_break_default'. "
+                           + "Change to 'suspend_time_default'!")
 
         AutoBlindCurrent.init(smarthome)
 

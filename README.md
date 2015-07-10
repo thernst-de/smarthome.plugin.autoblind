@@ -1,5 +1,8 @@
 #Automatic Blind Control plugin for smarthome.py#
 
+##Important hint:##
+Attributes are about to be renamed. All attributes will get the prefix "as_" in the near future to be identified as items belonging to this plugin. 
+
 ##Description of functionality##
 
 Via additional items objects can be defined that have an arbitrary number of user-defined states in items/*.conf files of smarthome.py. Each state can have a set of enter and leave conditions as well as several actions that are perfomed once the state becomes current. In regular intervals the states for each object are checked:
@@ -43,7 +46,7 @@ To use the AutoBlind plugin, add the following to your plugin.conf file:
         class_name = AutoBlind
         class_path = plugins.autoblind
         #startup_delay_default = 10
-        #manual_break_default = 3600
+        #suspend_time_default = 3600
         #log_level = 0
         #log_directory = /usr/local/smarthome/var/log/AutoBlind/
 
@@ -52,7 +55,7 @@ Commented parameters are default values which may be canged on your needs.
 Name                  | Description
 --------------------- | -----------
 startup_delay_default | Default startup interval for first check (seconds)
-manual_break_default  | Default time to deactivate the automatic controll after manual changes (seconds)
+suspend_time_default  | Default time to suspend the automatic controll after manual actions (seconds)
 log_level             | Extended logging: Loglevel (0: off, 1: info, 2: debug
 log_directory         | Extended logging: Directory for Logfiles (directory has to exist!)
 
@@ -65,60 +68,41 @@ To activate the extended logging set parameter `log_level` in plugin.conf to eit
 
 ##Configuration of objects##
 For each object which should be automated by the AutoBlind plugin an item containing all AutoBlind configuration for this object is required ("object item").
-To tell the AutoBlind plugin which items contain AutoBlind configuration information add the attribute
+To tell the AutoBlind plugin which items contain AutoBlind configuration information add the attribute `autoblind_plugin = active` to the item. For debugging you may set this the value of this attribute to something different. This will cause the AutoBlind plugin to ignore the configuration.
 
-    autoblind_plugin = active
-to the item. For debugging you may set this the value of this attribute to something different. This will cause the AutoBlind plugin to ignore the configuration.
-
-Inside the object configuration item, several attributes are mandatory:
+Inside the object configuration item, two attributes are mandatory:
 
     [myFirstAutoBlindControlledObject]
         type = bool
-        name = Some very nice example
         autoblind_plugin = active
-        item_active = room1.raffstore.auto_active
-        item_state_id = room1.raffstore.auto_state_id
-        item_state_name = room1.raffstore.auto_state_name
-
 
 Name                  | Description
 --------------------- | -----------
 type                  | Data type of the item. Use "bool" here.
-name                  | A name for this item
 autoblind_plugin      | Mark this item as "containing AutoBlind configuration"
-startup_delay         | Startup delay for first determination of required state (seconds)
-item_active           | Id of the item which is used to activate and deactivate the automatic control
-item_state_id         | Id of the item which is used to store the id of the current state
-item_state_name       | Id of the item which is used to store the nane of the current state (use this item for display purposes)
 
-
-`item_active`, `item_state_id` and `item_state_name` are optional. If you leave out `item_active`, the automatic control for this object is always active ( missing). If you leave out `item_state_id`, the current state is recorded internally and not preserved when restarting smarthome.py. If you leave out `item_state_name`, the name of the current state is not available (e.g. for display purposes).  
-`startup_delay` may also be left out. In this case the value for this setting is taken from the plugin configuration value `startup_delay_default`
-
-The following attributes are optional:
+The following general attributes are optional:
 
     [myFirstAutoBlindControlledObject]
         (...)
+        name = Some very nice example
         startup_delay = 10
+        item_state_id = room1.raffstore.auto_state_id
+        item_state_name = room1.raffstore.auto_state_name
+        
 
-Name                  | Description
---------------------- | -----------
-startup_delay         | Delay on smarthome.py startup after which the first calculation of the current state is triggered (seconds). If omitted, the value from `startup_delay_default` in the plugin configuration is used as startup delay
+Name                  | Description | What happens if attribute is missing?
+--------------------- | ----------- | -------------------------------------
+name                  | A name for this item | Item Id will be used as name
+startup_delay         | Delay on smarthome.py startup after which the first calculation of the current state is triggered (seconds). | The value from `startup_delay_default` in the plugin configuration is used as startup delay
+item_state_id         | Id of the item which is used to store the id of the current state. | The current state is recorded internally and not preserved when restarting smarthome.py.
+item_state_name       | Id of the item which is used to store the nane of the current state (use this item for display purposes) | The name of the current state is not available.
 
-
-The items used for item_active, item_state_id and item_state_name should be defined as following (here with KNX group adresses):
+If used, the items used for `item_state_id` and `item_state_name` should be defined as following:
 
     [room1]
         [[raffstore]]
             name = Raffstore Room 1
-            [[[auto_active]]]
-                type = bool
-                knx_dpt = 1
-                knx_send = 1/1/7
-                knx_status = 1/1/8
-                knx_listen = 1/1/7 | 1/0/7
-                visu_acl = rw
-                cache = on
             [[[auto_state_id]]]
                 type = str
                 visu_acl = r
@@ -154,7 +138,60 @@ You may also use other ways to set the value for this item (such as for example 
 
 __Important:__
 __It is not recommended to use this any trigger method for security related states as for example moving blinds up at to much wind. Security related functions have to be as simple as possible. It is therefore highly recommended to use the lock functionality that all up-to-date blind actuators provide fur such functions.__
+              
+###Locking automatic control###
+Automatic control can be locked via an item.
+
+    [myFirstAutoBlindControlledObject]
+        (...)
+        as_lock_item = room1.raffstore.auto_lock
+
+Name                  | Description | What happens if attribute is missing?
+--------------------- | ----------- | -------------------------------------
+as_lock_item          | Id of the item which is used to lock the automatic control. | The automatic control for this object is always unlocked
+
+The item for `as_lock_item` should be defined as following (here with KNX group adresses):
                 
+    [room1]
+        [[raffstore]]
+            [[[auto_lock]]]
+                type = bool
+                knx_dpt = 1
+                knx_send = 1/1/7
+                knx_status = 1/1/8
+                knx_listen = 1/1/7 | 1/0/7
+                visu_acl = rw
+                cache = on
+             
+If the item is set to "True", no automatic control will take place. When the item is set to "False" an update of the current state is triggered immediately. Afterwards the update of the current state will be triggered as defined in the object item.                 
+
+###Suspending automatic control on manual actions###
+Automatic control can be suspended for a certain time after manual actions have been detected. There are a couple of attributes to control this feature
+
+    [myFirstAutoBlindControlledObject]
+        (...)
+        as_suspend_item = room1.raffstore.auto_suspend
+        as_suspend_time = 10
+        as_suspend_watch = watch.item.one | watch.item.two
+                
+Name                  | Description | What happens if attribute is missing?
+--------------------- | ----------- | -------------------------------------
+as_suspend_item       | Id of the item indication a suspension of the automatic control. | You have no possibility to see if the automatic control is suspended.
+as_suspend_time       | Time (seconds) for which the automatic control should be suspended after detecting a manual action | Suspension time is taken from plugin configuration value suspend_time_default. If this variable is also missing, suspension time is 3600 seconds (1 hour)
+as_suspend_watch      | List of items that are watched. Any change on these items is considered as manual change and triggers the suspension | Suspension functionality is inactive
+
+The item for `as_suspend_item` should be defined as following (here with KNX group adresses):
+                
+    [room1]
+        [[raffstore]]
+            [[[auto_suspend]]]
+                type = bool
+                knx_dpt = 1
+                knx_send = 1/1/9
+                visu_acl = r          
+
+To cancel the suspension, use the locking feature. Any change on the lock-item causes the suspension to be cancelled and the automatic control to behave like set by the lock-item.
+
 ###States###             
 All subitems of a object item are considered as object states ("state item"). Their ids are arbitrary and used as values for the item given as `item_state_id`. If you configure names for the items, they are used as values for the item given as `item_state_name`. (otherwise the item id is used here, too)
 
@@ -179,23 +216,7 @@ Conditions and actions usually relate to items. These items have to be defined i
             [[[leave]]]
                 (...)
             set_height = value:100
-            set_lamella = value:0
-
-
-
-
-###Deactivate automatic control at manual action###
-It is possible to deactivate the automatic control for a certain time if a manual action is being detected. To use this functionality, enter the items for manual action need to be configured "watch items". You can also set an individual time  after which the automatic controll will be automatically reactivated again. If you do not set an individual time, the time configured as manual_break_default in plugin.conf is being used. 
-
-The items to watch need to be listed in attribute `watch_manual` in the object item. Multiple items need to be separated by | (pipe). Via attribute `manual_break` the deactivation period (in seconds) can be set. If no individual deactivation period is set, the period is taken from the plugin setting `manual_break_default` 
-
-    [myFirstAutoBlindControlledObject]
-        (...)
-        watch_manual = room1.raffstore.updown | room1.raffstore.stepstop
-        manual_break = 7200
-        (...)
-            
-This example would deactivate the automatic control for two hours (7200 seconds) once items room1.raffstore.aufab or room1.raffstore.step are set by someone. The deactivation time starts anew on every event that is received one of this item.        
+            set_lamella = value:0      
 
 ##Condition sets##
 All subitems of the state item are considered as condition sets ("condition set item"). In general, there are two types of condition sets:
@@ -249,6 +270,7 @@ The name is arbitrary and just used in the attribute naming. The names of all at
 There are some "special" condition names explained later
 
 The limits are defined inside the condition set items. The following limits are possible:
+
 limit | attribute | function
 ------|-----------|----------
 minimum | min_(condition name) | The condition is fulfilled if the current value is greater than the given minimum
@@ -428,25 +450,6 @@ It is possible to define some default states inside the configuration and use th
 When defining the default states inside a parent item, do not mark this parent item with `autoblind_plugin = active` as it does not contain a complete object configuration.
 
 ####Example####
-    [room1]
-        [[raffstore]]
-            name = Raffstore Room 1
-            [[[auto_active]]]
-                type = bool
-                knx_dpt = 1
-                knx_send = 1/1/7
-                knx_status = 1/1/8
-                knx_listen = 1/1/7 | 1/0/7
-                visu_acl = rw
-                cache = on
-            [[[auto_state_id]]]
-                type = str
-                visu_acl = r
-                cache = on
-            [[[auto_state_name]]]
-                type = str
-                visu_acl = r
-                cache = on
                 
     [autoblind]
         [[default]]
@@ -491,7 +494,7 @@ When defining the default states inside a parent item, do not mark this parent i
             [[dusk]]
                 use = autoblind.default.dusk
                 [[[enter]]]
-                    (... changes on default enter conditio ...)
+                    (... changes on default enter condition ...)
             [[suntracking]]
                 (...)
                 set_height = value:100
@@ -564,7 +567,7 @@ Then we need the items for the blind we want to automate:
     [room1]
         [[raffstore]]
             name = Raffstore Room 1
-            [[[auto_active]]]
+            [[[auto_lock]]]
                 type = bool
                 knx_dpt = 1
                 knx_send = 1/1/7
@@ -572,6 +575,11 @@ Then we need the items for the blind we want to automate:
                 knx_listen = 1/1/7 | 1/0/7
                 visu_acl = rw
                 cache = on
+            [[[auto_suspend]]]
+                type = bool
+                knx_dpt = 1
+                knx_send = 1/1/9
+                visu_acl = r  
             [[[auto_state_id]]]
                 type = str
                 visu_acl = r
@@ -613,9 +621,10 @@ Now we can add our specific AutoBlind object item with all required subitems to 
         type = bool
         name = Some very nice example
         autoblind_plugin = active
-        watch_manual = room1.raffstore.updown | room1.raffstore.stepstop
-        manual_break = 7200
-        item_active = room1.raffstore.auto_active
+        as_lock_item = room1.raffstore.auto_lock
+        as_suspend_item = room1.raffstore.auto_suspend
+        as_suspend_time = 7200
+        as_suspend_watch = room1.raffstore.updown | room1.raffstore.stepstop
         item_state_id = room1.raffstore.auto_state_id
         item_state_name = room1.raffstore.auto_state_name        
         item_height = room1.raffstore.height

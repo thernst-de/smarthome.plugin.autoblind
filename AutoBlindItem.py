@@ -28,6 +28,7 @@ from . import AutoBlindCurrent
 
 
 # Class representing a blind item
+# noinspection PyCallingNonCallable
 class AbItem:
     # return item id
     @property
@@ -39,19 +40,31 @@ class AbItem:
     # item: item to use
     def __init__(self, smarthome, item):
         self.__sh = smarthome
-        self.__name = None
+        self.__item = item
+        self.__name = str(self.__item)
+
+        self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item, "startup_delay",
+                                                                AutoBlindDefaults.startup_delay)
+        self.__update_delay = 1
+
         self.__item_active = None
+        self.__item_lock = None
+
+        self.__suspend_item = None
+        self.__suspend_until = None
+        self.__suspend_time = None
+        self.__suspend_watch_items = []
+
         self.__item_laststate_id = None
+        self.__internal_laststate_id = ""
         self.__item_laststate_name = None
+        self.__internal_laststate_name = ""
+
         self.__states = []
-        self.__manual_break = 0
-        self.__startup_delay = 0
         self.__delay = 0
         self.__actions = {}
         self.__can_not_leave_current_state_since = 0
-        self.__item = item
-        self.__internal_laststate_name = ""
-        self.__internal_laststate_id = ""
+
         self.__myLogger = None
 
     # Complete everything
@@ -64,10 +77,11 @@ class AbItem:
         self.__myLogger.header("Initialize Item {0}".format(self.id))
 
         # initialize everything else
-        self.__check_item_config()
-        self.__init_config()
+        self.__init_check_item_config()
+        self.__laststate_init()
+        self.__lock_init()
+        self.__suspend_init()
         self.__init_states()
-        self.__init_watch_manual()
 
         # do some checks
         item_id = self.__item.id()
@@ -83,6 +97,7 @@ class AbItem:
 
     # log item data
     def write_to_log(self):
+        # get crons and cycles
         cycles = ""
         crons = ""
 
@@ -91,7 +106,7 @@ class AbItem:
         if job is not None:
             if "cycle" in job and job["cycle"] is not None:
                 cycle = list(job["cycle"].keys())[0]
-                cycles = "every {0} Seconds".format(cycle)
+                cycles = "every {0} seconds".format(cycle)
 
             # inject value into cron if required
             if "cron" in job and job["cron"] is not None:
@@ -105,30 +120,18 @@ class AbItem:
         if crons == "":
             crons = "Inactive"
 
+        # log general config
         self.__myLogger.header("Configuration of item {0}".format(self.__name))
         self.__myLogger.info("Cycle: {0}", cycles)
         self.__myLogger.info("Cron: {0}", crons)
         self.__myLogger.info("Startup Delay: {0}", self.__startup_delay)
-        if self.__item_active is not None:
-            self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
-        if self.__item_laststate_id is not None:
-            self.__myLogger.info("Item 'State Id': {0}", self.__item_laststate_id.id())
-        if self.__item_laststate_name is not None:
-            self.__myLogger.info("Item 'State Name': {0}", self.__item_laststate_name.id())
+
+        self.__laststate_log()
+        self.__lock_log()
+        self.__suspend_log()
+
         for state in self.__states:
             state.write_to_log(self.__myLogger)
-
-    # return age of item
-    def get_age(self):
-        if self.__item_laststate_id is not None:
-            return self.__item_laststate_id.age()
-        else:
-            self.__myLogger.warning('No item for last state id given. Can not determine age!')
-            return 0
-
-    # return delay of item
-    def get_delay(self):
-        return self.__delay
 
     # Find the state, matching the current conditions and perform the actions of this state
     # caller: Caller that triggered the update
@@ -139,15 +142,25 @@ class AbItem:
         if caller:
             self.__myLogger.debug("Update triggered by {0} (source={1} dest={2})", caller, source, dest)
 
-        # Check if this AutoBlindItem is active. Leave if not
-        if not self.__check_active():
+        # check if locked
+        if self.__lock_is_active():
+            self.__myLogger.info("AutoBlind is locked")
+            self.__laststate_name = "Manuell gesperrt"
+            return
+
+        # check if suspended
+        if self.__suspend_is_active():
+            active_timer_time = self.__suspend_get_time()
+            self.__myLogger.info(
+                "AutoBlind has been suspended after manual changes. Reactivating at {0}", active_timer_time)
+            self.__laststate_name = active_timer_time.strftime("Ausgesetzt bis %X")
             return
 
         # Update current values
         AutoBlindCurrent.update()
 
         # get last state
-        last_state = self.__get_last_state()
+        last_state = self.__laststate_get_state()
         if last_state is not None:
             self.__myLogger.info("Last state: {0} ('{1}')", last_state.id, last_state.name)
         if self.__can_not_leave_current_state_since == 0:
@@ -191,143 +204,223 @@ class AbItem:
         # get data for new state
         if last_state is not None and new_state.id == last_state.id:
             # New state is last state
-            if self.__get_laststate_name() != new_state.name:
-                self.__set_laststate_name(new_state.name)
+            if self.__laststate_name != new_state.name:
+                self.__laststate_name = new_state.name
             self.__myLogger.info("Staying at {0} ('{1}')", new_state.id, new_state.name)
         else:
             # New state is different from last state
             self.__myLogger.info("Changing to {0} ('{1}')", new_state.id, new_state.name)
-            self.__set_laststate_id(new_state.id)
-            self.__set_laststate_name(new_state.name)
+            self.__laststate_id = new_state.id
+            self.__laststate_name = new_state.name
 
         new_state.activate(self.__myLogger)
 
-    # get last state based on laststate_id item
+    # region Laststate *************************************************************************************************
+    # Init laststate_id and laststate_name
+    def __laststate_init(self):
+        self.__item_laststate_id = AutoBlindTools.get_item_attribute(self.__item, "item_state_id", self.__sh)
+        if self.__item_laststate_id is not None:
+            self.__internal_laststate_id == self.__item_laststate_id()
+        self.__item_laststate_name = AutoBlindTools.get_item_attribute(self.__item, "item_state_name", self.__sh)
+        if self.__item_laststate_name is not None:
+            self.__internal_laststate_name == self.__item_laststate_name()
+
+    # Log laststate settings
+    def __laststate_log(self):
+        if self.__item_laststate_id is not None:
+            self.__myLogger.info("Item 'State Id': {0}", self.__item_laststate_id.id())
+        if self.__item_laststate_name is not None:
+            self.__myLogger.info("Item 'State Name': {0}", self.__item_laststate_name.id())
+
+    # Get laststate_id
+    @property
+    def __laststate_id(self):
+        return self.__internal_laststate_id
+
+    # Set laststate_id
+    # text: Text for laststate_id
+    @__laststate_id.setter
+    def __laststate_id(self, text):
+        self.__internal_laststate_id = text
+        if self.__item_laststate_id is not None:
+            # noinspection PyCallingNonCallable
+            self.__item_laststate_id(self.__internal_laststate_id)
+
+    # Get laststate_name if available
+    # text: Text for laststate_name
+    @property
+    def __laststate_name(self):
+        return self.__internal_laststate_name
+
+    # Set laststate_name
+    # text: Text for laststate_name
+    @__laststate_name.setter
+    def __laststate_name(self, text):
+        self.__internal_laststate_name = text
+        if self.__item_laststate_name is not None:
+            # noinspection PyCallingNonCallable
+            self.__item_laststate_name(self.__internal_laststate_name)
+
+    # get last state object based on laststate_id
     # returns: AbState instance of last state or "None" if no last state could be found
-    def __get_last_state(self):
-        # noinspection PyCallingNonCallable
-        last_state_id = self.__get_laststate_id()
+    def __laststate_get_state(self):
+        last_state_id = self.__laststate_id
         for state in self.__states:
             if state.id == last_state_id:
                 return state
         return None
 
-    # callback function that is called when one of the items given at "watch_manual" is being changed
-    # noinspection PyUnusedLocal
-    def __watch_manual_callback(self, item, caller=None, source=None, dest=None):
-        # ignore changes by plugin or timer
-        if caller == "plugin" or caller == "Timer":
-            return
+    # endregion
 
-        self.__myLogger.update_logfile()
-        self.__myLogger.header("Watch_Manual triggered")
-        self.__myLogger.debug("Manual operation: Change of item '{0}' by '{1}'", item.id(), caller)
-        self.__myLogger.increase_indent()
-        if not self.__get_active() and not self.__get_active_timer_active():
-            self.__myLogger.debug("Automatic mode already deactivated manually")
+    # region Lock ******************************************************************************************************
+    # Init lock item
+    def __lock_init(self):
+        self.__item_lock = AutoBlindTools.get_item_attribute(self.__item, "as_lock_item", self.__sh)
+        self.__item_active = None
+        if self.__item_lock is not None:
+            self.__item_lock.add_method_trigger(self.__lock_callback)
         else:
-            self.__myLogger.debug("Deactivating automatic mode for {0} seconds.", self.__manual_break)
-            self.__set_active(0, self.__manual_break)
-            self.__check_active()
-        self.__myLogger.decrease_indent()
+            self.__item_active = AutoBlindTools.get_item_attribute(self.__item, "item_active", self.__sh)
+            if self.__item_active is not None:
+                AutoBlindTools.log_obsolete(self.__item, "item_active")
+                self.__item_active.add_method_trigger(self.__lock_callback)
 
-    # callback function that is called when the item "active" is being changed
-    # noinspection PyUnusedLocal
-    def __reset_active_callback(self, item, caller=None, source=None, dest=None):
-        # we're just changing "active" ourselves, .. ignore
-        if caller == "AutoBlind" or (caller == "KNX" and source == "0.0.0"):
-            return
-
-        self.__myLogger.update_logfile()
-        self.__myLogger.header("Item 'active' changed")
-        if caller == "Timer" and self.__get_active():
-            # triggered by timer and active is now TRUE: this was the reactivation by timer
-            self.__myLogger.info("Reactivating automatic mode")
-        elif self.__get_active_timer_active():
-            # A timer is active: remove it as the value has been overwritten
-            self.__myLogger.info("Remove timer on 'Active' as value has been set to '{0}' by '{1}'",
-                                 self.__get_active(), caller)
-            self.__remove_active_trigger()
-        else:
-            # Something else: Just log
-            self.__myLogger.debug("'Active' set to '{0}' by '{1}'", self.__get_active(), caller)
-
-        # trigger update if automatic is active
-        if self.__check_active():
-            self.__item(1, source="AuoBlind: active callback")
-
-    # set the value of the item "active"
-    # value: new value for item
-    # reset_interval: Interval after which the value should be reset to the previous value
-    def __set_active(self, value, reset_interval=None):
-        if self.__item_active is None:
-            return
-
-        # noinspection PyCallingNonCallable
-        self.__item_active(value, caller="AutoBlind")
-        if reset_interval is not None:
-            self.__item_active.timer(reset_interval, not value)
-
-    # get the value of the item "active"
-    # returns: value of item "active"
-    def __get_active(self):
-        if self.__item_active is None:
-            return True
-
-        # noinspection PyCallingNonCallable
-        return self.__item_active()
-
-    # remove timer on item "active"
-    def __remove_active_trigger(self):
+    # Log lock settings
+    def __lock_log(self):
+        if self.__item_lock is not None:
+            self.__myLogger.info("Item 'Lock': {0}", self.__item_lock.id())
         if self.__item_active is not None:
+            self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
+
+    # get the value of lock item
+    # returns: value of lock item
+    def __lock_is_active(self):
+        if self.__item_lock is not None:
             # noinspection PyCallingNonCallable
-            self.__item_active.remove_timer()
-
-    # return time when timer on item "active" will be called. None if no timer is set
-    # returns: time that has been set for the timer on item "active"
-    def __get_active_timer_time(self):
-        # without item "active" there can not be an active-timer
-        if self.__item_active is None:
-            return None
-
-        # check if we can find a Timer-Entry for this item inside the scheduler-configuration
-        timer_key = self.__item_active.id() + "-Timer"
-        scheduler_next = self.__sh.scheduler.return_next(timer_key)
-        if not isinstance(scheduler_next, datetime.datetime):
-            return None
-        if scheduler_next <= datetime.datetime.now(scheduler_next.tzinfo):
-            return None
-
-        return scheduler_next
-
-    # indicates if a timer on item "active" is active
-    # returns: True = a timer is active, False = no timer is active
-    def __get_active_timer_active(self):
-        return self.__get_active_timer_time() is not None
-
-    # check if item is active and update laststate_name if not
-    def __check_active(self):
-        # item is active
-        if self.__get_active():
-            return True
-
-        # check if we can find a Timer-Entry for this item inside the scheduler-configuration
-        active_timer_time = self.__get_active_timer_time()
-        if active_timer_time is not None:
-            self.__myLogger.info(
-                "AutoBlind has been deactivated automatically after manual changes. Reactivating at {0}",
-                active_timer_time)
-            self.__set_laststate_name(active_timer_time.strftime("Automatisch deaktviert bis %X"))
+            return self.__item_lock()
+        elif self.__item_active is not None:
+            # noinspection PyCallingNonCallable
+            return not self.__item_active()
+        else:
             return False
 
-        # must have been manually deactivated
-        self.__myLogger.info("AutoBlind is inactive")
-        self.__set_laststate_name("Manuell deaktiviert")
-        return False
+    # callback function that is called when the lock item is being changed
+    # noinspection PyUnusedLocal
+    def __lock_callback(self, item, caller=None, source=None, dest=None):
+        # we're just changing "lock" ourselves ... ignore
+        if caller == "AutoBlind":
+            return
 
+        self.__myLogger.update_logfile()
+        self.__myLogger.header("Item 'lock' changed")
+        self.__myLogger.debug("'{0}' set to '{1}' by '{2}'", item.id(), item(), caller)
+
+        # Any manual change of lock removes suspension
+        if self.__suspend_is_active():
+            self.__suspend_remove()
+
+        # trigger delayed update
+        self.__item.timer(self.__update_delay, 1)
+
+    # endregion
+
+    # region Suspend ***************************************************************************************************
+    # init suspension item. Create dummy item if missing
+    def __suspend_init(self):
+        self.__suspend_item = AutoBlindTools.get_item_attribute(self.__item, "as_suspend_item", self.__sh)
+        self.__suspend_until = None
+        self.__suspend_watch_items = []
+        self.__suspend_time = AutoBlindTools.get_num_attribute(self.__item, "as_suspend_time", AutoBlindDefaults.suspend_time, "manual_break")
+
+        if "as_suspend_watch" in self.__item.conf:
+            suspend_on = self.__item.conf["as_suspend_watch"]
+        elif "watch_manual" in self.__item.conf:
+            suspend_on = self.__item.conf["watch_manual"]
+            AutoBlindTools.log_obsolete(self.__item, "watch_manual")
+        else:
+            return
+
+        if isinstance(suspend_on, str):
+            suspend_on = [suspend_on]
+        for entry in suspend_on:
+            for item in self.__sh.match_items(entry):
+                item.add_method_trigger(self.__suspend_watch_callback)
+                self.__suspend_watch_items.append(item)
+
+    # Log suspension settings
+    def __suspend_log(self):
+        if self.__suspend_item is not None:
+            self.__myLogger.info("Item 'Suspend': {0}", self.__suspend_item.id())
+        if len(self.__suspend_watch_items) > 0:
+            self.__myLogger.info("Suspension time on manual changes: {0}", self.__suspend_time)
+            self.__myLogger.info("Items causing suspension when changed:")
+            self.__myLogger.increase_indent()
+            for watch_manual_item in self.__suspend_watch_items:
+                self.__myLogger.info("{0} ('{1}')", watch_manual_item.id(), str(watch_manual_item))
+            self.__myLogger.decrease_indent()
+
+
+    # suspend automatic mode for a given time
+    def __suspend_set(self):
+        self.__myLogger.debug("Suspending automatic mode for {0} seconds.", self.__suspend_time)
+        self.__suspend_until = self.__sh.now() + datetime.timedelta(seconds=self.__suspend_time)
+        self.__sh.scheduler.add(self.id + "SuspensionRemove-Timer", self.__suspend_reactivate_callback,
+                                next=self.__suspend_until)
+
+        if self.__suspend_item is not None:
+            self.__suspend_item(True, caller="AutoBlind")
+
+        # trigger delayed update
+        self.__item.timer(self.__update_delay, 1)
+
+    # remove suspension
+    def __suspend_remove(self):
+        self.__myLogger.debug("Removing suspension of automatic mode.")
+        self.__suspend_until = None
+        self.__sh.scheduler.remove(self.id + "SuspensionRemove-Timer")
+
+        if self.__suspend_item is not None:
+            self.__suspend_item(False, caller="AutoBlind")
+
+        # trigger delayed update
+        self.__item.timer(self.__update_delay, 1)
+
+    # check if suspension is active
+    # returns: True = automatic mode is suspended, False = automatic mode is not suspended
+    def __suspend_is_active(self):
+        return self.__suspend_until is not None
+
+    # return time when timer on item "suspended" will be called. None if no timer is set
+    # returns: time that has been set for the timer on item "suspended"
+    def __suspend_get_time(self):
+        return self.__suspend_until
+
+    # callback function that is called when one of the items given at "watch_manual" is being changed
+    # noinspection PyUnusedLocal
+    def __suspend_watch_callback(self, item, caller=None, source=None, dest=None):
+        self.__myLogger.update_logfile()
+        self.__myLogger.header("Watch suspend triggered")
+        self.__myLogger.debug("Manual operation: Change of item '{0}' by '{1}' (source='{2}', dest='{3}')",
+                              item.id(), caller, source, dest)
+        self.__myLogger.increase_indent()
+        if self.__lock_is_active():
+            self.__myLogger.debug("Automatic mode alreadylocked")
+        else:
+            self.__suspend_set()
+        self.__myLogger.decrease_indent()
+
+    # callback function that is called when the suspend time is over
+    def __suspend_reactivate_callback(self):
+        self.__myLogger.update_logfile()
+        self.__myLogger.header("Suspend time over")
+        self.__suspend_remove()
+
+    # endregion
+
+    # region Additional initialization *********************************************************************************
     # Check item settings and update if required
     # noinspection PyProtectedMember
-    def __check_item_config(self):
+    def __init_check_item_config(self):
         # set "enforce updates" for item
         self.__item._enforce_updates = True
 
@@ -365,86 +458,39 @@ class AbItem:
         else:
             new_cron = None
 
+        # change scheduler settings if cycle or cron have been changed
         if changed:
             self.__sh.scheduler.change(self.__item.id(), cycle=new_cycle, cron=new_cron)
 
-    # Set laststate_id
-    # text: Text for laststate_id
-    def __set_laststate_id(self, text):
-        if self.__item_laststate_id is not None:
-            # noinspection PyCallingNonCallable
-            self.__item_laststate_id(text)
-        else:
-            self.__internal_laststate_id = text
-
-    # Get laststate_id
-    def __get_laststate_id(self):
-        if self.__item_laststate_id is not None:
-            # noinspection PyCallingNonCallable
-            return self.__item_laststate_id()
-        else:
-            return self.__internal_laststate_id
-
-    # Set laststate_name
-    # text: Text for laststate_name
-    def __set_laststate_name(self, text):
-        if self.__item_laststate_name is not None:
-            # noinspection PyCallingNonCallable
-            self.__item_laststate_name(text)
-        else:
-            self.__internal_laststate_name = text
-
-    # Get laststate_name if available
-    # text: Text for laststate_name
-    def __get_laststate_name(self):
-        if self.__item_laststate_name is not None:
-            # noinspection PyCallingNonCallable
-            return self.__item_laststate_name()
-        else:
-            return self.__internal_laststate_name
-
-    # initialize configuration
-    def __init_config(self):
-        self.__name = str(self.__item)
-        self.__manual_break = AutoBlindTools.get_num_attribute(self.__item, "manual_break",
-                                                               AutoBlindDefaults.manual_break)
-        self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item, "startup_delay",
-                                                                AutoBlindDefaults.startup_delay)
-        self.__item_active = AutoBlindTools.get_item_attribute(self.__item, "item_active", self.__sh)
-        self.__item_laststate_id = AutoBlindTools.get_item_attribute(self.__item, "item_state_id", self.__sh)
-        self.__item_laststate_name = AutoBlindTools.get_item_attribute(self.__item, "item_state_name", self.__sh)
-
-        if self.__item_active is not None:
-            self.__item_active.add_method_trigger(self.__reset_active_callback)
-
     # find states and init them
     def __init_states(self):
-        items_states = self.__item.return_children()
+        # These items are referenced items, if they are below the object item, they are no states
         non_state_item_ids = []
-        if self.__item_active is not None:
-            non_state_item_ids.append(self.__item_active.id())
+        if self.__item_lock is not None:
+            non_state_item_ids.append(self.__item_lock.id())
+        if self.__suspend_item is not None:
+            non_state_item_ids.append(self.__suspend_item.id())
         if self.__item_laststate_id is not None:
             non_state_item_ids.append(self.__item_laststate_id.id())
         if self.__item_laststate_name is not None:
             non_state_item_ids.append(self.__item_laststate_name.id())
-        for item_state in items_states:
+
+        for item_state in self.__item.return_children():
             if item_state.id() in non_state_item_ids:
                 continue
-
             state = AutoBlindState.AbState(self.__sh, item_state, self.__item, self, self.__myLogger)
             self.__states.append(state)
 
-    # initialize "watch_manual" if configured
-    def __init_watch_manual(self):
-        if "watch_manual" not in self.__item.conf:
-            return
+    # endregion
 
-        self.__myLogger.info("watch_manual items:")
-        self.__myLogger.increase_indent()
-        if isinstance(self.__item.conf["watch_manual"], str):
-            self.__item.conf["watch_manual"] = [self.__item.conf["watch_manual"]]
-        for entry in self.__item.conf["watch_manual"]:
-            for item in self.__sh.match_items(entry):
-                item.add_method_trigger(self.__watch_manual_callback)
-                self.__myLogger.info(item.id())
-        self.__myLogger.decrease_indent()
+    # return age of item
+    def get_age(self):
+        if self.__item_laststate_id is not None:
+            return self.__item_laststate_id.age()
+        else:
+            self.__myLogger.warning('No item for last state id given. Can not determine age!')
+            return 0
+
+    # return delay of item
+    def get_delay(self):
+        return self.__delay

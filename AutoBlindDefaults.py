@@ -24,8 +24,8 @@ logger = logging.getLogger()
 
 startup_delay = 10
 
-manual_break = 3600
+suspend_time = 3600
 
 def write_to_log():
     logger.info("AutoBlind default startup delay = {0}".format(startup_delay))
-    logger.info("AutoBlind default manual break time = {0}".format(manual_break))
+    logger.info("AutoBlind default suspension time = {0}".format(suspend_time))
