@@ -56,7 +56,6 @@ class AbLogger:
 
     # Return AbLogger instance for given item
     # item: item for which the detailed log is
-    @staticmethod
     def create(item):
         return AbLogger(item)
 

@@ -49,7 +49,6 @@ class AbItem:
         self.__delay = 0
         self.__actions = {}
         self.__can_not_leave_current_state_since = 0
-        self.__just_changing_active = False
         self.__item = item
         self.__internal_laststate_name = ""
         self.__internal_laststate_id = ""
@@ -236,7 +235,7 @@ class AbItem:
     # noinspection PyUnusedLocal
     def __reset_active_callback(self, item, caller=None, source=None, dest=None):
         # we're just changing "active" ourselves, .. ignore
-        if self.__just_changing_active or (caller == 'KNX' and source == '0.0.0'):
+        if caller == "AutoBlind" or (caller == "KNX" and source == "0.0.0"):
             return
 
         self.__myLogger.update_logfile()
@@ -246,8 +245,8 @@ class AbItem:
             self.__myLogger.info("Reactivating automatic mode")
         elif self.__get_active_timer_active():
             # A timer is active: remove it as the value has been overwritten
-            self.__myLogger.info("Remove timer on 'Active' as value has been set to '{0}' by '{1}'", self.__get_active(),
-                                 caller)
+            self.__myLogger.info("Remove timer on 'Active' as value has been set to '{0}' by '{1}'",
+                                 self.__get_active(), caller)
             self.__remove_active_trigger()
         else:
             # Something else: Just log
@@ -264,14 +263,10 @@ class AbItem:
         if self.__item_active is None:
             return
 
-        try:
-            self.__just_changing_active = True
-            # noinspection PyCallingNonCallable
-            self.__item_active(value)
-            if reset_interval is not None:
-                self.__item_active.timer(reset_interval, not value)
-        finally:
-            self.__just_changing_active = False
+        # noinspection PyCallingNonCallable
+        self.__item_active(value, caller="AutoBlind")
+        if reset_interval is not None:
+            self.__item_active.timer(reset_interval, not value)
 
     # get the value of the item "active"
     # returns: value of item "active"
