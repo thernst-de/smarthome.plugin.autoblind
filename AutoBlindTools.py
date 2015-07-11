@@ -49,15 +49,21 @@ def get_str_attribute(item, attribute_name, default=None, fallback_attribute_nam
     if attribute_name in item.conf:
         return cast_str(item.conf[attribute_name])
     elif fallback_attribute_name is not None and fallback_attribute_name in item.conf:
-        log_obsolete(item, fallback_attribute_name)
+        log_obsolete(item, fallback_attribute_name, attribute_name)
         return cast_str(item.conf[fallback_attribute_name])
     else:
         return default
 
 
 # log obsolete attribute usage
-def log_obsolete(item, attribute_name):
-    logger.warning("Item '{0}': Using obsolete attribute '{1}'.".format(item.id(),attribute_name))
+def log_obsolete(item, attribute_name, new_attribute_name=None):
+    if new_attribute_name is None:
+        logger.warning("Item '{0}': Using obsolete attribute '{1}'.".format(item.id(), attribute_name))
+    else:
+        logger.warning(
+            "Item '{0}': Using obsolete attribute '{1}'. Use new attribute '{2} instead.".format(item.id(),
+                                                                                                 attribute_name,
+                                                                                                 new_attribute_name))
 
 
 # Find and return a certain item that is named as attribute of another item
@@ -81,7 +87,7 @@ def get_num_attribute(item, attribute_name, default=None, fallback_attribute_nam
     if attribute_name in item.conf:
         return cast_num(item.conf[attribute_name])
     elif fallback_attribute_name is not None and fallback_attribute_name in item.conf:
-        logger.warning("Item '{0}': Using obsolete attribute '{1}'.".format(item.id(),fallback_attribute_name))
+        logger.warning("Item '{0}': Using obsolete attribute '{1}'.".format(item.id(), fallback_attribute_name))
         return cast_num(item.conf[fallback_attribute_name])
     else:
         return default

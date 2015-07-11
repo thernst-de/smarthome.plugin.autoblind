@@ -339,7 +339,7 @@ class AbItem:
             suspend_on = self.__item.conf["as_suspend_watch"]
         elif "watch_manual" in self.__item.conf:
             suspend_on = self.__item.conf["watch_manual"]
-            AutoBlindTools.log_obsolete(self.__item, "watch_manual")
+            AutoBlindTools.log_obsolete(self.__item, "watch_manual", "as_suspend_watch")
         else:
             return
 
