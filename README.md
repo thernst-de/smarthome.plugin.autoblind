@@ -86,7 +86,7 @@ The following general attributes are optional:
     [myFirstAutoBlindControlledObject]
         (...)
         name = Some very nice example
-        startup_delay = 10
+        as_startup_delay = 10
         as_laststate_item_id = room1.raffstore.auto_laststate_id
         as_laststate_item_name = room1.raffstore.auto_laststate_name
         
@@ -94,7 +94,7 @@ The following general attributes are optional:
 Name                  | Description | What happens if attribute is missing?
 --------------------- | ----------- | -------------------------------------
 name                  | A name for this item | Item Id will be used as name
-startup_delay         | Delay on smarthome.py startup after which the first calculation of the current state is triggered (seconds). | The value from `startup_delay_default` in the plugin configuration is used as startup delay
+as_startup_delay         | Delay on smarthome.py startup after which the first calculation of the current state is triggered (seconds). | The value from `startup_delay_default` in the plugin configuration is used as startup delay
 as_laststate_item_id         | Id of the item which is used to store the id of the current state. | The current state is recorded internally and not preserved when restarting smarthome.py.
 as_laststate_item_name       | Id of the item which is used to store the nane of the current state (use this item for display purposes) | The name of the current state is not available.
 
@@ -132,7 +132,7 @@ See [smarthome.py documentation on these attributes](http://mknx.github.io/smart
 Some additional hints regarding these settings: 
 * It is not required so set values with cycle, crontab. The AutoBlind plugin adds them automatically if requred.
 * It is not required to add an attribute "eval = (something)" when using eval_trigger. The AutoBlind plugin adds this automatically if required
-* crontab = init is currently not working for the AutoBlind plugin. Use the startup_delay setting to run the first calculation of the current state after starting smarthome.py.
+* crontab = init is currently not working for the AutoBlind plugin. Use the `as_startup_delay` setting to run the first calculation of the current state after starting smarthome.py.
  
 You may also use other ways to set the value for this item (such as for example assigning a KNX address to listen to) which also triggers the calculation of the current state.
 

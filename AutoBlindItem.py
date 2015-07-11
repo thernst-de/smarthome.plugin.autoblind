@@ -43,8 +43,8 @@ class AbItem:
         self.__item = item
         self.__name = str(self.__item)
 
-        self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item, "startup_delay",
-                                                                AutoBlindDefaults.startup_delay)
+        self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item, "as_startup_delay",
+                                                                AutoBlindDefaults.startup_delay, "startup_delay")
         self.__update_delay = 1
 
         self.__item_active = None
