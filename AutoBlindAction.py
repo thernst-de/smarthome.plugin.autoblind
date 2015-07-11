@@ -44,7 +44,7 @@ class AbAction:
     # value: Value of the set_(action_name) attribute
     def update_set(self, item_state, value):
         if self.__item is None:
-            self.__set_item(AutoBlindTools.find_attribute(self.__sh, item_state, "item_" + self.__name))
+            self.__set_item(AutoBlindTools.find_attribute(self.__sh, item_state, "as_item_" + self.__name, "item_" + self.__name))
 
         func, set_value = AutoBlindTools.partition_strip(value, ":")
         if set_value == "":
@@ -105,12 +105,12 @@ class AbAction:
 
         # missing item in action: Try to find it.
         if self.__item is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_state, "item_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_item_" + self.__name, "item_" + self.__name)
             if result is not None:
                 self.__set_item(result)
 
         if self.__mindelta is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_state, "mindelta_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_mindelta_" + self.__name, "mindelta_" + self.__name)
             if result is not None:
                 self.__mindelta = result
 

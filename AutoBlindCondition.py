@@ -57,24 +57,27 @@ class AbCondition:
         self.__error = None
 
     # set a certain function to a given value
-    # func: Function to set ('item', 'eval', 'value', 'min', 'max' or 'negate'
+    # func: Function to set ('item', 'eval', 'value', 'min', 'max', 'negate', 'agemin', 'agemax' or 'agenegate'
     # value: Value for function
     def set(self, func, value):
-        if func == "item":
+        if func == "as_item" or func == "item":
             self.__set_item(value)
-        elif func == "eval":
+        elif func == "as_eval" or func == "eval":
             self.__eval = value
-        elif func == "value" or func == "min" or func == "max":
+        elif func == "as_value" or func == "as_min" or func == "as_max" or func == "value" or func == "min" or func == "max":
             self.set_split(func, value)
-        elif func == "negate":
+        elif func == "as_negate" or func == "negate":
             self.__negate = value
-        elif func == "agemin":
+        elif func == "as_agemin" or func == "agemin":
             self.__agemin = value
-        elif func == "agemax":
+        elif func == "as_agemax" or func == "agemax":
             self.__agemax = value
-        elif func == "agenegate":
+        elif func == "as_agenegate" or func == "agenegate":
             self.__agenegate = value
 
+    # set a min/max/value function to a given value/item
+    # func: FUnction to set ('value', 'min', 'max')
+    # value: value/item for function
     def set_split(self, func, value):
         source, field_value = AutoBlindTools.partition_strip(value, ":")
 
@@ -86,23 +89,23 @@ class AbCondition:
             source = "value"
 
         if source == "value":
-            if func == "value":
+            if func == "as_value" or func == "value":
                 self.__value = field_value
                 self.__value_item = None
-            elif func == "min":
+            elif func == "as_min" or func == "min":
                 self.__min = field_value
                 self.__min_item = None
-            elif func == "max":
+            elif func == "as_max" or func == "max":
                 self.__max = field_value
                 self.__max_item = None
         elif source == "item":
-            if func == "value":
+            if func == "as_value" or func == "value":
                 self.__value = None
                 self.__value_item = self.__sh.return_item(field_value)
-            elif func == "min":
+            elif func == "as_min" or func == "min":
                 self.__min = None
                 self.__min_item = self.__sh.return_item(field_value)
-            elif func == "max":
+            elif func == "as_max" or func == "max":
                 self.__max = None
                 self.__max_item = self.__sh.return_item(field_value)
 
@@ -137,13 +140,13 @@ class AbCondition:
 
         # missing item in condition: Try to find it
         if self.__item is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_state, "item_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_item_" + self.__name, "item_" + self.__name)
             if result is not None:
                 self.__set_item(result)
 
         # missing eval in condition: Try to find it
         if self.__eval is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_state, "eval_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_eval_" + self.__name, "eval_" + self.__name)
             if result is not None:
                 self.__eval = result
 

@@ -182,17 +182,25 @@ def cast_time(value):
 # smarthome: instance of smarthome.py base class
 # base_item: base item to search in
 # attribute: name of attribute to find
-def find_attribute(smarthome, base_item, attribute):
+def find_attribute(smarthome, base_item, attribute, fallback_attribute = None):
     # 1: parent of given item could have attribute
     parent_item = base_item.return_parent()
     if parent_item is not None:
         if attribute in parent_item.conf:
             return parent_item.conf[attribute]
+        elif fallback_attribute is not None and fallback_attribute in parent_item.conf:
+            log_obsolete(parent_item, fallback_attribute, attribute)
+            return parent_item.conf[fallback_attribute]
 
     # 2: if item has attribute "use", get the item to use and search this item for required attribute
-    if "use" in base_item.conf:
+    if "as_use" in base_item.conf:
+        use_item = smarthome.return_item(base_item.conf["as_use"])
+        result = find_attribute(smarthome, use_item, attribute, fallback_attribute)
+        if result is not None:
+            return result
+    elif "use" in base_item.conf:
         use_item = smarthome.return_item(base_item.conf["use"])
-        result = find_attribute(smarthome, use_item, attribute)
+        result = find_attribute(smarthome, use_item, attribute, fallback_attribute)
         if result is not None:
             return result
 
@@ -205,5 +213,9 @@ def find_attribute(smarthome, base_item, attribute):
 # splitchar: where to split
 # returns: Parts before and after split, whitespaces stripped
 def partition_strip(value, splitchar):
-    part1, __, part2 = value.partition(splitchar)
-    return part1.strip(), part2.strip()
+    if value.startswith("as_") and splitchar == "_":
+        part1, __, part2 = value[3:].partition(splitchar)
+        return "as_" + part1.strip(), part2.strip()
+    else:
+        part1, __, part2 = value.partition(splitchar)
+        return part1.strip(), part2.strip()
