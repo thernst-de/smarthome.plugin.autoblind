@@ -120,7 +120,14 @@ class AbState:
             return
 
         # Import data from other item if attribute "use" is found
-        if "use" in item_state.conf:
+        if "as_use" in item_state.conf:
+            use_item = self.__sh.return_item(item_state.conf["as_use"])
+            if use_item is not None:
+                self.__fill(use_item, recursion_depth + 1, item_autoblind, abitem_object, logger)
+            else:
+                logger.error("{0}: Referenced item '{1}' not found!", item_state.id(), item_state.conf["use"])
+        elif "use" in item_state.conf:
+            AutoBlindTools.log_obsolete(item_state,"use","as_use")
             use_item = self.__sh.return_item(item_state.conf["use"])
             if use_item is not None:
                 self.__fill(use_item, recursion_depth + 1, item_autoblind, abitem_object, logger)
