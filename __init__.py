@@ -73,8 +73,11 @@ class AutoBlind:
     # item: item to parse
     def parse_item(self, item):
         # leave if this is not an autoblind object item
-        if 'autoblind_plugin' not in item.conf or item.conf["autoblind_plugin"] != "active":
-            return None
+        if 'as_plugin' not in item.conf or item.conf["as_plugin"] != "active":
+            if 'autoblind_plugin' not in item.conf or item.conf["autoblind_plugin"] != "active":
+                return None
+            else:
+                AutoBlindTools.log_obsolete(item, "autoblind_plugin", "as_plugin")
 
         try:
             # Create AbItem object and return update_state method to be triggered on item changes
