@@ -87,27 +87,27 @@ The following general attributes are optional:
         (...)
         name = Some very nice example
         startup_delay = 10
-        item_state_id = room1.raffstore.auto_state_id
-        item_state_name = room1.raffstore.auto_state_name
+        as_laststate_item_id = room1.raffstore.auto_laststate_id
+        as_laststate_item_name = room1.raffstore.auto_laststate_name
         
 
 Name                  | Description | What happens if attribute is missing?
 --------------------- | ----------- | -------------------------------------
 name                  | A name for this item | Item Id will be used as name
 startup_delay         | Delay on smarthome.py startup after which the first calculation of the current state is triggered (seconds). | The value from `startup_delay_default` in the plugin configuration is used as startup delay
-item_state_id         | Id of the item which is used to store the id of the current state. | The current state is recorded internally and not preserved when restarting smarthome.py.
-item_state_name       | Id of the item which is used to store the nane of the current state (use this item for display purposes) | The name of the current state is not available.
+as_laststate_item_id         | Id of the item which is used to store the id of the current state. | The current state is recorded internally and not preserved when restarting smarthome.py.
+as_laststate_item_name       | Id of the item which is used to store the nane of the current state (use this item for display purposes) | The name of the current state is not available.
 
-If used, the items used for `item_state_id` and `item_state_name` should be defined as following:
+If used, the items used for `as_laststate_item_id` and `as_laststate_item_name` should be defined as following:
 
     [room1]
         [[raffstore]]
             name = Raffstore Room 1
-            [[[auto_state_id]]]
+            [[[auto_laststate_id]]]
                 type = str
                 visu_acl = r
                 cache = on
-            [[[auto_state_name]]]
+            [[[auto_laststate_name]]]
                 type = str
                 visu_acl = r
                 cache = on
@@ -193,7 +193,7 @@ The item for `as_suspend_item` should be defined as following (here with KNX gro
 To cancel the suspension, use the locking feature. Any change on the lock-item causes the suspension to be cancelled and the automatic control to behave like set by the lock-item.
 
 ###States###             
-All subitems of a object item are considered as object states ("state item"). Their ids are arbitrary and used as values for the item given as `item_state_id`. If you configure names for the items, they are used as values for the item given as `item_state_name`. (otherwise the item id is used here, too)
+All subitems of a object item are considered as object states ("state item"). Their ids are arbitrary and used as values for the item given as `as_laststate_item_id`. If you configure names for the items, they are used as values for the item given as `as_laststate_item_name`. (otherwise the item id is used here, too)
 
 Every state can have an arbitrary number of "enter" and "leave" condition sets. An state can become current if one of the "enter" condition sets is fulfilled. Once the state is current, it can only be left if one of the "leave" condition sets is fulfilled. Inside every condition set an arbitrary number of conditions can be defined. If a state does not have any condition sets, the state can always be entered/left. This can be used to have a default state.
 
@@ -254,7 +254,7 @@ The following rules apply:
 Object | Function
 ------ | --------
 Attributes `item_height`, `item_lamella` | Items wich are changed by actions `set_height` and `set_lamella`
-Attribute `name` | Name of state. Will be written in item `item_state_name` if state is current and can be displayed in visualization
+Attribute `name` | Name of state. Will be written in item `as_laststate_item_name` if state is current and can be displayed in visualization
 Attribute `use` | Import settings from a different item. If `enter` and/or `leave` are included in the current item too, the conditions in this child items overwrite the matching imported conditions   
 Child item  `enter` | Condition set that has to be fulfilled before the state can become current
 Child item `leave` | Condition set that has to be fulfilled before the state can be left
@@ -360,7 +360,7 @@ negative → Sun below horizon
 **age:**
 Time since last change of state (seconds)
 
-The age is being calculated via the last change of the item given with attribute `item_state_id`.
+The age is being calculated via the last change of the item given with attribute `as_laststate_item_id`.
 
 **delay:**
 Time since enter conditions of state are not matched (seconds)
@@ -580,11 +580,11 @@ Then we need the items for the blind we want to automate:
                 knx_dpt = 1
                 knx_send = 1/1/9
                 visu_acl = r  
-            [[[auto_state_id]]]
+            [[[auto_laststate_id]]]
                 type = str
                 visu_acl = r
                 cache = on
-            [[[auto_state_name]]]
+            [[[auto_laststate_name]]]
                 type = str
                 visu_acl = r
                 cache = on
@@ -625,8 +625,8 @@ Now we can add our specific AutoBlind object item with all required subitems to 
         as_suspend_item = room1.raffstore.auto_suspend
         as_suspend_time = 7200
         as_suspend_watch = room1.raffstore.updown | room1.raffstore.stepstop
-        item_state_id = room1.raffstore.auto_state_id
-        item_state_name = room1.raffstore.auto_state_name        
+        as_laststate_item_id = room1.raffstore.auto_laststate_id
+        as_laststate_item_name = room1.raffstore.auto_laststate_name        
         item_height = room1.raffstore.height
         item_lamella = room1.raffstore.lamella
         item_presence = room1.presence

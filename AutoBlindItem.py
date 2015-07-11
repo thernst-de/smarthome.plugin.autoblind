@@ -55,10 +55,10 @@ class AbItem:
         self.__suspend_time = None
         self.__suspend_watch_items = []
 
-        self.__item_laststate_id = None
-        self.__internal_laststate_id = ""
-        self.__item_laststate_name = None
-        self.__internal_laststate_name = ""
+        self.__laststate_item_id = None
+        self.__laststate_internal_id = ""
+        self.__laststate_item_name = None
+        self.__laststate_internal_name = ""
 
         self.__states = []
         self.__delay = 0
@@ -218,48 +218,50 @@ class AbItem:
     # region Laststate *************************************************************************************************
     # Init laststate_id and laststate_name
     def __laststate_init(self):
-        self.__item_laststate_id = AutoBlindTools.get_item_attribute(self.__item, "item_state_id", self.__sh)
-        if self.__item_laststate_id is not None:
-            self.__internal_laststate_id == self.__item_laststate_id()
-        self.__item_laststate_name = AutoBlindTools.get_item_attribute(self.__item, "item_state_name", self.__sh)
-        if self.__item_laststate_name is not None:
-            self.__internal_laststate_name == self.__item_laststate_name()
+        self.__laststate_item_id = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_id", self.__sh,
+                                                                     "item_state_id")
+        if self.__laststate_item_id is not None:
+            self.__laststate_internal_id == self.__laststate_item_id()
+        self.__laststate_item_name = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_name", self.__sh,
+                                                                       "item_state_name")
+        if self.__laststate_item_name is not None:
+            self.__laststate_internal_name == self.__laststate_item_name()
 
     # Log laststate settings
     def __laststate_log(self):
-        if self.__item_laststate_id is not None:
-            self.__myLogger.info("Item 'State Id': {0}", self.__item_laststate_id.id())
-        if self.__item_laststate_name is not None:
-            self.__myLogger.info("Item 'State Name': {0}", self.__item_laststate_name.id())
+        if self.__laststate_item_id is not None:
+            self.__myLogger.info("Item 'Laststate Id': {0}", self.__laststate_item_id.id())
+        if self.__laststate_item_name is not None:
+            self.__myLogger.info("Item 'Laststate Name': {0}", self.__laststate_item_name.id())
 
     # Get laststate_id
     @property
     def __laststate_id(self):
-        return self.__internal_laststate_id
+        return self.__laststate_internal_id
 
     # Set laststate_id
     # text: Text for laststate_id
     @__laststate_id.setter
     def __laststate_id(self, text):
-        self.__internal_laststate_id = text
-        if self.__item_laststate_id is not None:
+        self.__laststate_internal_id = text
+        if self.__laststate_item_id is not None:
             # noinspection PyCallingNonCallable
-            self.__item_laststate_id(self.__internal_laststate_id)
+            self.__laststate_item_id(self.__laststate_internal_id)
 
     # Get laststate_name if available
     # text: Text for laststate_name
     @property
     def __laststate_name(self):
-        return self.__internal_laststate_name
+        return self.__laststate_internal_name
 
     # Set laststate_name
     # text: Text for laststate_name
     @__laststate_name.setter
     def __laststate_name(self, text):
-        self.__internal_laststate_name = text
-        if self.__item_laststate_name is not None:
+        self.__laststate_internal_name = text
+        if self.__laststate_item_name is not None:
             # noinspection PyCallingNonCallable
-            self.__item_laststate_name(self.__internal_laststate_name)
+            self.__laststate_item_name(self.__laststate_internal_name)
 
     # get last state object based on laststate_id
     # returns: AbState instance of last state or "None" if no last state could be found
@@ -330,7 +332,8 @@ class AbItem:
         self.__suspend_item = AutoBlindTools.get_item_attribute(self.__item, "as_suspend_item", self.__sh)
         self.__suspend_until = None
         self.__suspend_watch_items = []
-        self.__suspend_time = AutoBlindTools.get_num_attribute(self.__item, "as_suspend_time", AutoBlindDefaults.suspend_time, "manual_break")
+        self.__suspend_time = AutoBlindTools.get_num_attribute(self.__item, "as_suspend_time",
+                                                               AutoBlindDefaults.suspend_time, "manual_break")
 
         if "as_suspend_watch" in self.__item.conf:
             suspend_on = self.__item.conf["as_suspend_watch"]
@@ -358,7 +361,6 @@ class AbItem:
             for watch_manual_item in self.__suspend_watch_items:
                 self.__myLogger.info("{0} ('{1}')", watch_manual_item.id(), str(watch_manual_item))
             self.__myLogger.decrease_indent()
-
 
     # suspend automatic mode for a given time
     def __suspend_set(self):
@@ -470,10 +472,10 @@ class AbItem:
             non_state_item_ids.append(self.__item_lock.id())
         if self.__suspend_item is not None:
             non_state_item_ids.append(self.__suspend_item.id())
-        if self.__item_laststate_id is not None:
-            non_state_item_ids.append(self.__item_laststate_id.id())
-        if self.__item_laststate_name is not None:
-            non_state_item_ids.append(self.__item_laststate_name.id())
+        if self.__laststate_item_id is not None:
+            non_state_item_ids.append(self.__laststate_item_id.id())
+        if self.__laststate_item_name is not None:
+            non_state_item_ids.append(self.__laststate_item_name.id())
 
         for item_state in self.__item.return_children():
             if item_state.id() in non_state_item_ids:
@@ -485,8 +487,8 @@ class AbItem:
 
     # return age of item
     def get_age(self):
-        if self.__item_laststate_id is not None:
-            return self.__item_laststate_id.age()
+        if self.__laststate_item_id is not None:
+            return self.__laststate_item_id.age()
         else:
             self.__myLogger.warning('No item for last state id given. Can not determine age!')
             return 0
