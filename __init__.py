@@ -22,7 +22,9 @@ from .AutoBlindLogger import AbLogger
 from . import AutoBlindItem
 from . import AutoBlindCurrent
 from . import AutoBlindDefaults
+from . import AutoBlindTools
 import logging
+import os
 
 logger = logging.getLogger()
 
@@ -35,7 +37,7 @@ class AutoBlind:
     # log_level: loglevel for extended logging
     # log_directory: directory for extended logging files
     def __init__(self, smarthome, startup_delay_default=10, suspend_time_default=3600, manual_break_default=0,
-                 log_level=0, log_directory="/usr/local/smarthome/var/log/AutoBlind/"):
+                 log_level=0, log_directory="var/log/AutoBlind/"):
         self._sh = smarthome
         self.__items = {}
         self.alive = False
@@ -52,8 +54,20 @@ class AutoBlind:
 
         AutoBlindCurrent.init(smarthome)
 
-        AbLogger.set_loglevel(log_level)
-        AbLogger.set_logdirectory(log_directory)
+        log_level = AutoBlindTools.cast_num(log_level)
+        if log_level > 0:
+            if log_directory[0] != "/":
+                base = self._sh.base_dir
+                if base[-1] != "/":
+                    base += "/"
+                log_directory = base + log_directory
+            if not os.path.exists(log_directory):
+                os.makedirs(log_directory)
+            AbLogger.set_loglevel(log_level)
+            AbLogger.set_logdirectory(log_directory)
+            logger.info(
+                "AutoBlind extended logging is active. Logging to '{0}' with loglevel {1}.".format(log_directory,
+                                                                                                   log_level))
 
     # Parse an item
     # item: item to parse
