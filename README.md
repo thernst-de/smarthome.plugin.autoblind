@@ -48,7 +48,7 @@ To use the AutoBlind plugin, add the following to your plugin.conf file:
         #startup_delay_default = 10
         #suspend_time_default = 3600
         #log_level = 0
-        #log_directory = /usr/local/smarthome/var/log/AutoBlind/
+        #log_directory = var/log/AutoBlind/
 
 Commented parameters are default values which may be canged on your needs.
 
@@ -64,22 +64,23 @@ Search for issues with AutoBlind condition sets using normal smarthome.py loggin
 
 The extended logging writes a separate logfile per day and object. This is especially useful when the "housemate" states friday night that "the blinds in the childrens room where where moving somehow strange on monday morning". One can now check the logfile for the blinds in the childrens room from monday morning and see how (loglevel = info) and why (loglevel = debug) they moved. 
 
-To activate the extended logging set parameter `log_level` in plugin.conf to either 1 (info) or 2 (debug). Via parameter `log_directory` the directory can be set in which the logs will be written. By default the directory is `/usr/local/smarthome/var/log/AutoBlind/`. The filenames of the logfiles consist from date and id of the blind item. Dots in the blind item id are replaced by underscores, e.g. "2015-05-15-room1_raffstore.log"
+To activate the extended logging set parameter `log_level` in plugin.conf to either 1 (info) or 2 (debug). Via parameter `log_directory` the directory can be set in which the logs will be written. By default the directory is `<smarthome_base_directory>/var/log/AutoBlind/`. If the given directory name starts with "/" the directory name is taken as absolute directory. Any other directory name is handeled as subdirectory of the smarthome base directory. If the given directory does not exist, it will be created. 
+The filenames of the logfiles consist from date and id of the blind item. Dots in the blind item id are replaced by underscores, e.g. "2015-05-15-room1_raffstore.log"
 
 ##Configuration of objects##
 For each object which should be automated by the AutoBlind plugin an item containing all AutoBlind configuration for this object is required ("object item").
-To tell the AutoBlind plugin which items contain AutoBlind configuration information add the attribute `autoblind_plugin = active` to the item. For debugging you may set this the value of this attribute to something different. This will cause the AutoBlind plugin to ignore the configuration.
+To tell the AutoBlind plugin which items contain AutoBlind configuration information add the attribute `as_plugin = active` to the item. For debugging you may set this the value of this attribute to something different. This will cause the AutoBlind plugin to ignore the configuration.
 
 Inside the object configuration item, two attributes are mandatory:
 
     [myFirstAutoBlindControlledObject]
         type = bool
-        autoblind_plugin = active
+        as_plugin = active
 
-Name                  | Description
---------------------- | -----------
-type                  | Data type of the item. Use "bool" here.
-autoblind_plugin      | Mark this item as "containing AutoBlind configuration"
+Name           | Description
+-------------- | -----------
+type           | Data type of the item. Use "bool" here.
+as_plugin      | Mark this item as "containing AutoBlind configuration"
 
 The following general attributes are optional:
 
@@ -91,12 +92,12 @@ The following general attributes are optional:
         as_laststate_item_name = room1.raffstore.auto_laststate_name
         
 
-Name                  | Description | What happens if attribute is missing?
---------------------- | ----------- | -------------------------------------
-name                  | A name for this item | Item Id will be used as name
-as_startup_delay         | Delay on smarthome.py startup after which the first calculation of the current state is triggered (seconds). | The value from `startup_delay_default` in the plugin configuration is used as startup delay
-as_laststate_item_id         | Id of the item which is used to store the id of the current state. | The current state is recorded internally and not preserved when restarting smarthome.py.
-as_laststate_item_name       | Id of the item which is used to store the nane of the current state (use this item for display purposes) | The name of the current state is not available.
+Name                   | Description | What happens if attribute is missing?
+---------------------- | ----------- | -------------------------------------
+name                   | A name for this item | Item Id will be used as name
+as_startup_delay       | Delay on smarthome.py startup after which the first calculation of the current state is triggered (seconds). | The value from `startup_delay_default` in the plugin configuration is used as startup delay
+as_laststate_item_id   | Id of the item which is used to store the id of the current state. | The current state is recorded internally and not preserved when restarting smarthome.py.
+as_laststate_item_name | Id of the item which is used to store the nane of the current state (use this item for display purposes) | The name of the current state is not available.
 
 If used, the items used for `as_laststate_item_id` and `as_laststate_item_name` should be defined as following:
 
@@ -197,26 +198,26 @@ All subitems of a object item are considered as object states ("state item"). Th
 
 Every state can have an arbitrary number of "enter" and "leave" condition sets. An state can become current if one of the "enter" condition sets is fulfilled. Once the state is current, it can only be left if one of the "leave" condition sets is fulfilled. Inside every condition set an arbitrary number of conditions can be defined. If a state does not have any condition sets, the state can always be entered/left. This can be used to have a default state.
 
-Every state can have an arbitray number of "actions" defined. Once the state becomes current, all actions are performed. If an state stays current in further checks, the actios are reperformed under several conditions. Actions are defined as attribute "set_(action_name)".
+Every state can have an arbitray number of "actions" defined. Once the state becomes current, all actions are performed. If an state stays current in further checks, the actions are reperformed under several conditions. Actions are defined as attributes `as_set_(action_name)` or similar.
 
-Conditions and actions usually relate to items. These items have to be defined in the object item as "item_(condition_name/action_name)"
+Conditions and actions usually relate to items. These items have to be defined in the object item as `as_item_(condition_name/action_name)`
 
 ####Example####
 
     [myFirstAutoBlindControlledObject]
         (...)
-        item_height = room1.raffstore.height
-        item_lamella = room1.raffstore.lamella
+        as_item_height = room1.raffstore.height
+        as_item_lamella = room1.raffstore.lamella
         [[day]]
             type = foo
             name = Day (static)
-            use = some.default.item
+            as_use = some.default.item
             [[[enter]]]
                 (...)
             [[[leave]]]
                 (...)
-            set_height = value:100
-            set_lamella = value:0      
+            as_set_height = value:100
+            as_set_lamella = value:0      
 
 ##Condition sets##
 All subitems of the state item are considered as condition sets ("condition set item"). In general, there are two types of condition sets:
@@ -235,30 +236,30 @@ The following rules apply:
     
     [myFirstAutoBlindControlledObject]
         (...)
-        item_height = room1.raffstore.height
-        item_lamella = room1.raffstore.lamella
+        as_item_height = room1.raffstore.height
+        as_item_lamella = room1.raffstore.lamella
         [[night]]
             type = foo
             name = Night                
-            use = some.default.item
+            as_use = some.default.item
             [[[enter_todark]]]
                 (... some conditions to enter this state if it is to dark ...)
             [[enter_tolate]]]
                 (... some conditions to enter this state if it is to late ...)
             [[[leave]]]
                 (...)
-            set_height = value:100
-            set_lamella = value:0
+            as_set_height = value:100
+            as_set_lamella = value:0
 
 
 Object | Function
 ------ | --------
-Attributes `item_height`, `item_lamella` | Items wich are changed by actions `set_height` and `set_lamella`
+Attributes `as_item_height`, `as_item_lamella` | Items wich are changed by actions `as_set_height` and `as_set_lamella`
 Attribute `name` | Name of state. Will be written in item `as_laststate_item_name` if state is current and can be displayed in visualization
-Attribute `use` | Import settings from a different item. If `enter` and/or `leave` are included in the current item too, the conditions in this child items overwrite the matching imported conditions   
-Child item  `enter` | Condition set that has to be fulfilled before the state can become current
-Child item `leave` | Condition set that has to be fulfilled before the state can be left
-Attributes `set_height`and `set_leave` | New static values for `item_height` and `item_leave` 
+Attribute `as_use` | Import settings from a different item. If the current item also contains enter/leave condition sets, these settings change/append the imported settings   
+Child items  `enter` or `enter_(some name)` | Condition sets of which one has to be fulfilled before the state can become current
+Child items `leave` or `leave_(some_name)` | Condition sets of which one has to be fulfilled before the state can be left
+Attributes `as_set_height`and `as_set_leave` | New static values for `as_item_height` and `as_item_leave` 
 
 ##Conditions##
 Every condition requires three main things:
@@ -273,54 +274,54 @@ The limits are defined inside the condition set items. The following limits are 
 
 limit | attribute | function
 ------|-----------|----------
-minimum | min_(condition name) | The condition is fulfilled if the current value is greater than the given minimum
-maximum | max_(condition name) | The condition is fulfilled if the current value is lower than the given maximum
-distinct value | value_(condition name) | The condition is fulfilled if the current value is equal the given value
-negate | negate_(condition name) | The value condition is negated
-minimum age | agemin_(condition_name) | The condition is fulflled if the age of the item used to retrieve the value is greater than the given minimum
-maximum age | agemax_(condition_name) | The condition is fulflled if the age of the item used to retrieve the value is lower than the given maximum
-negate age | agenegate_(condition_name) | The age condition is negated
+minimum | as_min_(condition name) | The condition is fulfilled if the current value is greater than the given minimum
+maximum | as_max_(condition name) | The condition is fulfilled if the current value is lower than the given maximum
+distinct value | as_value_(condition name) | The condition is fulfilled if the current value is equal the given value
+negate | as_negate_(condition name) | The value condition is negated
+minimum age | as_agemin_(condition_name) | The condition is fulflled if the age of the item used to retrieve the value is greater than the given minimum
+maximum age | as_agemax_(condition_name) | The condition is fulflled if the age of the item used to retrieve the value is lower than the given maximum
+negate age | as_agenegate_(condition_name) | The age condition is negated
 
 The current value can either be provided by an item or by an eval function. If both are given, the item is used and eval is ignored.
-The name of the item or the eval function are set by specific attributes `item_(condition name)` or `eval_(condition name)` in the object item. Their name has also to correspond with the condidion name. Obviously, age related conditions (`agemin_(condition name)`, `agemax_(condition name)`, `agenegate_(condition_name)`) can only be used when the value is provided by an item.
+The name of the item or the eval function are set by specific attributes `as_item_(condition name)` or `as_eval_(condition name)` in the object item. Their name has also to correspond with the condition name. Obviously, age related conditions (`as_agemin_(condition name)`, `as_agemax_(condition name)`, `as_agenegate_(condition_name)`) can only be used when the value is provided by an item.
 
-For `min_(condition name)`, `max_(condition name)` and `value_(condition name)` value to check against can either be a static value, or provided from an item, too.
+For `as_min_(condition name)`, `as_max_(condition name)` and `as_value_(condition name)` value to check against can either be a static value, or provided from an item, too.
 To use a static value, just set the condition to `(some value)` or `value:(some value)` To use an item, set the condition to `item:(item id)`:
 
 ####Example####
 
     [myFirstAutoBlindControlledObject]
             (...)
-            item_height = room1.raffstore.height
-            item_lamella = room1.raffstore.lamella
-            item_brightness = my.wetherstation.brightness
+            as_item_height = room1.raffstore.height
+            as_item_lamella = room1.raffstore.lamella
+            as_item_brightness = my.wetherstation.brightness
             [[twilight]]
                 type = foo
                 name = Twilight                
-                use = some.default.item
-                set_height = value:100
-                set_lamella = value:25
+                as_use = some.default.item
+                as_set_height = value:100
+                as_set_lamella = value:25
                 [[[enter]]]                    
-                    min_brightness = 500
-                    max_brightness = value:1000
+                    as_min_brightness = 500
+                    as_max_brightness = value:1000
                 
             [[night]]
                 type = foo
                 name = Night                
-                use = some.default.item
-                set_height = value:100
-                set_lamella = value:0
+                as_use = some.default.item
+                as_set_height = value:100
+                as_set_lamella = value:0
                 [[[enter_todark]]]
-                    max_brightness = 500
+                    as_max_brightness = 500
                 
             [[special]]
                 type = foo
-                name = Some special condition
-                use = some.default.item
-                set_height = value:66
-                set_lamella = value:33
+                name = Some special condition set
+                as_use = some.default.item
+                as_set_height = value:66
+                as_set_lamella = value:33
                 [[[enter]]]
-                    min_brightness = item:an.item.returning.the.value
+                    as_min_brightness = item:an.item.returning.the.value
                           
                           
 ###"Special" conditions###
@@ -329,7 +330,7 @@ For some conditions you do not need to set an item or eval-function to determine
 The following "special" condition names can be used:
 
 **time:** Current time.
-Values for `value_time`, `min_time` and `max_time` need to be given in format "hh:mm". 24h time is being used. Examples: "08:00" or "13:37". To mark the end of the day, the value "24:00" can be used, which is automatically converted to "23:59:59" for the checks.
+Values for `as_value_time`, `as_min_time` and `as_max_time` need to be given in format "hh:mm". 24h time is being used. Examples: "08:00" or "13:37". To mark the end of the day, the value "24:00" can be used, which is automatically converted to "23:59:59" for the checks.
 
 **weekday:**
 Day of week as number. 0 represents Monday, 6 represents Sunday
@@ -371,7 +372,7 @@ Radom number between 0 and 100
 If you want to do something randomly with a propability of 60%, e.g. use condition `max_random = 60` 
 
 ##Actions##
-Like conditions, every action requires a name, too. The action name is again arbitrary and just used in the attribute naming. The names of all attributes belonging to one action follow the same pattern `(function name)_(action name)`
+Like conditions, every action requires a name, too. The action name is again arbitrary and just used in the attribute naming. The names of all attributes belonging to one action follow the same pattern `as_(function name)_(action name)`
 
 Currently there are three types of actions that can be performed:
 * An item can be set to a value
@@ -379,8 +380,8 @@ Currently there are three types of actions that can be performed:
 * A logic can be triggered
 
 ###Setting an item to value###
-The item to be changed has to be defined as attribute in the object item named `item_(action name)`.
-The value for the item has to be defined as attribute in the state item named `set_(action name)`.
+The item to be changed has to be defined as attribute in the object item named `as_item_(action name)`.
+The value for the item has to be defined as attribute in the state item named `as_set_(action name)`.
 
 The value can either be a static value, the result of executing a function or the current value of another item. A prefix in the attribute value defines which one is being used.
 
@@ -391,63 +392,63 @@ eval:(function name) | execute the given function and use the result returned by
 item:(item id) | Use the current value of the given item as value
 
 ####Using a delta to prevent small changes####
-It is possible to define a minimum delta for changes. If the difference between the current value of an item and the new value is less than the configured delta, no change will be made. This can be done with attribute `mindelta_(action name)` in the object item
+It is possible to define a minimum delta for changes. If the difference between the current value of an item and the new value is less than the configured delta, no change will be made. This can be done with attribute `as_mindelta_(action name)` in the object item
 
 ###Running a function###
-A function to run van be defined as attribute in the state item named `run_(actionname)`. This is similar to execute a function to get the value for an item, but it does not need an item and just ignores any return value of the function.
+A function to run van be defined as attribute in the state item named `as_run_(actionname)`. This is similar to execute a function to get the value for an item, but it does not need an item and just ignores any return value of the function.
 
-    run_(action name) = eval:(function)
+    as_run_(action name) = eval:(function)
 
 ###Predefined action functions###
 The AutoBlind plugin provides a set of predefined functions that can easily be used for actions. These functions are contained in a class which is instanciated just before executing an action if required. The following functions can be used:
 
 ####Calculate lamella angle for sun tracking####
  
-    set_(action name) = eval:autoblind_eval.SunTracking()
+    as_set_(action name) = eval:autoblind_eval.SunTracking()
     
 ####Random integer value####
     
-    set_(action name) = eval:autoblind_eval.get_random_int(min,max)
+    as_set_(action name) = eval:autoblind_eval.get_random_int(min,max)
     
 Set `min` and `max` to the minimum/maximum value of the number you want to receive. You can omit min and max, the defaults are 0 for min and 255 for max.
 
 ####Run a shell command####
 
-    set_(action name) = eval:autoblind_eval.execute(command)
+    as_set_(action name) = eval:autoblind_eval.execute(command)
     
 Run shell command `command`
 
 ###Trigger logics###
-Instead of setting an item to an value it is also possible to trigger a logic. To do so, the logic to trigger has to be named using the attribute `trigger_(some name)`.
+Instead of setting an item to an value it is also possible to trigger a logic. To do so, the logic to trigger has to be named using the attribute `as_trigger_(some name)`.
 You can add a value that should be sent to the logic by adding  `:(value)` after the logic name in the attribute value
 
 ###Example###
 
     [myFirstAutoBlindControlledObject]
             (...)
-            item_height = room1.raffstore.height
-            mindelta_height = 10
-            item_lamella = room1.raffstore.lamella
-            mindelta_lamella = 5
+            as_item_height = room1.raffstore.height
+            as_mindelta_height = 10
+            as_item_lamella = room1.raffstore.lamella
+            as_mindelta_lamella = 5
             [[twilight]]
                 (...)
-                set_height = value:100
-                set_lamella = value:25
+                as_set_height = value:100
+                as_set_lamella = value:25
             [[night]]
                 (...)
-                set_height = value:100
-                set_lamella = value:0
+                as_set_height = value:100
+                as_set_lamella = value:0
             [[suntracking]]
                 (...)
-                set_height = value:100
-                set_lamella = eval:autoblind_eval.sun_tracking()
+                as_set_height = value:100
+                as_set_lamella = eval:autoblind_eval.sun_tracking()
             [[logic]]
                 (...)
-                trigger_logic1 = myLogic:42
+                as_trigger_logic1 = myLogic:42
 
 ##Using default values##
 It is possible to define some default states inside the configuration and use them later for distinct object states. It is also possible to overwrite settings from the used default state.
-When defining the default states inside a parent item, do not mark this parent item with `autoblind_plugin = active` as it does not contain a complete object configuration.
+When defining the default states inside a parent item, do not mark this parent item with `as_plugin = active` as it does not contain a complete object configuration.
 
 ####Example####
                 
@@ -458,49 +459,49 @@ When defining the default states inside a parent item, do not mark this parent i
                 (...)
                 [[[[enter]]]]
                     (...)
-                set_height = value:100
-                set_lamella = 0
+                as_set_height = value:100
+                as_set_lamella = 0
             [[[dawn]]]
                 (...)
                 [[[[enter]]]]
                     (...)
-                set_height = value:100
-                set_lamella = 25
+                as_set_height = value:100
+                as_set_lamella = 25
                 
             [[[dusk]]]
                 (...)
                 [[[[enter]]]]
                     (...)
-                set_height = value:100
-                set_lamella = 75
+                as_set_height = value:100
+                as_set_lamella = 75
                     
             [[[day]]]
                 (...)
                 [[[[enter]]]]
                     (...)
-                set_height = value:0
-                set_lamella = 100
+                as_set_height = value:0
+                as_set_lamella = 100
                                  
     [myFirstAutoBlindControlledObject]
             (...)
-            item_height = room1.raffstore.height
-            item_lamella = room1.raffstore.lamella
+            as_item_height = room1.raffstore.height
+            as_item_lamella = room1.raffstore.lamella
             [[night]]
-                use = autoblind.default.night
+                as_use = autoblind.default.night
                 [[[enter_additional]]]
                     (... additional enter condition set ...)
             [[dawn]]
-                use = autoblind.default.dawn
+                as_use = autoblind.default.dawn
             [[dusk]]
-                use = autoblind.default.dusk
+                as_use = autoblind.default.dusk
                 [[[enter]]]
                     (... changes on default enter condition ...)
             [[suntracking]]
                 (...)
-                set_height = value:100
-                set_lamella = eval:autoblind_eval.SunTracking()
+                as_set_height = value:100
+                as_set_lamella = eval:autoblind_eval.SunTracking()
             [[day]]
-                use = autoblind.default.day
+                as_use = autoblind.default.day
             
 As you can see here, the items and the values for actions can be defined at different places. Here the items are defined in the object item while the values are defined at the default items. The same can be done for conditions.
     
@@ -510,52 +511,52 @@ First, we are defining some default states:
 
     [autoblind]
         [[default]]            
-            item_temperature = weatherstation.temperature
+            as_item_temperature = weatherstation.temperature
             [[[night]]]
                 name = Night
-                set_height = value:100
-                set_lamella = 0
+                as_set_height = value:100
+                as_set_lamella = 0
                 [[[[enter]]]]
-                    max_brightness = 500
-                    min_time = 09:00
-                    max_time = 19:00
-                    negate_time = True
+                    as_max_brightness = 500
+                    as_min_time = 09:00
+                    as_max_time = 19:00
+                    as_negate_time = True
             [[[dawn]]]
                 name = "Twilight in the morning"
-                set_height = value:100
-                set_lamella = 25          
+                as_set_height = value:100
+                as_set_lamella = 25          
                 [[[[enter]]]]
-                    min_brightness = 500
-                    max_brightness = 1000      
+                    as_min_brightness = 500
+                    as_max_brightness = 1000      
             [[[dusk]]]
                 name = "Twilight in the evening"
-                set_height = value:100
-                set_lamella = 75
+                as_set_height = value:100
+                as_set_lamella = 75
                 [[[[enter]]]]
-                    min_brightness = 500
-                    max_brightness = 1000
+                    as_min_brightness = 500
+                    as_max_brightness = 1000
             [[[suntrack]]]
                 name =  "Day (suntracking)"
                 [[[[enter]]]]
-                    min_brightness = 50000
-                    min_sun_azimut = 140
-                    max_sun_azimut = 220
-                    min_sun_altitude = 20
-                    min_temperature = 25
+                    as_min_brightness = 50000
+                    as_min_sun_azimut = 140
+                    as_max_sun_azimut = 220
+                    as_min_sun_altitude = 20
+                    as_min_temperature = 25
                  [[[[leave_todark]]]]
-                    max_brightness = 30000
-                    min_delay = 1200
+                    as_max_brightness = 30000
+                    as_min_delay = 1200
                  [[[[leave_azimut]]]
-                    min_sun_azimut = 140
-                    max_sun_azimut = 220
-                    negate_sun_azimut = True                 
+                    as_min_sun_azimut = 140
+                    as_max_sun_azimut = 220
+                    as_negate_sun_azimut = True                 
             [[[day]]]
                 name = "Day (static)"
-                set_height = value:0
-                set_lamella = 100
+                as_set_height = value:0
+                as_set_lamella = 100
                              
 __Remarks:__
-- Notice that there is no attribute `autoblind_plugin` for these items. 
+- Notice that there is no attribute `as_plugin` for these items. 
 - The item to determine the temperature is configured in the default states. You can use conditions for this item in the defaults and in the specific state items which import default states.
 - The item to determine the brightness is not configured in the default states. You need to make sure that every specific object that imports the default states has a definition for the brightness item. However, different objects can import the same default states but use different items for the brightness.
 - Condition item "autoblind.default.night.enter": Time is negated, in this case the state can be entered between 19:00 and 09:00 o'clock if brightness is less than 500.
@@ -620,39 +621,39 @@ Now we can add our specific AutoBlind object item with all required subitems to 
     [myFirstAutoBlindControlledObject]
         type = bool
         name = Some very nice example
-        autoblind_plugin = active
+        as_plugin = active
         as_lock_item = room1.raffstore.auto_lock
         as_suspend_item = room1.raffstore.auto_suspend
         as_suspend_time = 7200
         as_suspend_watch = room1.raffstore.updown | room1.raffstore.stepstop
         as_laststate_item_id = room1.raffstore.auto_laststate_id
         as_laststate_item_name = room1.raffstore.auto_laststate_name        
-        item_height = room1.raffstore.height
-        item_lamella = room1.raffstore.lamella
-        item_presence = room1.presence
-        item_brightness = weatherstation.brightness
+        as_item_height = room1.raffstore.height
+        as_item_lamella = room1.raffstore.lamella
+        as_item_presence = room1.presence
+        as_item_brightness = weatherstation.brightness
         [[night]]
-            use = autoblind.default.night
+            as_use = autoblind.default.night
             [[[enter_presence]]]
-                max_brightness = 750
-                min_time = 09:00
-                max_time = 19:00
-                negate_time = True
-                value_presence = True
+                as_max_brightness = 750
+                as_min_time = 09:00
+                as_max_time = 19:00
+                as_negate_time = True
+                as_value_presence = True
             [[[[enter]]]]
-                value_presence = False
+                as_value_presence = False
                                         
         [[dawn]]
-            use = autoblind.default.dawn
+            as_use = autoblind.default.dawn
         [[dusk]]
-            use = autoblind.default.dusk            
+            as_use = autoblind.default.dusk            
         [[suntracking]]
-            use = autoblind.default.suntracking
+            as_use = autoblind.default.suntracking
         [[day]]
-            use = autoblind.default.day
+            as_use = autoblind.default.day
             
 __Remarks:__
-- Notice that there is an attribute `autoblind_plugin` for the object item 
+- Notice that there is an attribute `as_plugin` for the object item 
 - The state "night" is using the default configuration but changes are made:
     - The condition set "enter" is extended with an additional condition
     - An additional enter condition set "enter_presence" is added
