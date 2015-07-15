@@ -125,7 +125,7 @@ class AbState:
             if use_item is not None:
                 self.__fill(use_item, recursion_depth + 1, item_autoblind, abitem_object, logger)
             else:
-                logger.error("{0}: Referenced item '{1}' not found!", item_state.id(), item_state.conf["use"])
+                logger.error("{0}: Referenced item '{1}' not found!", item_state.id(), item_state.conf["as_use"])
         elif "use" in item_state.conf:
             AutoBlindTools.log_obsolete(item_state,"use","as_use")
             use_item = self.__sh.return_item(item_state.conf["use"])
