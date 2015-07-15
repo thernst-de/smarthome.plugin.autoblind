@@ -1,7 +1,5 @@
-#Automatic Blind Control plugin for smarthome.py#
+#Automatic Object Control plugin for smarthome.py#
 
-##Important hint:##
-Attributes are about to be renamed. All attributes will get the prefix "as_" in the near future to be identified as items belonging to this plugin. 
 
 ##Description of functionality##
 
@@ -20,6 +18,8 @@ He following conditions can be part of the condition sets:
 - delay of current position (min, max)
 - random number (min, max)
 Additionaly any number of items can be checked for value or min/max as condition.
+
+Previously this plugins main intention was to control blinds. But as requirements grew, it developed to a plugin that can control nearly everything. Actually its a [finite state machine](https://en.wikipedia.org/wiki/Finite-state_machine).
 
 ##Installation##
 To use the AutoBlind plugin, you can import it as a submodule in your own smarthome.py repository:
