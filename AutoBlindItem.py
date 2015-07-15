@@ -145,7 +145,7 @@ class AbItem:
         # check if locked
         if self.__lock_is_active():
             self.__myLogger.info("AutoBlind is locked")
-            self.__laststate_name = "Manuell gesperrt"
+            self.__laststate_name = AutoBlindDefaults.laststate_name_manually_locked
             return
 
         # check if suspended
@@ -153,7 +153,7 @@ class AbItem:
             active_timer_time = self.__suspend_get_time()
             self.__myLogger.info(
                 "AutoBlind has been suspended after manual changes. Reactivating at {0}", active_timer_time)
-            self.__laststate_name = active_timer_time.strftime("Ausgesetzt bis %X")
+            self.__laststate_name = active_timer_time.strftime(AutoBlindDefaults.laststate_name_suspended)
             return
 
         # Update current values

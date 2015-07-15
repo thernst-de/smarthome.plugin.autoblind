@@ -37,7 +37,8 @@ class AutoBlind:
     # log_level: loglevel for extended logging
     # log_directory: directory for extended logging files
     def __init__(self, smarthome, startup_delay_default=10, suspend_time_default=3600, manual_break_default=0,
-                 log_level=0, log_directory="var/log/AutoBlind/"):
+                 log_level=0, log_directory="var/log/AutoBlind/", laststate_name_manually_locked = "Manuell gesperrt",
+                 laststate_name_suspended = "Ausgesetzt bis %X"):
         self._sh = smarthome
         self.__items = {}
         self.alive = False
@@ -46,6 +47,8 @@ class AutoBlind:
 
         AutoBlindDefaults.startup_delay = int(startup_delay_default)
         AutoBlindDefaults.suspend_time = int(suspend_time_default)
+        AutoBlindDefaults.laststate_name_manually_locked = laststate_name_manually_locked
+        AutoBlindDefaults.laststate_name_suspended = laststate_name_suspended
         AutoBlindDefaults.write_to_log()
 
         if manual_break_default != 0:

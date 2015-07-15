@@ -47,6 +47,8 @@ To use the AutoBlind plugin, add the following to your plugin.conf file:
         class_path = plugins.autoblind
         #startup_delay_default = 10
         #suspend_time_default = 3600
+        #laststate_name_manually_locked = Manuell gesperrt
+        #laststate_name_suspended = Ausgesetzt bis %X
         #log_level = 0
         #log_directory = var/log/AutoBlind/
 
@@ -56,6 +58,8 @@ Name                  | Description
 --------------------- | -----------
 startup_delay_default | Default startup interval for first check (seconds)
 suspend_time_default  | Default time to suspend the automatic controll after manual actions (seconds)
+laststate_name_manually_locked | Text to show as "laststate_name" if controlled object is manually locked
+laststate_name_suspended | Text to show as "laststate_name" if controlled object is suspended. The given text is used as base for time.strftime, which adds the end time of the suspension. see [strftime() and strptime() Behavior](https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior) for more information on the time format string.
 log_level             | Extended logging: Loglevel (0: off, 1: info, 2: debug
 log_directory         | Extended logging: Directory for Logfiles (directory has to exist!)
 

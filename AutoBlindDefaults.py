@@ -26,6 +26,10 @@ startup_delay = 10
 
 suspend_time = 3600
 
+laststate_name_manually_locked = "Manuell gesperrt"
+
+laststate_name_suspended = "Ausgesetzt bis %X"
+
 def write_to_log():
     logger.info("AutoBlind default startup delay = {0}".format(startup_delay))
     logger.info("AutoBlind default suspension time = {0}".format(suspend_time))
