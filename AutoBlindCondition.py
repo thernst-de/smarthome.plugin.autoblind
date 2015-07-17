@@ -116,7 +116,8 @@ class AbCondition:
     def complete(self, item_state, abitem_object):
         # check if it is possible to complete this condition
         if self.__min is None and self.__max is None and self.__value is None and self.__min_item is None \
-                and self.__max_item is None and self.__value_item is None:
+                and self.__max_item is None and self.__value_item is None and self.__agemin is None \
+                and self.__agemax is None:
             return False
 
         # set 'eval' for some known conditions if item and eval are not set, yet
