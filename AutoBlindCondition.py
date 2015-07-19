@@ -55,6 +55,7 @@ class AbCondition:
         self.__agemax = None
         self.__agenegate = None
         self.__error = None
+        self.__cast_func = None
 
     # set a certain function to a given value
     # func: Function to set ('item', 'eval', 'value', 'min', 'max', 'negate', 'agemin', 'agemax' or 'agenegate'
@@ -141,13 +142,15 @@ class AbCondition:
 
         # missing item in condition: Try to find it
         if self.__item is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_item_" + self.__name, "item_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_item_" + self.__name,
+                                                   "item_" + self.__name)
             if result is not None:
                 self.__set_item(result)
 
         # missing eval in condition: Try to find it
         if self.__eval is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_eval_" + self.__name, "eval_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_eval_" + self.__name,
+                                                   "eval_" + self.__name)
             if result is not None:
                 self.__eval = result
 
@@ -246,6 +249,7 @@ class AbCondition:
             self.__agemax = AutoBlindTools.cast_num(self.__agemax)
         if self.__agenegate is not None:
             self.__agenegate = AutoBlindTools.cast_bool(self.__agenegate)
+        self.__cast_func = cast_func
 
     # Check if value conditions match
     # logger: Instance of AbLogger to write to
@@ -254,9 +258,7 @@ class AbCondition:
         try:
             if self.__value is not None or self.__value_item is not None:
                 # 'value' is given. We ignore 'min' and 'max' and check only for the given value
-
-                # noinspection PyCallingNonCallable
-                value = self.__value if self.__value_item is None else self.__value_item()
+                value = self.__get_value()
 
                 # If current and value have different types, convert both to string
                 if type(value) != type(current):
@@ -281,10 +283,8 @@ class AbCondition:
 
             else:
 
-                # noinspection PyCallingNonCallable
-                min_value = self.__min if self.__min_item is None else self.__min_item()
-                # noinspection PyCallingNonCallable
-                max_value = self.__max if self.__max_item is None else self.__max_item()
+                min_value = self.__get_min()
+                max_value = self.__get_max()
 
                 # 'value' is not given. We check 'min' and 'max' (if given)
                 logger.debug("Condition '{0}': min={1} max={2} negate={3} current={4}",
@@ -388,6 +388,27 @@ class AbCondition:
                 # noinspection PyCallingNonCallable
                 return self.__eval()
         raise ValueError("Condition {}: Neither 'item' nor eval given!".format(self.__name))
+
+    # Return value for condition
+    def __get_value(self):
+        if self.__value_item is None:
+            return self.__value
+        # noinspection PyCallingNonCallable
+        return self.__cast_func(self.__value_item())
+
+    # Return min value for condition
+    def __get_min(self):
+        if self.__min_item is None:
+            return self.__min
+        # noinspection PyCallingNonCallable
+        return self.__cast_func(self.__min_item())
+
+    # Return max value for condition
+    def __get_max(self):
+        if self.__max_item is None:
+            return self.__max
+        # noinspection PyCallingNonCallable
+        return self.__cast_func(self.__max_item())
 
     # Name of eval-Object to be displayed in log
     def __get_eval_name(self):
