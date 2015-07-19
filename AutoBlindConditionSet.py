@@ -56,6 +56,9 @@ class AbConditionSet:
                     if name == "":
                         continue
 
+                    if not func.startswith("as_"):
+                        AutoBlindTools.log_obsolete(item, attribute, "as_" + attribute)
+
                     # update this condition
                     if name not in self.__conditions:
                         self.__conditions[name] = AutoBlindCondition.AbCondition(self.__sh, name)
@@ -72,7 +75,7 @@ class AbConditionSet:
 
             # update item/eval in this condition
             if func == "item" or func == "eval":
-                AutoBlindTools.log_obsolete(grandparent_item, attribute, "as_"+attribute)
+                AutoBlindTools.log_obsolete(grandparent_item, attribute, "as_" + attribute)
                 if name not in self.__conditions:
                     self.__conditions[name] = AutoBlindCondition.AbCondition(self.__sh, name)
                 self.__conditions[name].set(func, grandparent_item.conf[attribute])

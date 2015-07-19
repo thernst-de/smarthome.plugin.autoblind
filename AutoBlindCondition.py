@@ -65,7 +65,9 @@ class AbCondition:
             self.__set_item(value)
         elif func == "as_eval" or func == "eval":
             self.__eval = value
-        elif func == "as_value" or func == "as_min" or func == "as_max" or func == "value" or func == "min" or func == "max":
+        elif func == "value" or func == "min" or func == "max":
+            self.set_split(func, value)
+        elif func == "as_value" or func == "as_min" or func == "as_max":
             self.set_split(func, value)
         elif func == "as_negate" or func == "negate":
             self.__negate = value
