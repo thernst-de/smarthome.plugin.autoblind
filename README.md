@@ -197,7 +197,7 @@ The item for `as_suspend_item` should be defined as following (here with KNX gro
 
 To cancel the suspension, use the locking feature. Any change on the lock-item causes the suspension to be cancelled and the automatic control to behave like set by the lock-item.
 
-###States###             
+##States##
 All subitems of a object item are considered as object states ("state item"). Their ids are arbitrary and used as values for the item given as `as_laststate_item_id`. If you configure names for the items, they are used as values for the item given as `as_laststate_item_name`. (otherwise the item id is used here, too)
 
 Every state can have an arbitrary number of "enter" and "leave" condition sets. An state can become current if one of the "enter" condition sets is fulfilled. Once the state is current, it can only be left if one of the "leave" condition sets is fulfilled. Inside every condition set an arbitrary number of conditions can be defined. If a state does not have any condition sets, the state can always be entered/left. This can be used to have a default state.
@@ -408,7 +408,7 @@ The AutoBlind plugin provides a set of predefined functions that can easily be u
 
 ####Calculate lamella angle for sun tracking####
  
-    as_set_(action name) = eval:autoblind_eval.SunTracking()
+    as_set_(action name) = eval:autoblind_eval.sun_tracking()
     
 ####Random integer value####
     
