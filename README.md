@@ -200,7 +200,7 @@ To cancel the suspension, use the locking feature. Any change on the lock-item c
 ##States##
 All subitems of a object item are considered as object states ("state item"). Their ids are arbitrary and used as values for the item given as `as_laststate_item_id`. If you configure names for the items, they are used as values for the item given as `as_laststate_item_name`. (otherwise the item id is used here, too)
 
-Every state can have an arbitrary number of "enter" and "leave" condition sets. An state can become current if one of the "enter" condition sets is fulfilled. Once the state is current, it can only be left if one of the "leave" condition sets is fulfilled. Inside every condition set an arbitrary number of conditions can be defined. If a state does not have any condition sets, the state can always be entered/left. This can be used to have a default state.
+Every state can have an arbitrary number of "enter" and "leave" condition sets. An state can become current if one of the "enter" condition sets is fulfilled. Once the state is current and has "leave" condition sets, it can only be left if one of the "leave" condition sets is fulfilled. Inside every condition set an arbitrary number of conditions can be defined. If a state does not have any condition sets, the state can always be entered/left. This can be used to have a default state.
 
 Every state can have an arbitray number of "actions" defined. Once the state becomes current, all actions are performed. If an state stays current in further checks, the actions are reperformed under several conditions. Actions are defined as attributes `as_set_(action_name)` or similar.
 
@@ -626,6 +626,7 @@ Now we can add our specific AutoBlind object item with all required subitems to 
         type = bool
         name = Some very nice example
         as_plugin = active
+        cycle = 300
         as_lock_item = room1.raffstore.auto_lock
         as_suspend_item = room1.raffstore.auto_suspend
         as_suspend_time = 7200
@@ -661,4 +662,5 @@ __Remarks:__
 - The state "night" is using the default configuration but changes are made:
     - The condition set "enter" is extended with an additional condition
     - An additional enter condition set "enter_presence" is added
+- In this example, the plugin is triggered every 5 minutes (300 seconds). Instead of `cycle` you can also use `crontab` or `eval_trigger` to trigger the plugin.
     
