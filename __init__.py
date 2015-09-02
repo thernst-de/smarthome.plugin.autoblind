@@ -37,8 +37,8 @@ class AutoBlind:
     # log_level: loglevel for extended logging
     # log_directory: directory for extended logging files
     def __init__(self, smarthome, startup_delay_default=10, suspend_time_default=3600, manual_break_default=0,
-                 log_level=0, log_directory="var/log/AutoBlind/", laststate_name_manually_locked = "Manuell gesperrt",
-                 laststate_name_suspended = "Ausgesetzt bis %X"):
+                 log_level=0, log_directory="var/log/AutoBlind/", log_maxage="0",
+                 laststate_name_manually_locked="Manuell gesperrt", laststate_name_suspended="Ausgesetzt bis %X"):
         self._sh = smarthome
         self.__items = {}
         self.alive = False
@@ -71,6 +71,12 @@ class AutoBlind:
             logger.info(
                 "AutoBlind extended logging is active. Logging to '{0}' with loglevel {1}.".format(log_directory,
                                                                                                    log_level))
+        log_maxage = AutoBlindTools.cast_num(log_maxage)
+        if log_level > 0 and log_maxage > 0:
+            logger.info("AutoBlid extended log files will be deleted after {0} days.".format(log_maxage))
+            AbLogger.set_logmaxage(log_maxage)
+            self._sh.scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles,
+                                   cron=['init', '30 0 * *'], offset=0)
 
     # Parse an item
     # item: item to parse

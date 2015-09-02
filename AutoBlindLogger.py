@@ -27,6 +27,7 @@
 #########################################################################
 import logging
 import datetime
+import os
 
 logger = logging.getLogger("")
 
@@ -37,6 +38,9 @@ class AbLogger:
 
     # Target directory for log files
     __logdirectory = "/usr/local/smarthome/var/log/AutoBlind/"
+
+    # Max age for log files (days)
+    __logmaxage = 0
 
     # Set log level
     # loglevel: current loglevel
@@ -54,8 +58,42 @@ class AbLogger:
     def set_logdirectory(logdirectory):
         AbLogger.__logdirectory = logdirectory
 
+    # Set max age for log files
+    # logmaxage: Maximum age for log files (days)
+    @staticmethod
+    def set_logmaxage(logmaxage):
+        try:
+            AbLogger.__logmaxage = int(logmaxage)
+        except ValueError:
+            AbLogger.__logmaxage = 0
+            logger.error("Das maximale Alter der Logdateien muss numerisch angegeben werden.")
+
+    @staticmethod
+    def remove_old_logfiles():
+        if AbLogger.__logmaxage == 0:
+            return
+        logger.info("Removing logfiles older than {0} days".format(AbLogger.__logmaxage))
+        count_success = 0
+        count_error = 0
+        now = datetime.datetime.now()
+        for file in os.listdir(AbLogger.__logdirectory):
+            if file.endswith(".log"):
+                try:
+                    abs_file = os.path.join(AbLogger.__logdirectory, file)
+                    stat = os.stat(abs_file)
+                    mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
+                    age_in_days = (now - mtime).total_seconds() / 86400.0
+                    if age_in_days > AbLogger.__logmaxage:
+                        os.unlink(abs_file)
+                        count_success += 1
+                except Exception as ex:
+                    logger.error(ex)
+                    count_error += 1
+        logger.info("{0} files removed, {1} errors occured".format(count_success, count_error))
+
     # Return AbLogger instance for given item
     # item: item for which the detailed log is
+    @staticmethod
     def create(item):
         return AbLogger(item)
 

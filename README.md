@@ -51,6 +51,7 @@ To use the AutoBlind plugin, add the following to your plugin.conf file:
         #laststate_name_suspended = Ausgesetzt bis %X
         #log_level = 0
         #log_directory = var/log/AutoBlind/
+        #log_maxage = 0
 
 Commented parameters are default values which may be canged on your needs.
 
@@ -62,6 +63,7 @@ laststate_name_manually_locked | Text to show as "laststate_name" if controlled 
 laststate_name_suspended | Text to show as "laststate_name" if controlled object is suspended. The given text is used as base for time.strftime, which adds the end time of the suspension. see [strftime() and strptime() Behavior](https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior) for more information on the time format string.
 log_level             | Extended logging: Loglevel (0: off, 1: info, 2: debug
 log_directory         | Extended logging: Directory for Logfiles (directory has to exist!)
+log_maxage            | Extended logging: Number of days after which the files in `log_directory` should be deleted
 
 ##Extended logging##
 Search for issues with AutoBlind condition sets using normal smarthome.py logging is problematic as in info/debug mode there are to much other messages in the log. Therefore an extended logging has been included in the plugin.
@@ -70,6 +72,8 @@ The extended logging writes a separate logfile per day and object. This is espec
 
 To activate the extended logging set parameter `log_level` in plugin.conf to either 1 (info) or 2 (debug). Via parameter `log_directory` the directory can be set in which the logs will be written. By default the directory is `<smarthome_base_directory>/var/log/AutoBlind/`. If the given directory name starts with "/" the directory name is taken as absolute directory. Any other directory name is handeled as subdirectory of the smarthome base directory. If the given directory does not exist, it will be created. 
 The filenames of the logfiles consist from date and id of the blind item. Dots in the blind item id are replaced by underscores, e.g. "2015-05-15-room1_raffstore.log"
+
+Old log files can be deleted after a certain time. Via parameter `log_maxage` the number of days after which the log files should be deleted can be set. The deletion is suspended as long as `log_maxage` is 0. If `log_maxage` is set to another value, the age of the files in the log directory is checked at smarthome.py startup as well as once a day and outdated files will be deleted. Important: The deletion functionality deletes all files in the given log directory whether they are log files or not. So do not place other files inside this directory
 
 ##Configuration of objects##
 For each object which should be automated by the AutoBlind plugin an item containing all AutoBlind configuration for this object is required ("object item").
