@@ -23,6 +23,7 @@ from . import AutoBlindItem
 from . import AutoBlindCurrent
 from . import AutoBlindDefaults
 from . import AutoBlindTools
+from . import AutoBlindCliCommands
 import logging
 import os
 
@@ -42,6 +43,7 @@ class AutoBlind:
         self._sh = smarthome
         self.__items = {}
         self.alive = False
+        self.__cli = None
 
         logger.info("Init AutoBlind (log_level={0}, log_directory={1}".format(log_level, log_directory))
 
@@ -121,6 +123,8 @@ class AutoBlind:
             logger.info("Using AutoBlind for {} items".format(len(self.__items)))
         else:
             logger.info("AutoBlind deactivated because no items have been found.")
+
+        self.__cli = AutoBlindCliCommands.AbCliCommands(self._sh, self.__items)
 
     # Stopping of plugin
     def stop(self):

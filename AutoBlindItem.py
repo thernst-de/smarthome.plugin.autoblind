@@ -98,27 +98,7 @@ class AbItem:
     # log item data
     def write_to_log(self):
         # get crons and cycles
-        cycles = ""
-        crons = ""
-
-        # noinspection PyProtectedMember
-        job = self.__sh.scheduler._scheduler.get(self.__item.id())
-        if job is not None:
-            if "cycle" in job and job["cycle"] is not None:
-                cycle = list(job["cycle"].keys())[0]
-                cycles = "every {0} seconds".format(cycle)
-
-            # inject value into cron if required
-            if "cron" in job and job["cron"] is not None:
-                for entry in job['cron']:
-                    if crons != "":
-                        crons += ", "
-                    crons += entry
-
-        if cycles == "":
-            cycles = "Inactive"
-        if crons == "":
-            crons = "Inactive"
+        crons, cycles = self.__get_crons_and_cycles();
 
         # log general config
         self.__myLogger.header("Configuration of item {0}".format(self.__name))
@@ -482,6 +462,63 @@ class AbItem:
                 continue
             state = AutoBlindState.AbState(self.__sh, item_state, self.__item, self, self.__myLogger)
             self.__states.append(state)
+    # endregion
+
+    # region Helper methods ********************************************************************************************
+    # get crons and cycles in readable format
+    def __get_crons_and_cycles(self):
+        # get crons and cycles
+        cycles = ""
+        crons = ""
+
+        # noinspection PyProtectedMember
+        job = self.__sh.scheduler._scheduler.get(self.__item.id())
+        if job is not None:
+            if "cycle" in job and job["cycle"] is not None:
+                cycle = list(job["cycle"].keys())[0]
+                cycles = "every {0} seconds".format(cycle)
+
+            # inject value into cron if required
+            if "cron" in job and job["cron"] is not None:
+                for entry in job['cron']:
+                    if crons != "":
+                        crons += ", "
+                    crons += entry
+
+        if cycles == "":
+            cycles = "Inactive"
+        if crons == "":
+            crons = "Inactive"
+        return crons, cycles
+
+    # get triggers in readable format
+    def __get_triggers(self):
+        triggers = ""
+        for trigger in self.__item._eval_trigger:
+            if triggers != "":
+                triggers += ", "
+            triggers += trigger
+        if triggers == "":
+            triggers = "Inactive"
+        return triggers
+
+    # endregion
+
+    # region Methods for CLI commands **********************************************************************************
+    def cli_list(self, handler):
+        handler.push("{0}: {1}\n".format(self.id, self.__laststate_name))
+
+    def cli_detail(self, handler):
+        # get data
+        crons, cycles = self.__get_crons_and_cycles()
+        triggers = self.__get_triggers()
+
+        handler.push("AutoState Item {0}:\n".format(self.id))
+        handler.push("\tCurrent state: {0}\n".format(self.__laststate_name))
+        handler.push("\tStartup Delay: {0}\n".format(self.__startup_delay))
+        handler.push("\tCycle: {0}\n".format(cycles))
+        handler.push("\tCron: {0}\n".format(crons))
+        handler.push("\tTrigger: {0}\n".format(triggers))
 
     # endregion
 
