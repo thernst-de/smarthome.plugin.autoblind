@@ -533,3 +533,7 @@ class AbItem:
     # return delay of item
     def get_delay(self):
         return self.__delay
+
+    # return id of last state
+    def get_laststate_id(self):
+        return self.__laststate_id

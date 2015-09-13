@@ -379,6 +379,9 @@ Radom number between 0 and 100
 
 If you want to do something randomly with a propability of 60%, e.g. use condition `max_random = 60` 
 
+**laststate**
+Id of the state item of the previous state. Important: the full item path is required here!
+
 ##Actions##
 Like conditions, every action requires a name, too. The action name is again arbitrary and just used in the attribute naming. The names of all attributes belonging to one action follow the same pattern `as_(function name)_(action name)`
 

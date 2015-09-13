@@ -141,6 +141,8 @@ class AbCondition:
                 self.__eval = AutoBlindCurrent.values.get_random
             elif self.__name == "month":
                 self.__eval = AutoBlindCurrent.values.get_month
+            elif self.__name == "laststate":
+                self.__eval = abitem_object.get_laststate_id
 
         # missing item in condition: Try to find it
         if self.__item is None:
