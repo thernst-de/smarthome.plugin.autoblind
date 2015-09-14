@@ -46,10 +46,13 @@ class AbCondition:
         self.__eval = None
         self.__value = None
         self.__value_item = None
+        self.__value_eval = None
         self.__min = None
         self.__min_item = None
+        self.__min_eval = None
         self.__max = None
         self.__max_item = None
+        self.__max_eval = None
         self.__negate = False
         self.__agemin = None
         self.__agemax = None
@@ -95,22 +98,41 @@ class AbCondition:
             if func == "as_value" or func == "value":
                 self.__value = field_value
                 self.__value_item = None
+                self.__value_eval = None
             elif func == "as_min" or func == "min":
                 self.__min = field_value
                 self.__min_item = None
+                self.__min_eval = None
             elif func == "as_max" or func == "max":
                 self.__max = field_value
                 self.__max_item = None
+                self.__max_eval = None
         elif source == "item":
             if func == "as_value" or func == "value":
                 self.__value = None
                 self.__value_item = self.__sh.return_item(field_value)
+                self.__value_eval = None
             elif func == "as_min" or func == "min":
                 self.__min = None
                 self.__min_item = self.__sh.return_item(field_value)
+                self.__min_eval = None
             elif func == "as_max" or func == "max":
                 self.__max = None
                 self.__max_item = self.__sh.return_item(field_value)
+                self.__max_eval = None
+        elif source == "eval":
+            if func == "as_value" or func == "value":
+                self.__value = None
+                self.__value_item = None
+                self.__value_eval = field_value
+            elif func == "as_min" or func == "min":
+                self.__min = None
+                self.__min_item = None
+                self.__min_eval = field_value
+            elif func == "as_max" or func == "max":
+                self.__max = None
+                self.__max_item = None
+                self.__max_eval = field_value
 
     # Complete condition (do some checks, cast value, min and max based on item or eval data types)
     # item_state: item to read from
@@ -118,9 +140,10 @@ class AbCondition:
     # logger: Instance of AbLogger to write log messages to
     def complete(self, item_state, abitem_object):
         # check if it is possible to complete this condition
-        if self.__min is None and self.__max is None and self.__value is None and self.__min_item is None \
-                and self.__max_item is None and self.__value_item is None and self.__agemin is None \
-                and self.__agemax is None:
+        if self.__min is None and self.__max is None and self.__value is None \
+                and self.__min_item is None and self.__max_item is None and self.__value_item is None \
+                and self.__min_eval is None and self.__max_eval is None and self.__value_eval is None \
+                and self.__agemin is None and self.__agemax is None:
             return False
 
         # set 'eval' for some known conditions if item and eval are not set, yet
@@ -219,14 +242,20 @@ class AbCondition:
             logger.debug("value: {0}", self.__value)
         if self.__value_item is not None:
             logger.debug("value from item: {0}", self.__value_item.id())
+        if self.__value_eval is not None:
+            logger.debug("value from eval: {0}", self.__value_eval)
         if self.__min is not None:
             logger.debug("min: {0}", self.__min)
         if self.__min_item is not None:
             logger.debug("min from item: {0}", self.__min_item.id())
+        if self.__min_eval is not None:
+            logger.debug("min from eval: {0}", self.__min_eval)
         if self.__max is not None:
             logger.debug("max: {0}", self.__max)
         if self.__max_item is not None:
             logger.debug("max from item: {0}", self.__max_item.id())
+        if self.__max_eval is not None:
+            logger.debug("max from eval: {0}", self.__max_eval)
         if self.__negate is not None:
             logger.debug("negate: {0}", self.__negate)
         if self.__agemin is not None:
@@ -260,7 +289,7 @@ class AbCondition:
     def __check_value(self, logger: AutoBlindLogger.AbLogger):
         current = self.__get_current()
         try:
-            if self.__value is not None or self.__value_item is not None:
+            if self.__value is not None or self.__value_item is not None or self.__value_eval is not None:
                 # 'value' is given. We ignore 'min' and 'max' and check only for the given value
                 value = self.__get_value()
 
@@ -351,12 +380,12 @@ class AbCondition:
                     return False
             else:
                 if self.__agemin is not None and current > self.__agemin and (
-                                self.__agemax is None or current < self.__agemax):
+                        self.__agemax is None or current < self.__agemax):
                     logger.debug("not younger than min -> not matching")
                     return False
 
                 if self.__agemax is not None and current < self.__agemax and (
-                                self.__agemin is None or current > self.__agemin):
+                        self.__agemin is None or current > self.__agemin):
                     logger.debug("not older than max -> not matching")
                     return False
 
@@ -379,40 +408,38 @@ class AbCondition:
             # noinspection PyCallingNonCallable
             return self.__item()
         if self.__eval is not None:
-            if isinstance(self.__eval, str):
-                # noinspection PyUnusedLocal
-                sh = self.__sh
-                try:
-                    value = eval(self.__eval)
-                except Exception as e:
-                    raise ValueError("Condition {}: problem evaluating {}: {}".format(self.__name, str(self.__eval), e))
-                else:
-                    return value
-            else:
-                # noinspection PyCallingNonCallable
-                return self.__eval()
+            return self.__do_eval(self.__eval)
         raise ValueError("Condition {}: Neither 'item' nor eval given!".format(self.__name))
 
     # Return value for condition
     def __get_value(self):
-        if self.__value_item is None:
+        if self.__value_item is not None:
+            # noinspection PyCallingNonCallable
+            return self.__cast_func(self.__value_item())
+        elif self.__value_eval is not None:
+            return self.__do_eval(self.__value_eval)
+        else:
             return self.__value
-        # noinspection PyCallingNonCallable
-        return self.__cast_func(self.__value_item())
 
     # Return min value for condition
     def __get_min(self):
-        if self.__min_item is None:
+        if self.__min_item is not None:
+            # noinspection PyCallingNonCallable
+            return self.__cast_func(self.__min_item())
+        elif self.__min_eval is not None:
+            return self.__do_eval(self.__min_eval)
+        else:
             return self.__min
-        # noinspection PyCallingNonCallable
-        return self.__cast_func(self.__min_item())
 
     # Return max value for condition
     def __get_max(self):
-        if self.__max_item is None:
+        if self.__max_item is not None:
+            # noinspection PyCallingNonCallable
+            return self.__cast_func(self.__max_item())
+        elif self.__max_eval is not None:
+            return self.__do_eval(self.__max_eval)
+        else:
             return self.__max
-        # noinspection PyCallingNonCallable
-        return self.__cast_func(self.__max_item())
 
     # Name of eval-Object to be displayed in log
     def __get_eval_name(self):
@@ -423,3 +450,17 @@ class AbCondition:
                 return self.__eval
             else:
                 return self.__eval.__module__ + "." + self.__eval.__name__
+
+    def __do_eval(self, eval_object):
+        if isinstance(eval_object, str):
+            # noinspection PyUnusedLocal
+            sh = self.__sh
+            try:
+                value = eval(eval_object)
+            except Exception as e:
+                raise ValueError("Condition {}: problem evaluating {}: {}".format(self.__name, str(object), e))
+            else:
+                return value
+        else:
+            # noinspection PyCallingNonCallable
+            return eval_object()
