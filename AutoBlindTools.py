@@ -45,25 +45,11 @@ def get_child_item(item, child_id):
 # attribute_name: Name of attribute to search and return
 # default: Value to return if item does not contain attribute
 # returns: Attribute value if found. Otherwise given default value or None of no default value is given
-def get_str_attribute(item, attribute_name, default=None, fallback_attribute_name=None):
+def get_str_attribute(item, attribute_name, default=None):
     if attribute_name in item.conf:
         return cast_str(item.conf[attribute_name])
-    elif fallback_attribute_name is not None and fallback_attribute_name in item.conf:
-        log_obsolete(item, fallback_attribute_name, attribute_name)
-        return cast_str(item.conf[fallback_attribute_name])
     else:
         return default
-
-
-# log obsolete attribute usage
-def log_obsolete(item, attribute_name, new_attribute_name=None):
-    if new_attribute_name is None:
-        logger.warning("Item '{0}': Using obsolete attribute '{1}'.".format(item.id(), attribute_name))
-    else:
-        logger.warning(
-            "Item '{0}': Using obsolete attribute '{1}'. Use new attribute '{2} instead.".format(item.id(),
-                                                                                                 attribute_name,
-                                                                                                 new_attribute_name))
 
 
 # Find and return a certain item that is named as attribute of another item
@@ -71,8 +57,8 @@ def log_obsolete(item, attribute_name, new_attribute_name=None):
 # attribute_name: Name of attribute to search
 # smarthome: Instance of smarthome.py base class
 # returns: item which is named in the given attribute of the given item or None if attribute or named item not found
-def get_item_attribute(item, attribute_name, smarthome, fallback_attribute_name=None):
-    item_name = get_str_attribute(item, attribute_name, fallback_attribute_name)
+def get_item_attribute(item, attribute_name, smarthome):
+    item_name = get_str_attribute(item, attribute_name)
     if item_name is None:
         return None
     return smarthome.return_item(item_name)
@@ -83,12 +69,9 @@ def get_item_attribute(item, attribute_name, smarthome, fallback_attribute_name=
 # attribute_name: Name of attribute to search and return
 # default: Value to return if item does not contain attribute
 # returns: Attribute value if found. Otherwise given default value or 0 of no default value is given
-def get_num_attribute(item, attribute_name, default=None, fallback_attribute_name=None):
+def get_num_attribute(item, attribute_name, default=None):
     if attribute_name in item.conf:
         return cast_num(item.conf[attribute_name])
-    elif fallback_attribute_name is not None and fallback_attribute_name in item.conf:
-        logger.warning("Item '{0}': Using obsolete attribute '{1}'.".format(item.id(), fallback_attribute_name))
-        return cast_num(item.conf[fallback_attribute_name])
     else:
         return default
 
@@ -182,25 +165,16 @@ def cast_time(value):
 # smarthome: instance of smarthome.py base class
 # base_item: base item to search in
 # attribute: name of attribute to find
-def find_attribute(smarthome, base_item, attribute, fallback_attribute = None):
+def find_attribute(smarthome, base_item, attribute):
     # 1: parent of given item could have attribute
     parent_item = base_item.return_parent()
-    if parent_item is not None:
-        if attribute in parent_item.conf:
-            return parent_item.conf[attribute]
-        elif fallback_attribute is not None and fallback_attribute in parent_item.conf:
-            log_obsolete(parent_item, fallback_attribute, attribute)
-            return parent_item.conf[fallback_attribute]
+    if parent_item is not None and attribute in parent_item.conf:
+        return parent_item.conf[attribute]
 
-    # 2: if item has attribute "use", get the item to use and search this item for required attribute
+    # 2: if item has attribute "as_use", get the item to use and search this item for required attribute
     if "as_use" in base_item.conf:
         use_item = smarthome.return_item(base_item.conf["as_use"])
-        result = find_attribute(smarthome, use_item, attribute, fallback_attribute)
-        if result is not None:
-            return result
-    elif "use" in base_item.conf:
-        use_item = smarthome.return_item(base_item.conf["use"])
-        result = find_attribute(smarthome, use_item, attribute, fallback_attribute)
+        result = find_attribute(smarthome, use_item, attribute)
         if result is not None:
             return result
 

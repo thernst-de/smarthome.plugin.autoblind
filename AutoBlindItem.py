@@ -44,10 +44,9 @@ class AbItem:
         self.__name = str(self.__item)
 
         self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item, "as_startup_delay",
-                                                                AutoBlindDefaults.startup_delay, "startup_delay")
+                                                                AutoBlindDefaults.startup_delay)
         self.__update_delay = 1
 
-        self.__item_active = None
         self.__item_lock = None
 
         self.__suspend_item = None
@@ -98,7 +97,7 @@ class AbItem:
     # log item data
     def write_to_log(self):
         # get crons and cycles
-        crons, cycles = self.__get_crons_and_cycles();
+        crons, cycles = self.__get_crons_and_cycles()
 
         # log general config
         self.__myLogger.header("Configuration of item {0}".format(self.__name))
@@ -198,12 +197,10 @@ class AbItem:
     # region Laststate *************************************************************************************************
     # Init laststate_id and laststate_name
     def __laststate_init(self):
-        self.__laststate_item_id = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_id", self.__sh,
-                                                                     "item_state_id")
+        self.__laststate_item_id = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_id", self.__sh)
         if self.__laststate_item_id is not None:
             self.__laststate_internal_id == self.__laststate_item_id()
-        self.__laststate_item_name = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_name", self.__sh,
-                                                                       "item_state_name")
+        self.__laststate_item_name = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_name", self.__sh)
         if self.__laststate_item_name is not None:
             self.__laststate_internal_name == self.__laststate_item_name()
 
@@ -258,21 +255,13 @@ class AbItem:
     # Init lock item
     def __lock_init(self):
         self.__item_lock = AutoBlindTools.get_item_attribute(self.__item, "as_lock_item", self.__sh)
-        self.__item_active = None
         if self.__item_lock is not None:
             self.__item_lock.add_method_trigger(self.__lock_callback)
-        else:
-            self.__item_active = AutoBlindTools.get_item_attribute(self.__item, "item_active", self.__sh)
-            if self.__item_active is not None:
-                AutoBlindTools.log_obsolete(self.__item, "item_active")
-                self.__item_active.add_method_trigger(self.__lock_callback)
 
     # Log lock settings
     def __lock_log(self):
         if self.__item_lock is not None:
             self.__myLogger.info("Item 'Lock': {0}", self.__item_lock.id())
-        if self.__item_active is not None:
-            self.__myLogger.info("Item 'Active': {0}", self.__item_active.id())
 
     # get the value of lock item
     # returns: value of lock item
@@ -280,9 +269,6 @@ class AbItem:
         if self.__item_lock is not None:
             # noinspection PyCallingNonCallable
             return self.__item_lock()
-        elif self.__item_active is not None:
-            # noinspection PyCallingNonCallable
-            return not self.__item_active()
         else:
             return False
 
@@ -313,13 +299,10 @@ class AbItem:
         self.__suspend_until = None
         self.__suspend_watch_items = []
         self.__suspend_time = AutoBlindTools.get_num_attribute(self.__item, "as_suspend_time",
-                                                               AutoBlindDefaults.suspend_time, "manual_break")
+                                                               AutoBlindDefaults.suspend_time)
 
         if "as_suspend_watch" in self.__item.conf:
             suspend_on = self.__item.conf["as_suspend_watch"]
-        elif "watch_manual" in self.__item.conf:
-            suspend_on = self.__item.conf["watch_manual"]
-            AutoBlindTools.log_obsolete(self.__item, "watch_manual", "as_suspend_watch")
         else:
             return
 

@@ -55,6 +55,6 @@ class AbEval:
     # command: command to execute
     def execute(self, command):
         try:
-            return subprocess.call(command, shell = True)
+            return subprocess.call(command, shell=True)
         except Exception as ex:
             self.__logger.exception(ex)

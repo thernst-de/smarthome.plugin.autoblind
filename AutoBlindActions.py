@@ -40,7 +40,7 @@ class AbActions:
     def update(self, item_state, attribute):
         # Split attribute in function and action name
         func,  action_name = AutoBlindTools.partition_strip(attribute, "_")
-        if func not in ("as_set", "as_trigger", "as_run", "set", "trigger", "run") or action_name == "":
+        if func not in ("as_set", "as_trigger", "as_run") or action_name == "":
             return
 
         # Ensure action exists
@@ -49,11 +49,11 @@ class AbActions:
             self.__actions[action_name] = action
 
         # Set action depending on function
-        if func == "as_set" or func == "set":
+        if func == "as_set":
             self.__actions[action_name].update_set(item_state, item_state.conf[attribute])
-        elif func == "as_trigger" or func == "trigger":
+        elif func == "as_trigger":
             self.__actions[action_name].update_trigger(item_state.conf[attribute])
-        elif func == "as_run" or func == "run":
+        elif func == "as_run":
             self.__actions[action_name].update_run(item_state.conf[attribute])
 
     # Check the actions optimize and complete them

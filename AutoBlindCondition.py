@@ -64,21 +64,19 @@ class AbCondition:
     # func: Function to set ('item', 'eval', 'value', 'min', 'max', 'negate', 'agemin', 'agemax' or 'agenegate'
     # value: Value for function
     def set(self, func, value):
-        if func == "as_item" or func == "item":
+        if func == "as_item":
             self.__set_item(value)
-        elif func == "as_eval" or func == "eval":
+        elif func == "as_eval":
             self.__eval = value
-        elif func == "value" or func == "min" or func == "max":
-            self.set_split(func, value)
         elif func == "as_value" or func == "as_min" or func == "as_max":
             self.set_split(func, value)
-        elif func == "as_negate" or func == "negate":
+        elif func == "as_negate":
             self.__negate = value
-        elif func == "as_agemin" or func == "agemin":
+        elif func == "as_agemin":
             self.__agemin = value
-        elif func == "as_agemax" or func == "agemax":
+        elif func == "as_agemax":
             self.__agemax = value
-        elif func == "as_agenegate" or func == "agenegate":
+        elif func == "as_agenegate":
             self.__agenegate = value
 
     # set a min/max/value function to a given value/item
@@ -95,41 +93,41 @@ class AbCondition:
             source = "value"
 
         if source == "value":
-            if func == "as_value" or func == "value":
+            if func == "as_value":
                 self.__value = field_value
                 self.__value_item = None
                 self.__value_eval = None
-            elif func == "as_min" or func == "min":
+            elif func == "as_min":
                 self.__min = field_value
                 self.__min_item = None
                 self.__min_eval = None
-            elif func == "as_max" or func == "max":
+            elif func == "as_max":
                 self.__max = field_value
                 self.__max_item = None
                 self.__max_eval = None
         elif source == "item":
-            if func == "as_value" or func == "value":
+            if func == "as_value":
                 self.__value = None
                 self.__value_item = self.__sh.return_item(field_value)
                 self.__value_eval = None
-            elif func == "as_min" or func == "min":
+            elif func == "as_min":
                 self.__min = None
                 self.__min_item = self.__sh.return_item(field_value)
                 self.__min_eval = None
-            elif func == "as_max" or func == "max":
+            elif func == "as_max":
                 self.__max = None
                 self.__max_item = self.__sh.return_item(field_value)
                 self.__max_eval = None
         elif source == "eval":
-            if func == "as_value" or func == "value":
+            if func == "as_value":
                 self.__value = None
                 self.__value_item = None
                 self.__value_eval = field_value
-            elif func == "as_min" or func == "min":
+            elif func == "as_min":
                 self.__min = None
                 self.__min_item = None
                 self.__min_eval = field_value
-            elif func == "as_max" or func == "max":
+            elif func == "as_max":
                 self.__max = None
                 self.__max_item = None
                 self.__max_eval = field_value
@@ -169,15 +167,13 @@ class AbCondition:
 
         # missing item in condition: Try to find it
         if self.__item is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_item_" + self.__name,
-                                                   "item_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_item_" + self.__name)
             if result is not None:
                 self.__set_item(result)
 
         # missing eval in condition: Try to find it
         if self.__eval is None:
-            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_eval_" + self.__name,
-                                                   "eval_" + self.__name)
+            result = AutoBlindTools.find_attribute(self.__sh, item_state, "as_eval_" + self.__name)
             if result is not None:
                 self.__eval = result
 
