@@ -35,6 +35,7 @@ class AbAction:
         self.__value = None
         self.__eval = None
         self.__from_item = None
+        self.__byattr = None
         self.__mindelta = None
         self.__logic = None
         self.__isRun = False
@@ -55,14 +56,22 @@ class AbAction:
             self.__value = set_value
             self.__eval = None
             self.__from_item = None
+            self.__byattr = None
         elif func == "eval":
             self.__value = None
             self.__eval = set_value
             self.__from_item = None
+            self.__byattr = None
         elif func == "item":
             self.__value = None
             self.__eval = None
             self.__set_from_item(set_value)
+            self.__byattr = None
+        elif func == "byattr":
+            self.__value = None
+            self.__eval = None
+            self.__from_item = None
+            self.__byattr = set_value
 
         self.__logic = None
         self.__isRun = False
@@ -78,6 +87,7 @@ class AbAction:
             self.__value = None
         self.__eval = None
         self.__from_item = None
+        self.__byattr = None
         self.__isRun = False
 
     # set the action based on a run_(action_name) attribute
@@ -92,6 +102,7 @@ class AbAction:
             self.__value = None
             self.__eval = set_value
             self.__from_item = None
+            self.__byattr = None
             self.__isRun = True
 
         self.__logic = None
@@ -99,8 +110,8 @@ class AbAction:
     # Complete action
     # item_state: state item to read from
     def complete(self, item_state):
-        # Nothing to complete if this action triggers a logic or is a "run"-Action
-        if self.__logic is not None or self.__isRun:
+        # Nothing to complete if this action triggers a logic or is a "run"-Action or if it's a set-byattr Action
+        if self.__logic is not None or self.__isRun or self.__byattr is not None:
             return
 
         # missing item in action: Try to find it.
@@ -128,6 +139,13 @@ class AbAction:
             logger.info("Action '{0}: Triggering logic '{1}' using value '{2}'.", self.__name, self.__logic,
                         self.__value)
             self.__sh.trigger(self.__logic, by="AutoBlind Plugin", source=self.__name, value=self.__value)
+            return
+
+        if self.__byattr is not None:
+            logger.info("Action '{0}: Setting values by attribute '{1}'.", self.__name, self.__byattr)
+            for item in self.__sh.find_items(self.__byattr):
+                logger.info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
+                item(item.conf[self.__byattr])
             return
 
         if self.__item is None and not self.__isRun:
@@ -172,6 +190,8 @@ class AbAction:
             logger.debug("eval: {0}", self.__get_eval_name())
         if self.__from_item is not None:
             logger.debug("value from item: {0}", self.__from_item.id())
+        if self.__byattr is not None:
+            logger.debug("set by attriute: {0}", self.__byattr)
 
     # Execute eval and return result. In case of errors, write message to log and return None
     # logger: Instance of AbLogger to write to
