@@ -165,7 +165,7 @@ def cast_time(value):
 # smarthome: instance of smarthome.py base class
 # base_item: base item to search in
 # attribute: name of attribute to find
-def find_attribute(smarthome, base_item, attribute):
+def find_attribute(smarthome, base_item, attribute, recursion_depth = 0):
     # 1: parent of given item could have attribute
     parent_item = base_item.return_parent()
     if parent_item is not None and attribute in parent_item.conf:
@@ -173,8 +173,10 @@ def find_attribute(smarthome, base_item, attribute):
 
     # 2: if item has attribute "as_use", get the item to use and search this item for required attribute
     if "as_use" in base_item.conf:
+        if recursion_depth > 5:
+            return None
         use_item = smarthome.return_item(base_item.conf["as_use"])
-        result = find_attribute(smarthome, use_item, attribute)
+        result = find_attribute(smarthome, use_item, attribute, recursion_depth + 1)
         if result is not None:
             return result
 
