@@ -63,6 +63,7 @@ class AbItem:
         self.__delay = 0
         self.__actions = {}
         self.__can_not_leave_current_state_since = 0
+        self.__repeat_actions = True
 
         self.__myLogger = None
 
@@ -99,11 +100,14 @@ class AbItem:
         # get crons and cycles
         crons, cycles = self.__get_crons_and_cycles()
 
+        repeat = "Yes" if self.__repeat_actions else "No"
+
         # log general config
         self.__myLogger.header("Configuration of item {0}".format(self.__name))
         self.__myLogger.info("Cycle: {0}", cycles)
         self.__myLogger.info("Cron: {0}", crons)
         self.__myLogger.info("Startup Delay: {0}", self.__startup_delay)
+        self.__myLogger.info("Repeat actions if state is not changed: {0}",repeat)
 
         self.__laststate_log()
         self.__lock_log()
@@ -181,10 +185,13 @@ class AbItem:
                 self.__can_not_leave_current_state_since = 0
 
         # get data for new state
+        do_actions = True
         if last_state is not None and new_state.id == last_state.id:
             # New state is last state
             if self.__laststate_name != new_state.name:
                 self.__laststate_name = new_state.name
+            else:
+                do_actions = self.__repeat_actions
             self.__myLogger.info("Staying at {0} ('{1}')", new_state.id, new_state.name)
         else:
             # New state is different from last state
@@ -192,7 +199,10 @@ class AbItem:
             self.__laststate_id = new_state.id
             self.__laststate_name = new_state.name
 
-        new_state.activate(self.__myLogger)
+        if do_actions:
+            new_state.activate(self.__myLogger)
+        else:
+            self.__myLogger.info("Repeating actions is deactivated.")
 
     # region Laststate *************************************************************************************************
     # Init laststate_id and laststate_name
@@ -386,6 +396,8 @@ class AbItem:
     # Check item settings and update if required
     # noinspection PyProtectedMember
     def __init_check_item_config(self):
+        self.__repeat_actions = AutoBlindTools.get_bool_attribute(self.__item, "as_repeat_actions", True)
+
         # set "enforce updates" for item
         self.__item._enforce_updates = True
 
