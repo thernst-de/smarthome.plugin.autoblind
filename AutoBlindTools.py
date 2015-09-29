@@ -75,6 +75,7 @@ def get_num_attribute(item, attribute_name, default=None):
     else:
         return default
 
+
 # Find and return a certain bool attribute of an item
 # item: Item to search attribute
 # attribute_name: Name of attribute to search and return
@@ -85,6 +86,7 @@ def get_bool_attribute(item, attribute_name, default=None):
         return cast_bool(item.conf[attribute_name])
     else:
         return default
+
 
 # Returns the last part of the id of an item (everythig behind last .)
 # item: Item for which the last part of the id should be returned
@@ -175,7 +177,7 @@ def cast_time(value):
 # smarthome: instance of smarthome.py base class
 # base_item: base item to search in
 # attribute: name of attribute to find
-def find_attribute(smarthome, base_item, attribute, recursion_depth = 0):
+def find_attribute(smarthome, base_item, attribute, recursion_depth=0):
     # 1: parent of given item could have attribute
     parent_item = base_item.return_parent()
     if parent_item is not None and attribute in parent_item.conf:
