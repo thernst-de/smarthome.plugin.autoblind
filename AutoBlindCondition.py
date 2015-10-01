@@ -129,8 +129,10 @@ class AbCondition:
         try:
             if self.__item is not None:
                 self.__cast_all(self.__item.cast)
-            elif self.__name in ("weekday", "sun_azimut", "sun_altitude", "age", "delay"):
+            elif self.__name in ("weekday", "sun_azimut", "sun_altitude", "age", "delay", "random", "month"):
                 self.__cast_all(AutoBlindTools.cast_num)
+            elif self.__name == "laststate":
+                self.__cast_all(AutoBlindTools.cast_str)
             elif self.__name == "time":
                 self.__cast_all(AutoBlindTools.cast_time)
         except Exception as ex:
