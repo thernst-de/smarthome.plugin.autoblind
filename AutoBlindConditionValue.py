@@ -36,10 +36,10 @@ class AbConditionValue:
     def is_empty(self):
         return self.__value is None and self.__item is None and self.__eval is None
 
-    def set(self, value):
+    def set(self, value, name):
         source, field_value = AutoBlindTools.partition_strip(value, ":")
 
-        if self.__name == "time" and source.isdigit() and field_value.isdigit():
+        if name == "time" and source.isdigit() and field_value.isdigit():
             field_value = value
             source = "value"
         elif field_value == "":

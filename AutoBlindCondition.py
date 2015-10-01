@@ -63,15 +63,15 @@ class AbCondition:
         elif func == "as_eval":
             self.__eval = value
         if func == "as_value":
-            self.__value.set(value)
+            self.__value.set(value, self.__name)
         elif func == "as_min":
-            self.__min.set(value)
+            self.__min.set(value, self.__name)
         elif func == "as_max":
-            self.__max.set(value)
+            self.__max.set(value, self.__name)
         elif func == "as_agemin":
-            self.__agemin.set(value)
+            self.__agemin.set(value, self.__name)
         elif func == "as_agemax":
-            self.__agemax.set(value)
+            self.__agemax.set(value, self.__name)
         elif func == "as_negate":
             self.__negate = value
         elif func == "as_agenegate":
