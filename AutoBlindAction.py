@@ -21,6 +21,7 @@
 from . import AutoBlindTools
 from . import AutoBlindLogger
 from . import AutoBlindEval
+import datetime
 
 
 # Class representing a single action
@@ -39,6 +40,18 @@ class AbAction:
         self.__mindelta = None
         self.__logic = None
         self.__isRun = False
+        self.__delay = 0
+        self.__scheduler_name = None
+
+    def update_delay(self, value):
+        if isinstance(value, str):
+            delay = value.strip()
+            if delay.endswith('m'):
+                self.__delay = int(delay.strip('m')) * 60
+            else:
+                self.__delay = int(delay)
+        elif isinstance(value,int):
+            self.__delay = value
 
     # set the action based on a set_(action_name) attribute
     # item_state: state item to read from
@@ -79,6 +92,7 @@ class AbAction:
     # set the action based on a trigger_(name) attribute
     # value: Value of the trigger_(action_name) attribute
     def update_trigger(self, value):
+
         logic, value = AutoBlindTools.partition_strip(value, ":")
         self.__logic = logic
         if value != "":
@@ -131,25 +145,53 @@ class AbAction:
             if self.__mindelta is not None:
                 self.__mindelta = self.__item.cast(self.__mindelta)
 
+        if self.__item is not None:
+            self.__scheduler_name = self.__item.id() + "-AbItemDelayTimer"
+        elif self.__logic is not None:
+            self.__scheduler_name = self.__logic + "-AbLogicDelayTimer"
+        elif self.__byattr is not None:
+            self.__scheduler_name = self.__byattr + "-AbByAttrDelayTimer"
+        else:
+            self.__scheduler_name = self.__name + "-AbNameDelayTimer"
+
     # Execute action
     # logger: Instance of AbLogger to write to
     def execute(self, logger: AutoBlindLogger.AbLogger):
+        plan_next = self.__sh.scheduler.return_next(self.__scheduler_name)
+        if plan_next is not None and plan_next > self.__sh.now():
+            logger.info("Action '{0}: Removing previous delay timer '{1}'.", self.__name, self.__scheduler_name)
+            self.__sh.scheduler.remove(self.__scheduler_name)
+
+        if self.__delay == 0:
+            self.__execute(logger)
+        else:
+            logger.info("Action '{0}: Add {1} second timer '{2}' for delayed execution.", self.__name, self.__delay,
+                        self.__scheduler_name)
+            next_run = self.__sh.now() + datetime.timedelta(seconds=self.__delay)
+            self.__sh.scheduler.add(self.__scheduler_name, self.__execute, value={'logger': logger}, next=next_run)
+
+    # Execute action
+    # logger: Instance of AbLogger to write to
+    def __execute(self, logger: AutoBlindLogger.AbLogger):
+        type_name = "Action '{0}'".format(self.__name) if self.__delay == 0 else "Delay Timer '{0}'".format(
+            self.__scheduler_name)
+
         if self.__logic is not None:
             # Trigger logic
-            logger.info("Action '{0}: Triggering logic '{1}' using value '{2}'.", self.__name, self.__logic,
+            logger.info("{0}: Triggering logic '{1}' using value '{2}'.", type_name, self.__logic,
                         self.__value)
             self.__sh.trigger(self.__logic, by="AutoBlind Plugin", source=self.__name, value=self.__value)
             return
 
         if self.__byattr is not None:
-            logger.info("Action '{0}: Setting values by attribute '{1}'.", self.__name, self.__byattr)
+            logger.info("{0}: Setting values by attribute '{1}'.", type_name, self.__byattr)
             for item in self.__sh.find_items(self.__byattr):
                 logger.info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
                 item(item.conf[self.__byattr])
             return
 
         if self.__item is None and not self.__isRun:
-            logger.info("Action '{0}: No item defined. Ignoring.", self.__name)
+            logger.info("{0}: No item defined. Ignoring.", type_name)
             return
 
         value = None
@@ -167,11 +209,11 @@ class AbAction:
                 delta = float(abs(self.__item() - value))
                 if delta < self.__mindelta:
                     logger.debug(
-                        "Action '{0}: Not setting '{1}' to '{2}' because delta '{3:.2}' is lower than mindelta '{4}'",
-                        self.__name, self.__item.id(), value, delta, self.__mindelta)
+                        "{0}: Not setting '{1}' to '{2}' because delta '{3:.2}' is lower than mindelta '{4}'",
+                        type_name, self.__item.id(), value, delta, self.__mindelta)
                     return
 
-            logger.debug("Action '{0}: Set '{1}' to '{2}'", self.__name, self.__item.id(), value)
+            logger.debug("{0}: Set '{1}' to '{2}'", type_name, self.__item.id(), value)
             # noinspection PyCallingNonCallable
             self.__item(value)
 
@@ -192,6 +234,8 @@ class AbAction:
             logger.debug("value from item: {0}", self.__from_item.id())
         if self.__byattr is not None:
             logger.debug("set by attriute: {0}", self.__byattr)
+        if self.__delay != 0:
+            logger.debug("Delay: {0} Seconds", self.__delay)
 
     # Execute eval and return result. In case of errors, write message to log and return None
     # logger: Instance of AbLogger to write to
