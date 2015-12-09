@@ -21,35 +21,65 @@
 from . import AutoBlindTools
 from . import AutoBlindLogger
 from . import AutoBlindEval
+from . import AutoBlindValue
 import datetime
 
 
 # Base class from which all action classes are derived
 class AbActionBase:
-    # Initialize the action
-    # smarthome: Instance of smarthome.py-class
-    # name: Name of action
-    def __init__(self, smarthome, name: str):
-        self._sh = smarthome
-        self._name = name
-        self.__delay = 0
-        self._scheduler_name = None
-
-    def update_delay(self, value):
+    # Cast function for delay
+    # value: value to cast
+    @staticmethod
+    def __cast_delay(value):
         if isinstance(value, str):
             delay = value.strip()
             if delay.endswith('m'):
-                self.__delay = int(delay.strip('m')) * 60
+                return int(delay.strip('m')) * 60
             else:
-                self.__delay = int(delay)
+                return int(delay)
         elif isinstance(value, int):
-            self.__delay = value
+            return value
+
+    # Initialize the action
+    # smarthome: Instance of smarthome.py-class
+    # logger: Instance of AbLogger to write to
+    # name: Name of action
+    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
+        self._sh = smarthome
+        self._logger = logger
+        self._name = name
+        self.__delay = AutoBlindValue.AbValue(self._sh, self._logger, "delay")
+        self._scheduler_name = None
+
+    def update_delay(self, value):
+        self.__delay.set(value, "")
+        self.__delay.set_cast(AbActionBase.__cast_delay)
 
     # Write action to logger
-    # logger: Instance of AbLogger to write to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
-        if self.__delay != 0:
-            logger.debug("Delay: {0} Seconds", self.__delay)
+    def write_to_logger(self):
+        self.__delay.write_to_logger()
+
+    # Execute action (considering delay, etc)
+    def execute(self):
+        if not self._can_execute():
+            return
+
+        actionname = "Action '{0}'".format(self._name) if self.__delay == 0 else "Delay Timer '{0}'".format(
+            self._scheduler_name)
+
+        plan_next = self._sh.scheduler.return_next(self._scheduler_name)
+        if plan_next is not None and plan_next > self._sh.now():
+            self._logger.info("Action '{0}: Removing previous delay timer '{1}'.", self._name, self._scheduler_name)
+            self._sh.scheduler.remove(self._scheduler_name)
+
+        delay = 0 if self.__delay.is_empty() else self.__delay.get()
+        if delay == 0:
+            self._execute(actionname)
+        else:
+            self._logger.info("Action '{0}: Add {1} second timer '{2}' for delayed execution.", self._name,
+                              delay, self._scheduler_name)
+            next_run = self._sh.now() + datetime.timedelta(seconds=delay)
+            self._sh.scheduler.add(self._scheduler_name, self._execute, value={'actionname': actionname}, next=next_run)
 
     # set the action based on a set_(action_name) attribute
     # item_state: state item to read from
@@ -62,108 +92,32 @@ class AbActionBase:
     def complete(self, item_state):
         raise NotImplementedError("Class %s doesn't implement complete()" % self.__class__.__name__)
 
-    # Execute action (considering delay, etc)
-    # logger: Instance of AbLogger to write to
-    def execute(self, logger: AutoBlindLogger.AbLogger):
-        if not self._can_execute(logger):
-            return
-
-        actionname = "Action '{0}'".format(self._name) if self.__delay == 0 else "Delay Timer '{0}'".format(
-            self._scheduler_name)
-
-        plan_next = self._sh.scheduler.return_next(self._scheduler_name)
-        if plan_next is not None and plan_next > self._sh.now():
-            logger.info("Action '{0}: Removing previous delay timer '{1}'.", self._name, self._scheduler_name)
-            self._sh.scheduler.remove(self._scheduler_name)
-
-        if self.__delay == 0:
-            self._execute(actionname, logger)
-        else:
-            logger.info("Action '{0}: Add {1} second timer '{2}' for delayed execution.", self._name, self.__delay,
-                        self._scheduler_name)
-            next_run = self._sh.now() + datetime.timedelta(seconds=self.__delay)
-            self._sh.scheduler.add(self._scheduler_name, self._execute,
-                                   value={'actionname': actionname, 'logger': logger}, next=next_run)
-
     # Check if execution is possible
-    def _can_execute(self, logger: AutoBlindLogger.AbLogger):
+    def _can_execute(self):
         raise NotImplementedError("Class %s doesn't implement _can_execute()" % self.__class__.__name__)
 
     # Really execute the action (needs to be implemented in derived classes)
-    def _execute(self, actionname: str, logger: AutoBlindLogger.AbLogger):
+    def _execute(self, actionname: str):
         raise NotImplementedError("Class %s doesn't implement _execute()" % self.__class__.__name__)
-
-    # Execute eval and return result. In case of errors, write message to log and return None
-    # logger: Instance of AbLogger to write to
-    def _do_eval(self, actionname: str, eval_func, item, logger: AutoBlindLogger.AbLogger):
-        if isinstance(eval_func, str):
-            # noinspection PyUnusedLocal
-            sh = self._sh
-            if eval_func.startswith("autoblind_eval"):
-                # noinspection PyUnusedLocal
-                autoblind_eval = AutoBlindEval.AbEval(self._sh, logger)
-            try:
-                value = eval(eval_func)
-            except Exception as e:
-                logger.info("{0}: problem evaluating {1}: {2}.", actionname, AutoBlindTools.get_eval_name(eval_func), e)
-                return None
-        else:
-            try:
-                # noinspection PyCallingNonCallable
-                value = eval_func()
-            except Exception as e:
-                logger.info("{0}: problem calling {1}: {2}.", actionname, AutoBlindTools.get_eval_name(eval_func), e)
-                return None
-        try:
-            if item is not None:
-                value = item.cast(value)
-            return value
-        except Exception as e:
-            logger.debug("eval returned '{0}', trying to cast this returned exception '{1}'", value, e)
-            return None
 
 
 # Class representing a single "as_set" action
 class AbActionSetItem(AbActionBase):
     # Initialize the action
     # smarthome: Instance of smarthome.py-class
+    # logger: Instance of AbLogger to write to
     # name: Name of action
-    def __init__(self, smarthome, name: str):
-        AbActionBase.__init__(self, smarthome, name)
+    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
+        AbActionBase.__init__(self, smarthome, logger, name)
         self.__item = None
-        self.__value = None
-        self.__eval = None
-        self.__from_item = None
-        self.__mindelta = None
+        self.__value = AutoBlindValue.AbValue(self._sh, self._logger, "value")
+        self.__mindelta = AutoBlindValue.AbValue(self._sh, self._logger, "mindelta")
 
     # set the action based on a set_(action_name) attribute
     # item_state: state item to read from
     # value: Value of the set_(action_name) attribute
     def update(self, item_state, value):
-        if self.__item is None:
-            self.__set_item(AutoBlindTools.find_attribute(self._sh, item_state, "as_item_" + self._name))
-
-        func, set_value = AutoBlindTools.partition_strip(value, ":")
-        if set_value == "":
-            set_value = func
-            func = "value"
-
-        if func == "value":
-            self.__value = set_value
-            self.__eval = None
-            self.__from_item = None
-        elif func == "eval":
-            self.__value = None
-            self.__eval = set_value
-            self.__from_item = None
-        elif func == "item":
-            self.__value = None
-            self.__eval = None
-            self.__set_from_item(set_value)
-        elif func == "byattr":
-            message = "Attribute 'as_set_{0}' in item '{1}' uses obsolete function 'byattr'. Use attribute 'as_byattr_{0} instead!".format(
-                self._name, item_state.id())
-            raise ValueError(message)
+        self.__value.set(value, "")
 
     # Complete action
     # item_state: state item to read from
@@ -174,62 +128,53 @@ class AbActionSetItem(AbActionBase):
             if result is not None:
                 self.__set_item(result)
 
-        if self.__mindelta is None:
+        if self.__mindelta.is_empty():
             result = AutoBlindTools.find_attribute(self._sh, item_state, "as_mindelta_" + self._name)
             if result is not None:
-                self.__mindelta = result
+                self.__mindelta.set(result, "")
 
         if self.__item is not None:
-            if self.__value is not None:
-                self.__value = self.__item.cast(self.__value)
-            if self.__mindelta is not None:
-                self.__mindelta = self.__item.cast(self.__mindelta)
+            self.__value.set_cast(self.__item.cast)
+            self.__mindelta.set_cast(self.__item.cast)
             self._scheduler_name = self.__item.id() + "-AbItemDelayTimer"
 
     # Write action to logger
-    # logger: Instance of AbLogger to write to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
-        AbActionBase.write_to_logger(self, logger)
+    def write_to_logger(self):
+        AbActionBase.write_to_logger(self)
         if self.__item is not None:
-            logger.debug("item: {0}", self.__item.id())
-        if self.__mindelta is not None:
-            logger.debug("mindelta: {0}", self.__mindelta)
-        if self.__value is not None:
-            logger.debug("value: {0}", self.__value)
-        if self.__eval is not None:
-            logger.debug("eval: {0}", AutoBlindTools.get_eval_name(self.__eval))
-        if self.__from_item is not None:
-            logger.debug("value from item: {0}", self.__from_item.id())
+            self._logger.debug("item: {0}", self.__item.id())
+        self.__mindelta.write_to_logger()
+        self.__value.write_to_logger()
 
     # Check if execution is possible
-    def _can_execute(self, logger: AutoBlindLogger.AbLogger):
+    def _can_execute(self):
         if self.__item is None:
-            logger.info("Action '{0}': No item defined. Ignoring.", self._name)
+            self._logger.info("Action '{0}': No item defined. Ignoring.", self._name)
+            return False
+
+        if self.__value.is_empty():
+            self._logger.info("Action '{0}': No value defined. Ignoring.", self._name)
             return False
 
         return True
 
     # Really execute the action (needs to be implemented in derived classes)
-    def _execute(self, actionname: str, logger: AutoBlindLogger.AbLogger):
-        value = None
-        if self.__value is not None:
-            value = self.__value
-        elif self.__eval is not None:
-            value = self._do_eval(actionname, self.__eval, self.__item, logger)
-        elif self.__from_item is not None:
-            # noinspection PyCallingNonCallable
-            value = self.__from_item()
+    def _execute(self, actionname: str):
+        value = self.__value.get()
+        if value is None:
+            return
 
-        if value is not None and self.__mindelta is not None:
+        if not self.__mindelta.is_empty():
+            mindelta = self.__mindelta.get()
             # noinspection PyCallingNonCallable
             delta = float(abs(self.__item() - value))
-            if delta < self.__mindelta:
-                logger.debug(
-                    "{0}: Not setting '{1}' to '{2}' because delta '{3:.2}' is lower than mindelta '{4}'",
-                    actionname, self.__item.id(), value, delta, self.__mindelta)
+            if delta < mindelta:
+                self._logger.debug(
+                    "{0}: Not setting '{1}' to '{2}' because delta '{3:.2}' is lower than mindelta '{4}'", actionname,
+                    self.__item.id(), value, delta, mindelta)
                 return
 
-        logger.debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
+        self._logger.debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
         # noinspection PyCallingNonCallable
         self.__item(value)
 
@@ -241,22 +186,15 @@ class AbActionSetItem(AbActionBase):
         else:
             self.__item = item
 
-    # set from-item
-    # from_item: value for from-item
-    def __set_from_item(self, from_item):
-        if isinstance(from_item, str):
-            self.__from_item = self._sh.return_item(from_item)
-        else:
-            self.__from_item = from_item
-
 
 # Class representing a single "as_setbyattr" action
 class AbActionSetByattr(AbActionBase):
     # Initialize the action
     # smarthome: Instance of smarthome.py-class
+    # logger: Instance of AbLogger to write to
     # name: Name of action
-    def __init__(self, smarthome, name: str):
-        AbActionBase.__init__(self, smarthome, name)
+    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
+        AbActionBase.__init__(self, smarthome, logger, name)
         self.__byattr = None
 
     # set the action based on a set_(action_name) attribute
@@ -271,21 +209,20 @@ class AbActionSetByattr(AbActionBase):
         self._scheduler_name = self.__byattr + "-AbByAttrDelayTimer"
 
     # Write action to logger
-    # logger: Instance of AbLogger to write to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
-        AbActionBase.write_to_logger(self, logger)
+    def write_to_logger(self):
+        AbActionBase.write_to_logger(self)
         if self.__byattr is not None:
-            logger.debug("set by attriute: {0}", self.__byattr)
+            self._logger.debug("set by attriute: {0}", self.__byattr)
 
     # Check if execution is possible
-    def _can_execute(self, logger: AutoBlindLogger.AbLogger):
+    def _can_execute(self):
         return True
 
     # Really execute the action
-    def _execute(self, actionname: str, logger: AutoBlindLogger.AbLogger):
-        logger.info("{0}: Setting values by attribute '{1}'.", actionname, self.__byattr)
+    def _execute(self, actionname: str):
+        self._logger.info("{0}: Setting values by attribute '{1}'.", actionname, self.__byattr)
         for item in self._sh.find_items(self.__byattr):
-            logger.info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
+            self._logger.info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
             item(item.conf[self.__byattr])
 
 
@@ -293,9 +230,10 @@ class AbActionSetByattr(AbActionBase):
 class AbActionTrigger(AbActionBase):
     # Initialize the action
     # smarthome: Instance of smarthome.py-class
+    # logger: Instance of AbLogger to write to
     # name: Name of action
-    def __init__(self, smarthome, name: str):
-        AbActionBase.__init__(self, smarthome, name)
+    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
+        AbActionBase.__init__(self, smarthome, logger, name)
         self.__logic = None
         self.__value = None
 
@@ -305,10 +243,7 @@ class AbActionTrigger(AbActionBase):
     def update(self, item_state, value):
         logic, value = AutoBlindTools.partition_strip(value, ":")
         self.__logic = logic
-        if value != "":
-            self.__value = value
-        else:
-            self.__value = None
+        self.__value = None if value == "" else value
 
     # Complete action
     # item_state: state item to read from
@@ -316,23 +251,21 @@ class AbActionTrigger(AbActionBase):
         self._scheduler_name = self.__logic + "-AbLogicDelayTimer"
 
     # Write action to logger
-    # logger: Instance of AbLogger to write to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
-        AbActionBase.write_to_logger(self, logger)
+    def write_to_logger(self):
+        AbActionBase.write_to_logger(self)
         if self.__logic is not None:
-            logger.debug("trigger logic: {0}", self.__logic)
+            self._logger.debug("trigger logic: {0}", self.__logic)
         if self.__value is not None:
-            logger.debug("value: {0}", self.__value)
+            self._logger.debug("value: {0}", self.__value)
 
     # Check if execution is possible
-    def _can_execute(self, logger: AutoBlindLogger.AbLogger):
+    def _can_execute(self):
         return True
 
     # Really execute the action
-    def _execute(self, actionname: str, logger: AutoBlindLogger.AbLogger):
+    def _execute(self, actionname: str):
         # Trigger logic
-        logger.info("{0}: Triggering logic '{1}' using value '{2}'.", actionname, self.__logic,
-                    self.__value)
+        self._logger.info("{0}: Triggering logic '{1}' using value '{2}'.", actionname, self.__logic, self.__value)
         self._sh.trigger(self.__logic, by="AutoBlind Plugin", source=self._name, value=self.__value)
 
 
@@ -340,9 +273,10 @@ class AbActionTrigger(AbActionBase):
 class AbActionRun(AbActionBase):
     # Initialize the action
     # smarthome: Instance of smarthome.py-class
+    # logger: Instance of AbLogger to write to
     # name: Name of action
-    def __init__(self, smarthome, name: str):
-        AbActionBase.__init__(self, smarthome, name)
+    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
+        AbActionBase.__init__(self, smarthome, logger, name)
         self.__eval = None
 
     # set the action based on a set_(action_name) attribute
@@ -363,16 +297,33 @@ class AbActionRun(AbActionBase):
         self._scheduler_name = AutoBlindTools.get_eval_name(self.__eval) + "-AbRunDelayTimer"
 
     # Write action to logger
-    # logger: Instance of AbLogger to write to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
-        AbActionBase.write_to_logger(self, logger)
+    def write_to_logger(self):
+        AbActionBase.write_to_logger(self)
         if self.__eval is not None:
-            logger.debug("eval: {0}", AutoBlindTools.get_eval_name(self.__eval))
+            self._logger.debug("eval: {0}", AutoBlindTools.get_eval_name(self.__eval))
 
     # Check if execution is possible
-    def _can_execute(self, logger: AutoBlindLogger.AbLogger):
+    def _can_execute(self):
         return True
 
     # Really execute the action
-    def _execute(self, actionname: str, logger: AutoBlindLogger.AbLogger):
-        self._do_eval(actionname, self.__eval, None, logger)
+    def _execute(self, actionname: str):
+        if isinstance(self.__eval, str):
+            # noinspection PyUnusedLocal
+            sh = self._sh
+            if self.__eval.startswith("autoblind_eval"):
+                # noinspection PyUnusedLocal
+                autoblind_eval = AutoBlindEval.AbEval(self._sh, self._logger)
+            try:
+                eval(self.__eval)
+            except Exception as e:
+                self._logger.error(
+                    "{0}: Problem evaluating '{1}': {2}.".format(actionname, AutoBlindTools.get_eval_name(self.__eval),
+                                                                 e))
+        else:
+            try:
+                # noinspection PyCallingNonCallable
+                self.__eval()
+            except Exception as e:
+                self._logger.error(
+                    "{0}: Problem calling '{0}': {1}.".format(actionname, AutoBlindTools.get_eval_name(self.__eval), e))

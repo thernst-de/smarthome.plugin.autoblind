@@ -27,8 +27,10 @@ from . import AutoBlindTools
 class AbActions:
     # Initialize the set of actions
     # smarthome: Instance of smarthome.py-class
-    def __init__(self, smarthome):
+    # logger: Instance of AbLogger to write log messages to
+    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger):
         self.__sh = smarthome
+        self.__logger = logger
         self.__actions = {}
         self.__unassigned_delays = {}
 
@@ -40,30 +42,30 @@ class AbActions:
     # attribute: name of attribute that defines action
     def update(self, item_state, attribute):
         # Split attribute in function and action name
-        func,  action_name = AutoBlindTools.partition_strip(attribute, "_")
+        func, action_name = AutoBlindTools.partition_strip(attribute, "_")
 
         # Set action depending on function
         if func == "as_set":
             if action_name not in self.__actions:
-                action = AutoBlindAction.AbActionSetItem(self.__sh, action_name)
+                action = AutoBlindAction.AbActionSetItem(self.__sh, self.__logger, action_name)
                 self.__try_assign_delay(action_name, action)
                 self.__actions[action_name] = action
             self.__actions[action_name].update(item_state, item_state.conf[attribute])
         elif func == "as_byattr":
             if action_name not in self.__actions:
-                action = AutoBlindAction.AbActionSetByattr(self.__sh, action_name)
+                action = AutoBlindAction.AbActionSetByattr(self.__sh, self.__logger, action_name)
                 self.__try_assign_delay(action_name, action)
                 self.__actions[action_name] = action
             self.__actions[action_name].update(item_state, item_state.conf[attribute])
         elif func == "as_trigger":
             if action_name not in self.__actions:
-                action = AutoBlindAction.AbActionTrigger(self.__sh, action_name)
+                action = AutoBlindAction.AbActionTrigger(self.__sh, self.__logger, action_name)
                 self.__try_assign_delay(action_name, action)
                 self.__actions[action_name] = action
             self.__actions[action_name].update(item_state, item_state.conf[attribute])
         elif func == "as_run":
             if action_name not in self.__actions:
-                action = AutoBlindAction.AbActionRun(self.__sh, action_name)
+                action = AutoBlindAction.AbActionRun(self.__sh, self.__logger, action_name)
                 self.__try_assign_delay(action_name, action)
                 self.__actions[action_name] = action
             self.__actions[action_name].update(item_state, item_state.conf[attribute])
@@ -86,22 +88,19 @@ class AbActions:
 
     # Check the actions optimize and complete them
     # item_state: item to read from
-    # logger: Instance of AbLogger to write log messages to
     def complete(self, item_state):
         for action_name in self.__actions:
             self.__actions[action_name].complete(item_state)
 
     # Execute all actions
-    # logger: Instance of AbLogger to write log messages to
-    def execute(self, logger: AutoBlindLogger.AbLogger):
+    def execute(self):
         for action_name in self.__actions:
-            self.__actions[action_name].execute(logger)
+            self.__actions[action_name].execute()
 
     # log all actions
-    # logger: Instance of AbLogger to write log messages to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
+    def write_to_logger(self):
         for action_name in self.__actions:
-            logger.info("Action '{0}':", action_name)
-            logger.increase_indent()
-            self.__actions[action_name].write_to_logger(logger)
-            logger.decrease_indent()
+            self.__logger.info("Action '{0}':", action_name)
+            self.__logger.increase_indent()
+            self.__actions[action_name].write_to_logger()
+            self.__logger.decrease_indent()

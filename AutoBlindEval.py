@@ -26,6 +26,7 @@ import subprocess
 
 class AbEval:
     # Initialize
+    # logger: Instance of AbLogger to write log messages to
     def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger):
         self.__sh = smarthome
         self.__logger = logger

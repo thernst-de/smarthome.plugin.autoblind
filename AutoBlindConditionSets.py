@@ -26,8 +26,10 @@ from . import AutoBlindLogger
 class AbConditionSets:
     # Initialize the list of condition sets
     # smarthome: Instance of smarthome.py-class
-    def __init__(self, smarthome):
+    # logger: Instance of AbLogger to write log messages to
+    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger):
         self.__sh = smarthome
+        self.__logger = logger
         self.__name = None
         self.__condition_sets = {}
 
@@ -39,40 +41,36 @@ class AbConditionSets:
     # conditionset_name: Name of condition set
     # item: item containing settings for condition set
     # grandparent_item: grandparent item of item (containing the definition if items and evals)
-    # logger: Instance of AbLogger to write log messages to
-    def fill(self, conditionset_name, item, grandparent_item, logger: AutoBlindLogger.AbLogger):
+    def fill(self, conditionset_name, item, grandparent_item):
         # Add condition set if not yet existing
         if conditionset_name not in self.__condition_sets:
-            self.__condition_sets[conditionset_name] = AutoBlindConditionSet.AbConditionSet(self.__sh,
+            self.__condition_sets[conditionset_name] = AutoBlindConditionSet.AbConditionSet(self.__sh, self.__logger,
                                                                                             conditionset_name)
         # Update this condition set
-        self.__condition_sets[conditionset_name].update(item, grandparent_item, logger)
+        self.__condition_sets[conditionset_name].update(item, grandparent_item)
 
     # Check the condition sets, optimize and complete them
     # item_state: item to read from
     # abitem_object: Related AbItem instance for later determination of current age and current delay
-    # logger: Instance of AbLogger to write log messages to
-    def complete(self, item_state, abitem_object, logger):
+    def complete(self, item_state, abitem_object):
         for conditionset_name in self.__condition_sets:
-            self.__condition_sets[conditionset_name].complete(item_state, abitem_object, logger)
+            self.__condition_sets[conditionset_name].complete(item_state, abitem_object)
 
     # Write all condition sets to logger
-    # logger: Instance of AbLogger to write log messages to
-    def write_to_logger(self, logger: AutoBlindLogger.AbLogger):
+    def write_to_logger(self):
         for conditionset_name in self.__condition_sets:
-            logger.info("Condition Set '{0}':", conditionset_name)
-            logger.increase_indent()
-            self.__condition_sets[conditionset_name].write_to_logger(logger)
-            logger.decrease_indent()
+            self.__logger.info("Condition Set '{0}':", conditionset_name)
+            self.__logger.increase_indent()
+            self.__condition_sets[conditionset_name].write_to_logger()
+            self.__logger.decrease_indent()
 
     # check if one of the conditions sets in the list is matching.
-    # logger: Instance of AbLogger to write log messages to
     # returns: True = one condition set is matching or no condition sets are defined, False: no condition set matching
-    def one_conditionset_matching(self, logger: AutoBlindLogger.AbLogger):
+    def one_conditionset_matching(self):
         if self.count() == 0:
-            logger.debug("No condition sets defined -> matching")
+            self.__logger.debug("No condition sets defined -> matching")
             return True
         for conditionset_name in self.__condition_sets:
-            if self.__condition_sets[conditionset_name].all_conditions_matching(logger):
+            if self.__condition_sets[conditionset_name].all_conditions_matching():
                 return True
         return False

@@ -114,7 +114,7 @@ class AbItem:
         self.__suspend_log()
 
         for state in self.__states:
-            state.write_to_log(self.__myLogger)
+            state.write_to_log()
 
     # Find the state, matching the current conditions and perform the actions of this state
     # caller: Caller that triggered the update
@@ -152,7 +152,7 @@ class AbItem:
             self.__delay = time.time() - self.__can_not_leave_current_state_since
 
         # check if current state can be left
-        if last_state is not None and not last_state.can_leave(self.__myLogger):
+        if last_state is not None and not last_state.can_leave():
             self.__myLogger.info("Can not leave current state, staying at {0} ('{1}')", last_state.id, last_state.name)
             can_leave_state = False
             new_state = last_state
@@ -165,7 +165,7 @@ class AbItem:
         if can_leave_state:
             # find new state
             for state in self.__states:
-                if state.can_enter(self.__myLogger):
+                if state.can_enter():
                     new_state = state
                     self.__can_not_leave_current_state_since = 0
                     break
@@ -181,7 +181,7 @@ class AbItem:
         else:
             # if current state can not be left, check if enter conditions are still valid.
             # If yes, set "can_not_leave_current_state_since" to 0
-            if new_state.can_enter(self.__myLogger):
+            if new_state.can_enter():
                 self.__can_not_leave_current_state_since = 0
 
         # get data for new state
@@ -200,7 +200,7 @@ class AbItem:
             self.__laststate_name = new_state.name
 
         if do_actions:
-            new_state.activate(self.__myLogger)
+            new_state.activate()
         else:
             self.__myLogger.info("Repeating actions is deactivated.")
 
