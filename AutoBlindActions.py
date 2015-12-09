@@ -30,6 +30,7 @@ class AbActions:
     def __init__(self, smarthome):
         self.__sh = smarthome
         self.__actions = {}
+        self.__unassigned_delays = {}
 
     # Return number of actions in list
     def count(self):
@@ -40,23 +41,48 @@ class AbActions:
     def update(self, item_state, attribute):
         # Split attribute in function and action name
         func,  action_name = AutoBlindTools.partition_strip(attribute, "_")
-        if func not in ("as_set", "as_trigger", "as_run", "as_delay") or action_name == "":
-            return
-
-        # Ensure action exists
-        if action_name not in self.__actions:
-            action = AutoBlindAction.AbAction(self.__sh, action_name)
-            self.__actions[action_name] = action
 
         # Set action depending on function
         if func == "as_set":
-            self.__actions[action_name].update_set(item_state, item_state.conf[attribute])
+            if action_name not in self.__actions:
+                action = AutoBlindAction.AbActionSetItem(self.__sh, action_name)
+                self.__try_assign_delay(action_name, action)
+                self.__actions[action_name] = action
+            self.__actions[action_name].update(item_state, item_state.conf[attribute])
+        elif func == "as_byattr":
+            if action_name not in self.__actions:
+                action = AutoBlindAction.AbActionSetByattr(self.__sh, action_name)
+                self.__try_assign_delay(action_name, action)
+                self.__actions[action_name] = action
+            self.__actions[action_name].update(item_state, item_state.conf[attribute])
         elif func == "as_trigger":
-            self.__actions[action_name].update_trigger(item_state.conf[attribute])
+            if action_name not in self.__actions:
+                action = AutoBlindAction.AbActionTrigger(self.__sh, action_name)
+                self.__try_assign_delay(action_name, action)
+                self.__actions[action_name] = action
+            self.__actions[action_name].update(item_state, item_state.conf[attribute])
         elif func == "as_run":
-            self.__actions[action_name].update_run(item_state.conf[attribute])
+            if action_name not in self.__actions:
+                action = AutoBlindAction.AbActionRun(self.__sh, action_name)
+                self.__try_assign_delay(action_name, action)
+                self.__actions[action_name] = action
+            self.__actions[action_name].update(item_state, item_state.conf[attribute])
         elif func == "as_delay":
-            self.__actions[action_name].update_delay(item_state.conf[attribute])
+            if action_name not in self.__actions:
+                # If we do not have the action yet (delay-attribute before action-attribute), ...
+                self.__add_unassigned_delay(action_name, item_state.conf[attribute])
+            else:
+                self.__actions[action_name].update_delay(item_state.conf[attribute])
+
+    # Add delay value to list of unassigned delay values
+    def __add_unassigned_delay(self, action_name, delay):
+        self.__unassigned_delays[action_name] = delay
+
+    # Try to assign a value from the list of unassigned delay values
+    def __try_assign_delay(self, action_name, action):
+        if action_name in self.__unassigned_delays:
+            action.update_delay(self.__unassigned_delays[action_name])
+            del self.__unassigned_delays[action_name]
 
     # Check the actions optimize and complete them
     # item_state: item to read from

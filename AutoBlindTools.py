@@ -207,3 +207,16 @@ def partition_strip(value, splitchar):
     else:
         part1, __, part2 = value.partition(splitchar)
         return part1.strip(), part2.strip()
+
+
+# return string representation of eval function
+# eval_func: eval function
+# returns: string representation
+def get_eval_name(eval_func):
+    if eval_func is None:
+        return None
+    if eval_func is not None:
+        if isinstance(eval_func, str):
+            return eval_func
+        else:
+            return eval_func.__module__ + "." + eval_func.__name__
