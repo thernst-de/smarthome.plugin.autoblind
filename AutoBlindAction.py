@@ -64,15 +64,14 @@ class AbActionBase:
         if not self._can_execute():
             return
 
-        actionname = "Action '{0}'".format(self._name) if self.__delay == 0 else "Delay Timer '{0}'".format(
-            self._scheduler_name)
-
         plan_next = self._sh.scheduler.return_next(self._scheduler_name)
         if plan_next is not None and plan_next > self._sh.now():
             self._logger.info("Action '{0}: Removing previous delay timer '{1}'.", self._name, self._scheduler_name)
             self._sh.scheduler.remove(self._scheduler_name)
 
         delay = 0 if self.__delay.is_empty() else self.__delay.get()
+        actionname = "Action '{0}'".format(self._name) if delay == 0 else "Delay Timer '{0}'".format(
+            self._scheduler_name)
         if delay == 0:
             self._execute(actionname)
         else:
@@ -176,7 +175,7 @@ class AbActionSetItem(AbActionBase):
 
         self._logger.debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
         # noinspection PyCallingNonCallable
-        self.__item(value, caller = "AutoBlind Plugin")
+        self.__item(value, caller="AutoBlind Plugin")
 
     # set item
     # item: value for item
@@ -223,7 +222,7 @@ class AbActionSetByattr(AbActionBase):
         self._logger.info("{0}: Setting values by attribute '{1}'.", actionname, self.__byattr)
         for item in self._sh.find_items(self.__byattr):
             self._logger.info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
-            item(item.conf[self.__byattr], caller = "AutoBlind Plugin")
+            item(item.conf[self.__byattr], caller="AutoBlind Plugin")
 
 
 # Class representing a single "as_trigger" action
