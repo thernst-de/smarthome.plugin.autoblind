@@ -75,7 +75,7 @@ class AutoBlind:
                                                                                                    log_level))
         log_maxage = AutoBlindTools.cast_num(log_maxage)
         if log_level > 0 and log_maxage > 0:
-            logger.info("AutoBlid extended log files will be deleted after {0} days.".format(log_maxage))
+            logger.info("AutoBlind extended log files will be deleted after {0} days.".format(log_maxage))
             AbLogger.set_logmaxage(log_maxage)
             self._sh.scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles,
                                    cron=['init', '30 0 * *'], offset=0)
