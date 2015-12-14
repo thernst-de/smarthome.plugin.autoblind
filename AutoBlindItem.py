@@ -378,7 +378,9 @@ class AbItem:
         self.__myLogger.debug("Manual operation: Change of item '{0}' by '{1}' (source='{2}', dest='{3}')",
                               item.id(), caller, source, dest)
         self.__myLogger.increase_indent()
-        if self.__lock_is_active():
+        if caller == "AutoBlind Plugin":
+            self.__myLogger.debug("Ignoring changes from AutoBlind Plugin")
+        elif self.__lock_is_active():
             self.__myLogger.debug("Automatic mode alreadylocked")
         else:
             self.__suspend_set()

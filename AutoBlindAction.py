@@ -176,7 +176,7 @@ class AbActionSetItem(AbActionBase):
 
         self._logger.debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
         # noinspection PyCallingNonCallable
-        self.__item(value)
+        self.__item(value, caller = "AutoBlind Plugin")
 
     # set item
     # item: value for item
@@ -223,7 +223,7 @@ class AbActionSetByattr(AbActionBase):
         self._logger.info("{0}: Setting values by attribute '{1}'.", actionname, self.__byattr)
         for item in self._sh.find_items(self.__byattr):
             self._logger.info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
-            item(item.conf[self.__byattr])
+            item(item.conf[self.__byattr], caller = "AutoBlind Plugin")
 
 
 # Class representing a single "as_trigger" action
