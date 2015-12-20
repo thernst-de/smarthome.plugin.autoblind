@@ -52,7 +52,7 @@ class AbItem:
         self.__suspend_item = None
         self.__suspend_until = None
         self.__suspend_time = None
-        self.__suspend_watch_items = []
+        self.__suspend_watch_items = {}
 
         self.__laststate_item_id = None
         self.__laststate_internal_id = ""
@@ -107,7 +107,7 @@ class AbItem:
         self.__myLogger.info("Cycle: {0}", cycles)
         self.__myLogger.info("Cron: {0}", crons)
         self.__myLogger.info("Startup Delay: {0}", self.__startup_delay)
-        self.__myLogger.info("Repeat actions if state is not changed: {0}",repeat)
+        self.__myLogger.info("Repeat actions if state is not changed: {0}", repeat)
 
         self.__laststate_log()
         self.__lock_log()
@@ -307,21 +307,115 @@ class AbItem:
     def __suspend_init(self):
         self.__suspend_item = AutoBlindTools.get_item_attribute(self.__item, "as_suspend_item", self.__sh)
         self.__suspend_until = None
-        self.__suspend_watch_items = []
+        self.__suspend_watch_items = {}
         self.__suspend_time = AutoBlindTools.get_num_attribute(self.__item, "as_suspend_time",
                                                                AutoBlindDefaults.suspend_time)
 
-        if "as_suspend_watch" in self.__item.conf:
-            suspend_on = self.__item.conf["as_suspend_watch"]
-        else:
-            return
+        for attribute in self.__item.conf:
+            if attribute == "as_suspend_watch":
+                suspend_on = self.__item.conf["as_suspend_watch"]
+                if isinstance(suspend_on, str):
+                    suspend_on = [suspend_on]
+                for entry in suspend_on:
+                    for item in self.__sh.match_items(entry):
+                        self.__suspend_add_watch_item(item)
+            elif attribute.startswith("as_suspend_watch_"):
+                item_id = AutoBlindTools.get_str_attribute(self.__item, attribute)
+                negate = False
+                limit_caller = None
+                limit_source = None
+                if item_id.startswith("!"):
+                    item_id = item_id[1:]
+                    negate = True
+                if ":" in item_id:
+                    item_id, __, limit_caller = item_id.partition(":")
+                if ";" in item_id:
+                    item_id, __, limit_source = item_id.partition(";")
+                if ";" in limit_caller:
+                    limit_caller, __, limit_source = limit_caller.partition(";")
+                item = self.__sh.return_item(item_id)
+                if item is not None:
+                    self.__suspend_add_watch_item(item, negate, limit_caller, limit_source)
 
-        if isinstance(suspend_on, str):
-            suspend_on = [suspend_on]
-        for entry in suspend_on:
-            for item in self.__sh.match_items(entry):
-                item.add_method_trigger(self.__suspend_watch_callback)
-                self.__suspend_watch_items.append(item)
+    # Add a single item for suspension
+    # item: item to add
+    # negate: condition is negated
+    # limit_caller: limitation for caller
+    # limit_source: limitation for source
+    def __suspend_add_watch_item(self, item, negate=False, limit_caller=None, limit_source=None):
+        item_id = item.id()
+        if item_id not in self.__suspend_watch_items:
+            item.add_method_trigger(self.__suspend_watch_callback)
+            self.__suspend_watch_items[item_id] = []
+
+        if limit_caller is not None or limit_source is not None:
+            self.__suspend_watch_items[item_id].append(
+                (negate, limit_caller, limit_source))
+
+    # check if suspension should be initiated when listening to change
+    # item: item that has been changed
+    # caller: caller that changed the item
+    # source: source that changed the item
+    def __suspend_check_watch_item(self, item, caller, source):
+        # Ignore if we do not have any records for this item
+        item_id = item.id()
+        if item_id not in self.__suspend_watch_items:
+            self.__myLogger.debug("Ignoring because item '{0}' is unknown.", item_id)
+            return False
+
+        # Handle if there are no limitations for this item
+        condition_list = self.__suspend_watch_items[item_id]
+        if len(condition_list) == 0:
+            self.__myLogger.debug("Executing because no conditions are given")
+            return True
+
+        # Check limitations
+        return_if_no_matching_condition = True
+        for (negate, limit_caller, limit_source) in condition_list:
+            # Ignore immediately if negative conditions are fulfilled
+            if limit_caller is not None or limit_source is not None:
+                condition_text = self.__suspend_get_condition_text(limit_caller, limit_source)
+                matching = True
+                if matching and limit_caller is not None:
+                    matching = caller == limit_caller
+                if matching and limit_source is not None:
+                    matching = source == limit_source
+                if matching:
+                    if negate:
+                        self.__myLogger.debug("Ignoring because of matching condition: {0}", condition_text)
+                        return False
+                    else:
+                        self.__myLogger.debug("Executing because of matching condition: {0}", condition_text)
+                        return True
+                else:
+                    if not negate:
+                        return_if_no_matching_condition = False
+                    self.__myLogger.debug("Continue after non-matching condition: {0}", condition_text)
+
+        # Ignore if neither negative nor positive conditions are fulfilled
+        if not return_if_no_matching_condition:
+            self.__myLogger.debug("Ignoring because no conditions match")
+        else:
+            self.__myLogger.debug("Executing because no conditions match")
+        return return_if_no_matching_condition
+
+    # Get text for condition
+    # caller: caller condition part
+    # source: source condition part
+    # compare: comparator ("is" or "is not")
+    def __suspend_get_condition_text(self, limit_caller, limit_source):
+        text = ""
+        if limit_caller is not None:
+            if text != "":
+                text += " and "
+            text += "caller is '{0}'".format(limit_caller)
+
+        if limit_source is not None:
+            if text != "":
+                text += " and "
+            text += "source is '{0}'".format(limit_source)
+
+        return text
 
     # Log suspension settings
     def __suspend_log(self):
@@ -332,7 +426,16 @@ class AbItem:
             self.__myLogger.info("Items causing suspension when changed:")
             self.__myLogger.increase_indent()
             for watch_manual_item in self.__suspend_watch_items:
-                self.__myLogger.info("{0} ('{1}')", watch_manual_item.id(), str(watch_manual_item))
+                self.__myLogger.info("{0}", watch_manual_item)
+                self.__myLogger.increase_indent()
+                for (negate, limit_caller, limit_source) in self.__suspend_watch_items[watch_manual_item]:
+                    if negate:
+                        text = "Not if " + self.__suspend_get_condition_text(limit_caller, limit_source)
+                    else:
+                        text = "Only if " + self.__suspend_get_condition_text(limit_caller, limit_source)
+                    self.__myLogger.info(text)
+                self.__myLogger.decrease_indent()
+
             self.__myLogger.decrease_indent()
 
     # suspend automatic mode for a given time
@@ -382,7 +485,7 @@ class AbItem:
             self.__myLogger.debug("Ignoring changes from AutoBlind Plugin")
         elif self.__lock_is_active():
             self.__myLogger.debug("Automatic mode alreadylocked")
-        else:
+        elif self.__suspend_check_watch_item(item, caller, source):
             self.__suspend_set()
         self.__myLogger.decrease_indent()
 
@@ -459,6 +562,7 @@ class AbItem:
                 continue
             state = AutoBlindState.AbState(self.__sh, item_state, self.__item, self, self.__myLogger)
             self.__states.append(state)
+
     # endregion
 
     # region Helper methods ********************************************************************************************
