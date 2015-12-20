@@ -61,6 +61,9 @@ class AbItem:
 
         self.__states = []
         self.__delay = 0
+        self.__update_caller = None
+        self.__update_source = None
+        self.__update_dest = None
         self.__actions = {}
         self.__can_not_leave_current_state_since = 0
         self.__repeat_actions = True
@@ -107,7 +110,7 @@ class AbItem:
         self.__myLogger.info("Cycle: {0}", cycles)
         self.__myLogger.info("Cron: {0}", crons)
         self.__myLogger.info("Startup Delay: {0}", self.__startup_delay)
-        self.__myLogger.info("Repeat actions if state is not changed: {0}",repeat)
+        self.__myLogger.info("Repeat actions if state is not changed: {0}", repeat)
 
         self.__laststate_log()
         self.__lock_log()
@@ -124,6 +127,14 @@ class AbItem:
         self.__myLogger.header("Update state of item {0}".format(self.__name))
         if caller:
             self.__myLogger.debug("Update triggered by {0} (source={1} dest={2})", caller, source, dest)
+            self.__update_caller = caller
+            self.__update_source = source
+            self.__update_dest = dest
+        else:
+            self.__update_caller = None
+            self.__update_source = None
+            self.__update_dest = None
+
 
         # check if locked
         if self.__lock_is_active():
@@ -534,3 +545,15 @@ class AbItem:
     # return id of last state
     def get_laststate_id(self):
         return self.__laststate_id
+
+    # return update caller
+    def get_update_caller(self):
+        return self.__update_caller
+
+    # return update source
+    def get_update_source(self):
+        return self.__update_source
+
+    # return update dest
+    def get_update_dest(self):
+        return self.__update_dest

@@ -48,11 +48,11 @@ class AbCondition:
         self.__item = None
         self.__eval = None
         self.__value = AutoBlindValue.AbValue(self.__sh, self.__logger, "value")
-        self.__min = AutoBlindValue.AbValue(self.__sh, self.__logger,  "min")
-        self.__max = AutoBlindValue.AbValue(self.__sh, self.__logger,  "max")
+        self.__min = AutoBlindValue.AbValue(self.__sh, self.__logger, "min")
+        self.__max = AutoBlindValue.AbValue(self.__sh, self.__logger, "max")
         self.__negate = False
-        self.__agemin = AutoBlindValue.AbValue(self.__sh, self.__logger,  "agemin")
-        self.__agemax = AutoBlindValue.AbValue(self.__sh, self.__logger,  "agemax")
+        self.__agemin = AutoBlindValue.AbValue(self.__sh, self.__logger, "agemin")
+        self.__agemax = AutoBlindValue.AbValue(self.__sh, self.__logger, "agemax")
         self.__agenegate = None
         self.__error = None
 
@@ -108,6 +108,12 @@ class AbCondition:
                 self.__eval = AutoBlindCurrent.values.get_month
             elif self.__name == "laststate":
                 self.__eval = abitem_object.get_laststate_id
+            elif self.__name == "update_caller":
+                self.__eval = abitem_object.get_update_caller
+            elif self.__name == "update_source":
+                self.__eval = abitem_object.get_update_source
+            elif self.__name == "update_dest":
+                self.__eval = abitem_object.get_update_dest
 
         # missing item in condition: Try to find it
         if self.__item is None:
@@ -132,7 +138,7 @@ class AbCondition:
                 self.__cast_all(self.__item.cast)
             elif self.__name in ("weekday", "sun_azimut", "sun_altitude", "age", "delay", "random", "month"):
                 self.__cast_all(AutoBlindTools.cast_num)
-            elif self.__name == "laststate":
+            elif self.__name in ("laststate", "update_caller", "update_source", "update_dest"):
                 self.__cast_all(AutoBlindTools.cast_str)
             elif self.__name == "time":
                 self.__cast_all(AutoBlindTools.cast_time)
