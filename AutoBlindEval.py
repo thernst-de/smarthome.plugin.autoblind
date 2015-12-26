@@ -18,38 +18,38 @@
 #  You should have received a copy of the GNU General Public License
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
+from . import AutoBlindTools
 from . import AutoBlindCurrent
 from . import AutoBlindLogger
 from random import randint
 import subprocess
 
 
-class AbEval:
+class AbEval(AutoBlindTools.AbItemChild):
     # Initialize
-    # logger: Instance of AbLogger to write log messages to
-    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger):
-        self.__sh = smarthome
-        self.__logger = logger
+    # abitem: parent AbItem instance
+    def __init__(self, abitem):
+        super().__init__(abitem)
 
     # Get lamella angle based on sun_altitute for sun tracking
     def sun_tracking(self):
-        self.__logger.debug("Executing method 'SunTracking'")
-        self.__logger.increase_indent()
+        self._log_debug("Executing method 'SunTracking'")
+        self._log_increase_indent()
 
         altitude = AutoBlindCurrent.values.get_sun_altitude()
-        self.__logger.debug("Current sun altitude is {0}°", altitude)
+        self._log_debug("Current sun altitude is {0}°", altitude)
 
         value = 90 - altitude
-        self.__logger.debug("Blinds at right angle to the sun at {0}°", value)
+        self._log_debug("Blinds at right angle to the sun at {0}°", value)
 
-        self.__logger.decrease_indent()
+        self._log_decrease_indent()
         return value
 
     # Return random integer
     # min_value: minimum value for random integer (default 0)
     # max_value: maximum value for random integer (default 255)
     def get_random_int(self, min_value=0, max_value=255):
-        self.__logger.debug("Executing method 'GetRandomInt({0},{1}'", min_value, max_value)
+        self._log_debug("Executing method 'GetRandomInt({0},{1}'", min_value, max_value)
         return randint(min_value, max_value)
 
     # Execute a command
@@ -58,4 +58,12 @@ class AbEval:
         try:
             return subprocess.call(command, shell=True)
         except Exception as ex:
-            self.__logger.exception(ex)
+            self._log_exception(ex)
+
+    # Return a variable
+    # varname: name of variable to return
+    def get_variable(self, varname):
+        try:
+            return self._abitem.get_variable(varname)
+        except Exception as ex:
+            self._log_exception(ex)

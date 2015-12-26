@@ -122,7 +122,7 @@ class AbValue(AutoBlindTools.AbItemChild):
             sh = self._sh
             if self.__eval.startswith("autoblind_eval"):
                 # noinspection PyUnusedLocal
-                autoblind_eval = AutoBlindEval.AbEval(self._sh, self._abitem.logger)
+                autoblind_eval = AutoBlindEval.AbEval(self._abitem)
             try:
                 value = eval(self.__eval)
             except Exception as e:
