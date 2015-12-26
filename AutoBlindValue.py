@@ -19,19 +19,16 @@
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 from . import AutoBlindTools
-from . import AutoBlindLogger
 from . import AutoBlindEval
 
 
 # Class representing a value for a condition (either value or via item/eval)
-class AbValue:
+class AbValue(AutoBlindTools.AbItemChild):
     # Constructor
-    # smarthome: Instance of smarthome.py-class
-    # logger: Instance of AbLogger to write to
+    # abitem: parent AbItem instance
     # name: Name of value
-    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name):
-        self.__sh = smarthome
-        self.__logger = logger
+    def __init__(self, abitem, name):
+        super().__init__(abitem)
         self.__name = name
         self.__value = None
         self.__item = None
@@ -61,7 +58,7 @@ class AbValue:
             self.__eval = None
         elif source == "item":
             self.__value = None
-            self.__item = self.__sh.return_item(field_value)
+            self.__item = self._sh.return_item(field_value)
             self.__eval = None
         elif source == "eval":
             self.__value = None
@@ -100,11 +97,11 @@ class AbValue:
             return
 
         if self.__value is not None:
-            self.__logger.debug("{0}: {1}", self.__name, self.__value)
+            self._log_debug("{0}: {1}", self.__name, self.__value)
         if self.__item is not None:
-            self.__logger.debug("{0} from item: {1}", self.__name, self.__item.id())
+            self._log_debug("{0} from item: {1}", self.__name, self.__item.id())
         if self.__eval is not None:
-            self.__logger.debug("{0} from eval: {1}", self.__name, self.__eval)
+            self._log_debug("{0} from eval: {1}", self.__name, self.__eval)
 
     # Cast given value, if cast-function is set
     # value: value to cast
@@ -114,7 +111,7 @@ class AbValue:
                 # noinspection PyCallingNonCallable
                 value = self.__cast_func(value)
             except Exception as e:
-                self.__logger.info("Problem casting value '{0}': {1}.", value, e)
+                self._log_info("Problem casting value '{0}': {1}.", value, e)
                 return None
 
         return value
@@ -123,21 +120,21 @@ class AbValue:
     def __get_eval(self):
         if isinstance(self.__eval, str):
             # noinspection PyUnusedLocal
-            sh = self.__sh
+            sh = self._sh
             if self.__eval.startswith("autoblind_eval"):
                 # noinspection PyUnusedLocal
-                autoblind_eval = AutoBlindEval.AbEval(self.__sh, self.__logger)
+                autoblind_eval = AutoBlindEval.AbEval(self._sh, self._abitem.logger)
             try:
                 value = eval(self.__eval)
             except Exception as e:
-                self.__logger.info("Problem evaluating '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), e)
+                self._log_info("Problem evaluating '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), e)
                 return None
         else:
             try:
                 # noinspection PyCallingNonCallable
                 value = self.__eval()
             except Exception as e:
-                self.__logger.info("Problem calling '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), e)
+                self._log_info("Problem calling '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), e)
                 return None
 
         return self.__do_cast(value)
@@ -148,7 +145,7 @@ class AbValue:
             # noinspection PyCallingNonCallable
             value = self.__item()
         except Exception as e:
-            self.__logger.info("Problem while reading item '{0}': {1}.", self.__item.id(), e)
+            self._log_info("Problem while reading item '{0}': {1}.", self.__item.id(), e)
             return None
 
         return self.__do_cast(value)

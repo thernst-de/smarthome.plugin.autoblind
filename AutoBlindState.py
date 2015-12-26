@@ -20,16 +20,15 @@
 #########################################################################
 from . import AutoBlindTools
 from . import AutoBlindConditionSets
-from . import AutoBlindLogger
 from . import AutoBlindActions
 
 
 # Class representing an object state, consisting of name, conditions to be met and configured actions for state
-class AbState:
+class AbState(AutoBlindTools.AbItemChild):
     # Return id of state (= id of defining item)
     @property
     def id(self):
-        return self.__item.id()
+        return self.__id
 
     # Return name of state
     @property
@@ -37,92 +36,90 @@ class AbState:
         return self.__name
 
     # Constructor
-    # smarthome: instance of smarthome
+    # abitem: parent AbItem instance
     # item_state: item containing configuration of state
-    # logger: Instance of AbLogger to write log messages to
-    def __init__(self, smarthome, item_state, item_autoblind, abitem_object, logger: AutoBlindLogger.AbLogger):
-        self.__sh = smarthome
-        self.__logger = logger
+    def __init__(self, abitem, item_state):
+        super().__init__(abitem)
         self.__item = item_state
+        self.__id = self.__item.id()
         self.__name = ""
-        self.__enterConditionSets = AutoBlindConditionSets.AbConditionSets(self.__sh, self.__logger)
-        self.__leaveConditionSets = AutoBlindConditionSets.AbConditionSets(self.__sh, self.__logger)
-        self.__actions = AutoBlindActions.AbActions(self.__sh, self.__logger)
-
-        self.__logger.info("Init state {}", item_state.id())
-        self.__fill(self.__item, 0, item_autoblind, abitem_object)
+        self.__enterConditionSets = AutoBlindConditionSets.AbConditionSets(self._abitem)
+        self.__leaveConditionSets = AutoBlindConditionSets.AbConditionSets(self._abitem)
+        self.__actions = AutoBlindActions.AbActions(self._abitem)
+        self._log_info("Init state {}", item_state.id())
+        self.__fill(self.__item, 0)
 
     # Check conditions if state can be entered
     # returns: True = At least one enter condition set is fulfulled, False = No enter condition set is fulfilled
     def can_enter(self):
-        self.__logger.info("Check if state '{0}' ('{1}') can be entered:", self.id, self.name)
-        self.__logger.increase_indent()
+        self._log_info("Check if state '{0}' ('{1}') can be entered:", self.id, self.name)
+        self._log_increase_indent()
         result = self.__enterConditionSets.one_conditionset_matching()
-        self.__logger.decrease_indent()
+        self._log_decrease_indent()
         if result:
-            self.__logger.info("State can be entered")
+            self._log_info("State can be entered")
         else:
-            self.__logger.info("State can not be entered")
+            self._log_info("State can not be entered")
         return result
 
     # Check conditions if state can be left
     # returns: True = At least one leave condition set is fulfulled, False = No leave condition set is fulfilled
     def can_leave(self):
-        self.__logger.info("Check if state '{0}' ('{1}') can be left:", self.id, self.name)
-        self.__logger.increase_indent()
+        self._log_info("Check if state '{0}' ('{1}') can be left:", self.id, self.name)
+        self._log_increase_indent()
         result = self.__leaveConditionSets.one_conditionset_matching()
-        self.__logger.decrease_indent()
+        self._log_decrease_indent()
         if result:
-            self.__logger.info("State can be left")
+            self._log_info("State can be left")
         else:
-            self.__logger.info("State can not be left")
+            self._log_info("State can not be left")
         return result
 
     # log state data
     def write_to_log(self):
-        self.__logger.info("State {0}:", self.id)
-        self.__logger.increase_indent()
-        self.__logger.info("Name: {0}", self.__name)
+        self._log_info("State {0}:", self.id)
+        self._log_increase_indent()
+        self._log_info("Name: {0}", self.name)
         if self.__enterConditionSets.count() > 0:
-            self.__logger.info("Condition sets to enter state:")
-            self.__logger.increase_indent()
+            self._log_info("Condition sets to enter state:")
+            self._log_increase_indent()
             self.__enterConditionSets.write_to_logger()
-            self.__logger.decrease_indent()
+            self._log_decrease_indent()
         if self.__leaveConditionSets.count() > 0:
-            self.__logger.info("Condition sets to leave state:")
-            self.__logger.increase_indent()
+            self._log_info("Condition sets to leave state:")
+            self._log_increase_indent()
             self.__leaveConditionSets.write_to_logger()
-            self.__logger.decrease_indent()
+            self._log_decrease_indent()
         if self.__actions.count() > 0:
-            self.__logger.info("Actions to perform if state becomes active:")
-            self.__logger.increase_indent()
+            self._log_info("Actions to perform if state becomes active:")
+            self._log_increase_indent()
             self.__actions.write_to_logger()
-            self.__logger.decrease_indent()
-        self.__logger.decrease_indent()
+            self._log_decrease_indent()
+        self._log_decrease_indent()
 
     # activate state
     def activate(self):
-        self.__logger.increase_indent()
+        self._log_increase_indent()
         self.__actions.execute()
-        self.__logger.decrease_indent()
+        self._log_decrease_indent()
 
     # Read configuration from item and populate data in class
     # item_state: item to read from
     # recursion_depth: current recursion_depth (recursion is canceled after five levels)
     # item_autoblind: AutoBlind-Item defining items for conditions
     # abitem_object: Related AbItem instance for later determination of current age and current delay
-    def __fill(self, item_state, recursion_depth, item_autoblind, abitem_object):
+    def __fill(self, item_state, recursion_depth):
         if recursion_depth > 5:
-            self.__logger.error("{0}/{1}: to many levels of 'use'", self.__item.id(), item_state.id())
+            self._log_error("{0}/{1}: to many levels of 'use'", self.id, item_state.id())
             return
 
         # Import data from other item if attribute "use" is found
         if "as_use" in item_state.conf:
-            use_item = self.__sh.return_item(item_state.conf["as_use"])
+            use_item = self._sh.return_item(item_state.conf["as_use"])
             if use_item is not None:
-                self.__fill(use_item, recursion_depth + 1, item_autoblind, abitem_object)
+                self.__fill(use_item, recursion_depth + 1)
             else:
-                self.__logger.error("{0}: Referenced item '{1}' not found!", item_state.id(), item_state.conf["as_use"])
+                self._log_error("{0}: Referenced item '{1}' not found!", item_state.id(), item_state.conf["as_use"])
 
         # Get condition sets
         parent_item = item_state.return_parent()
@@ -130,10 +127,11 @@ class AbState:
         for item_conditionset in items_conditionsets:
             condition_name = AutoBlindTools.get_last_part_of_item_id(item_conditionset)
             if condition_name == "enter" or condition_name.startswith("enter_"):
-                self.__enterConditionSets.fill(condition_name, item_conditionset, parent_item)
+                self.__enterConditionSets.update(condition_name, item_conditionset, parent_item)
             elif condition_name == "leave" or condition_name.startswith("leave_"):
-                self.__leaveConditionSets.fill(condition_name, item_conditionset, parent_item)
+                self.__leaveConditionSets.update(condition_name, item_conditionset, parent_item)
 
+        # Get actions
         for attribute in item_state.conf:
             self.__actions.update(item_state, attribute)
 
@@ -144,6 +142,6 @@ class AbState:
 
         # Complete condition sets and actions at the end
         if recursion_depth == 0:
-            self.__enterConditionSets.complete(item_state, abitem_object)
-            self.__leaveConditionSets.complete(item_state, abitem_object)
+            self.__enterConditionSets.complete(item_state)
+            self.__leaveConditionSets.complete(item_state)
             self.__actions.complete(item_state)

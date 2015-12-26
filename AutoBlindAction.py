@@ -19,14 +19,13 @@
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 from . import AutoBlindTools
-from . import AutoBlindLogger
 from . import AutoBlindEval
 from . import AutoBlindValue
 import datetime
 
 
 # Base class from which all action classes are derived
-class AbActionBase:
+class AbActionBase(AutoBlindTools.AbItemChild):
     # Cast function for delay
     # value: value to cast
     @staticmethod
@@ -41,14 +40,12 @@ class AbActionBase:
             return value
 
     # Initialize the action
-    # smarthome: Instance of smarthome.py-class
-    # logger: Instance of AbLogger to write to
+    # abitem: parent AbItem instance
     # name: Name of action
-    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
-        self._sh = smarthome
-        self._logger = logger
+    def __init__(self, abitem, name: str):
+        super().__init__(abitem)
         self._name = name
-        self.__delay = AutoBlindValue.AbValue(self._sh, self._logger, "delay")
+        self.__delay = AutoBlindValue.AbValue(self._abitem, "delay")
         self._scheduler_name = None
 
     def update_delay(self, value):
@@ -66,7 +63,7 @@ class AbActionBase:
 
         plan_next = self._sh.scheduler.return_next(self._scheduler_name)
         if plan_next is not None and plan_next > self._sh.now():
-            self._logger.info("Action '{0}: Removing previous delay timer '{1}'.", self._name, self._scheduler_name)
+            self._log_info("Action '{0}: Removing previous delay timer '{1}'.", self._name, self._scheduler_name)
             self._sh.scheduler.remove(self._scheduler_name)
 
         delay = 0 if self.__delay.is_empty() else self.__delay.get()
@@ -75,8 +72,8 @@ class AbActionBase:
         if delay == 0:
             self._execute(actionname)
         else:
-            self._logger.info("Action '{0}: Add {1} second timer '{2}' for delayed execution.", self._name,
-                              delay, self._scheduler_name)
+            self._log_info("Action '{0}: Add {1} second timer '{2}' for delayed execution.", self._name, delay,
+                           self._scheduler_name)
             next_run = self._sh.now() + datetime.timedelta(seconds=delay)
             self._sh.scheduler.add(self._scheduler_name, self._execute, value={'actionname': actionname}, next=next_run)
 
@@ -93,7 +90,7 @@ class AbActionBase:
 
     # Check if execution is possible
     def _can_execute(self):
-        raise NotImplementedError("Class %s doesn't implement _can_execute()" % self.__class__.__name__)
+        return True
 
     # Really execute the action (needs to be implemented in derived classes)
     def _execute(self, actionname: str):
@@ -103,14 +100,13 @@ class AbActionBase:
 # Class representing a single "as_set" action
 class AbActionSetItem(AbActionBase):
     # Initialize the action
-    # smarthome: Instance of smarthome.py-class
-    # logger: Instance of AbLogger to write to
+    # abitem: parent AbItem instance
     # name: Name of action
-    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
-        AbActionBase.__init__(self, smarthome, logger, name)
+    def __init__(self, abitem, name: str):
+        super().__init__(abitem, name)
         self.__item = None
-        self.__value = AutoBlindValue.AbValue(self._sh, self._logger, "value")
-        self.__mindelta = AutoBlindValue.AbValue(self._sh, self._logger, "mindelta")
+        self.__value = AutoBlindValue.AbValue(self._abitem, "value")
+        self.__mindelta = AutoBlindValue.AbValue(self._abitem, "mindelta")
 
     # set the action based on a set_(action_name) attribute
     # item_state: state item to read from
@@ -123,14 +119,17 @@ class AbActionSetItem(AbActionBase):
     def complete(self, item_state):
         # missing item in action: Try to find it.
         if self.__item is None:
-            result = AutoBlindTools.find_attribute(self._sh, item_state, "as_item_" + self._name)
-            if result is not None:
-                self.__set_item(result)
+            item = AutoBlindTools.find_attribute(self._sh, item_state, "as_item_" + self._name)
+            if item is not None:
+                if isinstance(item, str):
+                    self.__item = self._sh.return_item(item)
+                else:
+                    self.__item = item
 
         if self.__mindelta.is_empty():
-            result = AutoBlindTools.find_attribute(self._sh, item_state, "as_mindelta_" + self._name)
-            if result is not None:
-                self.__mindelta.set(result, "")
+            mindelta = AutoBlindTools.find_attribute(self._sh, item_state, "as_mindelta_" + self._name)
+            if mindelta is not None:
+                self.__mindelta.set(mindelta, "")
 
         if self.__item is not None:
             self.__value.set_cast(self.__item.cast)
@@ -141,18 +140,18 @@ class AbActionSetItem(AbActionBase):
     def write_to_logger(self):
         AbActionBase.write_to_logger(self)
         if self.__item is not None:
-            self._logger.debug("item: {0}", self.__item.id())
+            self._log_debug("item: {0}", self.__item.id())
         self.__mindelta.write_to_logger()
         self.__value.write_to_logger()
 
     # Check if execution is possible
     def _can_execute(self):
         if self.__item is None:
-            self._logger.info("Action '{0}': No item defined. Ignoring.", self._name)
+            self._log_info("Action '{0}': No item defined. Ignoring.", self._name)
             return False
 
         if self.__value.is_empty():
-            self._logger.info("Action '{0}': No value defined. Ignoring.", self._name)
+            self._log_info("Action '{0}': No value defined. Ignoring.", self._name)
             return False
 
         return True
@@ -168,32 +167,23 @@ class AbActionSetItem(AbActionBase):
             # noinspection PyCallingNonCallable
             delta = float(abs(self.__item() - value))
             if delta < mindelta:
-                self._logger.debug(
+                self._log_debug(
                     "{0}: Not setting '{1}' to '{2}' because delta '{3:.2}' is lower than mindelta '{4}'", actionname,
                     self.__item.id(), value, delta, mindelta)
                 return
 
-        self._logger.debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
+        self._log_debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
         # noinspection PyCallingNonCallable
         self.__item(value, caller="AutoBlind Plugin")
-
-    # set item
-    # item: value for item
-    def __set_item(self, item):
-        if isinstance(item, str):
-            self.__item = self._sh.return_item(item)
-        else:
-            self.__item = item
 
 
 # Class representing a single "as_setbyattr" action
 class AbActionSetByattr(AbActionBase):
     # Initialize the action
-    # smarthome: Instance of smarthome.py-class
-    # logger: Instance of AbLogger to write to
+    # abitem: parent AbItem instance
     # name: Name of action
-    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
-        AbActionBase.__init__(self, smarthome, logger, name)
+    def __init__(self, abitem, name: str):
+        super().__init__(abitem, name)
         self.__byattr = None
 
     # set the action based on a set_(action_name) attribute
@@ -211,28 +201,23 @@ class AbActionSetByattr(AbActionBase):
     def write_to_logger(self):
         AbActionBase.write_to_logger(self)
         if self.__byattr is not None:
-            self._logger.debug("set by attriute: {0}", self.__byattr)
-
-    # Check if execution is possible
-    def _can_execute(self):
-        return True
+            self._log_debug("set by attriute: {0}", self.__byattr)
 
     # Really execute the action
     def _execute(self, actionname: str):
-        self._logger.info("{0}: Setting values by attribute '{1}'.", actionname, self.__byattr)
+        self._log_info("{0}: Setting values by attribute '{1}'.", actionname, self.__byattr)
         for item in self._sh.find_items(self.__byattr):
-            self._logger.info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
+            self._log_info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
             item(item.conf[self.__byattr], caller="AutoBlind Plugin")
 
 
 # Class representing a single "as_trigger" action
 class AbActionTrigger(AbActionBase):
     # Initialize the action
-    # smarthome: Instance of smarthome.py-class
-    # logger: Instance of AbLogger to write to
+    # abitem: parent AbItem instance
     # name: Name of action
-    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
-        AbActionBase.__init__(self, smarthome, logger, name)
+    def __init__(self, abitem, name: str):
+        super().__init__(abitem, name)
         self.__logic = None
         self.__value = None
 
@@ -253,29 +238,24 @@ class AbActionTrigger(AbActionBase):
     def write_to_logger(self):
         AbActionBase.write_to_logger(self)
         if self.__logic is not None:
-            self._logger.debug("trigger logic: {0}", self.__logic)
+            self._log_debug("trigger logic: {0}", self.__logic)
         if self.__value is not None:
-            self._logger.debug("value: {0}", self.__value)
-
-    # Check if execution is possible
-    def _can_execute(self):
-        return True
+            self._log_debug("value: {0}", self.__value)
 
     # Really execute the action
     def _execute(self, actionname: str):
         # Trigger logic
-        self._logger.info("{0}: Triggering logic '{1}' using value '{2}'.", actionname, self.__logic, self.__value)
+        self._log_info("{0}: Triggering logic '{1}' using value '{2}'.", actionname, self.__logic, self.__value)
         self._sh.trigger(self.__logic, by="AutoBlind Plugin", source=self._name, value=self.__value)
 
 
 # Class representing a single "as_run" action
 class AbActionRun(AbActionBase):
     # Initialize the action
-    # smarthome: Instance of smarthome.py-class
-    # logger: Instance of AbLogger to write to
+    # abitem: parent AbItem instance
     # name: Name of action
-    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name: str):
-        AbActionBase.__init__(self, smarthome, logger, name)
+    def __init__(self, abitem, name: str):
+        super().__init__(abitem, name)
         self.__eval = None
 
     # set the action based on a set_(action_name) attribute
@@ -299,11 +279,7 @@ class AbActionRun(AbActionBase):
     def write_to_logger(self):
         AbActionBase.write_to_logger(self)
         if self.__eval is not None:
-            self._logger.debug("eval: {0}", AutoBlindTools.get_eval_name(self.__eval))
-
-    # Check if execution is possible
-    def _can_execute(self):
-        return True
+            self._log_debug("eval: {0}", AutoBlindTools.get_eval_name(self.__eval))
 
     # Really execute the action
     def _execute(self, actionname: str):
@@ -312,11 +288,11 @@ class AbActionRun(AbActionBase):
             sh = self._sh
             if self.__eval.startswith("autoblind_eval"):
                 # noinspection PyUnusedLocal
-                autoblind_eval = AutoBlindEval.AbEval(self._sh, self._logger)
+                autoblind_eval = AutoBlindEval.AbEval(self._sh, self._abitem.logger)
             try:
                 eval(self.__eval)
             except Exception as e:
-                self._logger.error(
+                self._log_error(
                     "{0}: Problem evaluating '{1}': {2}.".format(actionname, AutoBlindTools.get_eval_name(self.__eval),
                                                                  e))
         else:
@@ -324,5 +300,5 @@ class AbActionRun(AbActionBase):
                 # noinspection PyCallingNonCallable
                 self.__eval()
             except Exception as e:
-                self._logger.error(
+                self._log_error(
                     "{0}: Problem calling '{0}': {1}.".format(actionname, AutoBlindTools.get_eval_name(self.__eval), e))

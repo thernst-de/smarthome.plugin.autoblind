@@ -45,6 +45,10 @@ class AbItem:
     def logger(self):
         return self.__logger
 
+    # return main autoblind item
+    def item(self):
+        return self.__item
+
     # Constructor
     # smarthome: instance of smarthome.py
     # item: item to use
@@ -95,7 +99,7 @@ class AbItem:
 
         # initialize states
         for item_state in self.__item.return_children():
-            self.__states.append(AutoBlindState.AbState(self.__sh, item_state, self.__item, self, self.__logger))
+            self.__states.append(AutoBlindState.AbState(self, item_state))
         if len(self.__states) == 0:
             raise ValueError("{0}: No states defined!".format(self.id))
 
@@ -448,6 +452,7 @@ class AbItem:
         # log states
         for state in self.__states:
             state.write_to_log()
+
     # endregion
 
     # region Methods for CLI commands **********************************************************************************
@@ -466,6 +471,7 @@ class AbItem:
         handler.push("\tCron: {0}\n".format(crons))
         handler.push("\tTrigger: {0}\n".format(triggers))
         handler.push("\tRepeat actions if state is not changed: {0}\n".format(repeat))
+
     # endregion
 
     # return age of item

@@ -19,12 +19,11 @@
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 from . import AutoBlindCondition
-from . import AutoBlindLogger
 from . import AutoBlindTools
 
 
 # Class representing a set of conditions
-class AbConditionSet:
+class AbConditionSet(AutoBlindTools.AbItemChild):
     # Name of condition set
     @property
     def name(self):
@@ -36,12 +35,10 @@ class AbConditionSet:
         return self.__conditions
 
     # Initialize the condition set
-    # smarthome: Instance of smarthome.py-class
-    # logger: Instance of AbLogger to write log messages to
+    # abitem: parent AbItem instance
     # name: Name of condition set
-    def __init__(self, smarthome, logger: AutoBlindLogger.AbLogger, name):
-        self.__sh = smarthome
-        self.__logger = logger
+    def __init__(self, abitem, name):
+        super().__init__(abitem)
         self.__name = name
         self.__conditions = {}
 
@@ -59,11 +56,11 @@ class AbConditionSet:
 
                     # update this condition
                     if name not in self.__conditions:
-                        self.__conditions[name] = AutoBlindCondition.AbCondition(self.__sh, self.__logger, name)
+                        self.__conditions[name] = AutoBlindCondition.AbCondition(self._abitem, name)
                     self.__conditions[name].set(func, item.conf[attribute])
 
                 except ValueError as ex:
-                    self.__logger.exception(ex)
+                    self._log_exception(ex)
 
         # Update item from grandparent_item
         for attribute in grandparent_item.conf:
@@ -74,49 +71,48 @@ class AbConditionSet:
             # update item/eval in this condition
             if func == "as_item" or func == "as_eval":
                 if name not in self.__conditions:
-                    self.__conditions[name] = AutoBlindCondition.AbCondition(self.__sh, self.__logger, name)
+                    self.__conditions[name] = AutoBlindCondition.AbCondition(self._abitem, name)
                 self.__conditions[name].set(func, grandparent_item.conf[attribute])
 
     # Check the condition set, optimize and complete it
     # item_state: item to read from
-    # abitem_object: Related AbItem instance for later determination of current age and current delay
-    def complete(self, item_state, abitem_object):
+    def complete(self, item_state):
         conditions_to_remove = []
         # try to complete conditions
-        for condition_name in self.conditions:
+        for name in self.conditions:
             try:
-                if not self.__conditions[condition_name].complete(item_state, abitem_object):
-                    conditions_to_remove.append(condition_name)
+                if not self.__conditions[name].complete(item_state):
+                    conditions_to_remove.append(name)
                     continue
-                error = self.__conditions[condition_name].error
+                error = self.__conditions[name].error
             except ValueError as ex:
                 error = str(ex)
             if error is not None:
-                self.__logger.error(
-                    "Item '{0}', Condition Set '{1}', condition '{2}': {3}".format(item_state.id(), self.name,
-                                                                                   condition_name, error))
+                self._log_error(
+                    "Item '{0}', Condition Set '{1}', condition '{2}': {3}".format(item_state.id(), self.name, name,
+                                                                                   error))
 
         # Remove incomplete conditions
-        for condition_name in conditions_to_remove:
-            del self.conditions[condition_name]
+        for name in conditions_to_remove:
+            del self.conditions[name]
 
     # Write the whole condition set to the logger
     def write_to_logger(self):
-        for condition_name in self.__conditions:
-            self.__logger.info("Condition '{0}':", condition_name)
-            self.__logger.increase_indent()
-            self.__conditions[condition_name].write_to_logger()
-            self.__logger.decrease_indent()
+        for name in self.__conditions:
+            self._log_info("Condition '{0}':", name)
+            self._log_increase_indent()
+            self.__conditions[name].write_to_logger()
+            self._log_decrease_indent()
 
     # Check all conditions in the condition set. Return
     # returns: True = all conditions in set are matching, False = at least one condition is not matching
     def all_conditions_matching(self):
         try:
-            self.__logger.info("Check condition set '{0}':", self.__name)
-            self.__logger.increase_indent()
-            for condition_name in self.__conditions:
-                if not self.__conditions[condition_name].check():
+            self._log_info("Check condition set '{0}':", self.__name)
+            self._log_increase_indent()
+            for name in self.__conditions:
+                if not self.__conditions[name].check():
                     return False
             return True
         finally:
-            self.__logger.decrease_indent()
+            self._log_decrease_indent()
