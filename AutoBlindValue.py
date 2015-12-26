@@ -34,10 +34,11 @@ class AbValue(AutoBlindTools.AbItemChild):
         self.__item = None
         self.__eval = None
         self.__cast_func = None
+        self.__varname = None
 
     # Indicate of object is empty (neither value nor item nor eval set)
     def is_empty(self):
-        return self.__value is None and self.__item is None and self.__eval is None
+        return self.__value is None and self.__item is None and self.__eval is None and self.__varname is None
 
     # Set value
     # value: string indicating value or source of value
@@ -52,18 +53,10 @@ class AbValue(AutoBlindTools.AbItemChild):
             field_value = source
             source = "value"
 
-        if source == "value":
-            self.__value = field_value
-            self.__item = None
-            self.__eval = None
-        elif source == "item":
-            self.__value = None
-            self.__item = self._sh.return_item(field_value)
-            self.__eval = None
-        elif source == "eval":
-            self.__value = None
-            self.__item = None
-            self.__eval = field_value
+        self.__value = None if source != "value" else field_value
+        self.__item = None if source != "item" else self._sh.return_item(field_value)
+        self.__eval = None if source != "eval" else field_value
+        self.__varname = None if source != "var" else field_value
 
     # Set cast function
     # cast_func: cast function
@@ -79,6 +72,8 @@ class AbValue(AutoBlindTools.AbItemChild):
             return self.__get_eval()
         elif self.__item is not None:
             return self.__get_from_item()
+        elif self.__varname is not None:
+            return self.__get_from_variable()
 
     def get_type(self):
         if self.__value is not None:
@@ -87,6 +82,8 @@ class AbValue(AutoBlindTools.AbItemChild):
             return "item"
         elif self.__eval is not None:
             return "eval"
+        elif self.__varname is not None:
+            return "var"
         else:
             return None
 
@@ -102,6 +99,8 @@ class AbValue(AutoBlindTools.AbItemChild):
             self._log_debug("{0} from item: {1}", self.__name, self.__item.id())
         if self.__eval is not None:
             self._log_debug("{0} from eval: {1}", self.__name, self.__eval)
+        if self.__varname is not None:
+            self._log_debug("{0} from variable: {1}", self.__name, self.__varname)
 
     # Cast given value, if cast-function is set
     # value: value to cast
@@ -146,6 +145,16 @@ class AbValue(AutoBlindTools.AbItemChild):
             value = self.__item()
         except Exception as e:
             self._log_info("Problem while reading item '{0}': {1}.", self.__item.id(), e)
+            return None
+
+        return self.__do_cast(value)
+
+    # Fetermine value from variable
+    def __get_from_variable(self):
+        try:
+            value = self._abitem.get_variable(self.__varname)
+        except Exception as e:
+            self._log_info("Problem while reading variable '{0}': {1}.", self.__varname, e)
             return None
 
         return self.__do_cast(value)

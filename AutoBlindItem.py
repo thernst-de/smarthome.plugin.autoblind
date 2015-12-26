@@ -102,6 +102,12 @@ class AbItem:
         # Check item configuration
         self.__check_item_config()
 
+        self.__variables = {
+            "item.suspend_time": self.__suspend_time,
+            "current.state_id": "",
+            "current.state_name": ""
+        }
+
         # initialize states
         for item_state in self.__item.return_children():
             self.__states.append(AutoBlindState.AbState(self, item_state))
@@ -161,7 +167,7 @@ class AbItem:
             self.__delay = time.time() - self.__can_not_leave_current_state_since
 
         # check if current state can be left
-        if last_state is not None and not last_state.can_leave():
+        if last_state is not None and not self.__update_check_can_leave(last_state):
             self.__logger.info("Can not leave current state, staying at {0} ('{1}')", last_state.id, last_state.name)
             can_leave_state = False
             new_state = last_state
@@ -174,7 +180,7 @@ class AbItem:
         if can_leave_state:
             # find new state
             for state in self.__states:
-                if state.can_enter():
+                if self.__update_check_can_enter(state):
                     new_state = state
                     self.__can_not_leave_current_state_since = 0
                     break
@@ -211,6 +217,28 @@ class AbItem:
             new_state.activate()
         else:
             self.__logger.info("Repeating actions is deactivated.")
+
+    # check if state can be left after setting state-specific variables
+    # state: state to check
+    def __update_check_can_leave(self, state):
+        try:
+            self.__variables["current.state_id"] = state.id
+            self.__variables["current.state_name"] = state.name
+            return state.can_leave()
+        finally:
+            self.__variables["current.state_id"] = ""
+            self.__variables["current.state_name"] = ""
+
+    # check if state can be entered after setting state-specific variables
+    # state: state to check
+    def __update_check_can_enter(self, state):
+        try:
+            self.__variables["current.state_id"] = state.id
+            self.__variables["current.state_name"] = state.name
+            return state.can_enter()
+        finally:
+            self.__variables["current.state_id"] = ""
+            self.__variables["current.state_name"] = ""
 
     # region Laststate *************************************************************************************************
     # Set laststate
@@ -516,3 +544,7 @@ class AbItem:
     # return update trigger dest
     def get_update_trigger_dest(self):
         return self.__update_trigger_dest
+
+    # return value of variable
+    def get_variable(self, varname):
+        return self.__variables[varname] if varname in self.__variables else "(Unknown variable '{0}'!)".format(varname)
