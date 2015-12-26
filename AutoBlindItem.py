@@ -94,6 +94,7 @@ class AbItem:
         self.__update_trigger_caller = None
         self.__update_trigger_source = None
         self.__update_trigger_dest = None
+        self.__update_in_progress = False
 
         # initialize logging
         self.__logger = AbLogger.create(self.__item)
@@ -128,6 +129,11 @@ class AbItem:
     # caller: Caller that triggered the update
     # noinspection PyCallingNonCallable,PyUnusedLocal
     def update_state(self, item, caller=None, source=None, dest=None):
+        if self.__update_in_progress:
+            return
+
+        self.__update_in_progress = True
+
         self.__logger.update_logfile()
         self.__logger.header("Update state of item {0}".format(self.__name))
         if caller:
@@ -143,6 +149,7 @@ class AbItem:
         if self.__lock_is_active():
             self.__logger.info("AutoBlind is locked")
             self.__laststate_internal_name = AutoBlindDefaults.laststate_name_manually_locked
+            self.__update_in_progress = False
             return
 
         # check if suspended
@@ -152,6 +159,7 @@ class AbItem:
             self.__logger.info(
                 "AutoBlind has been suspended after manual changes. Reactivating at {0}", active_timer_time)
             self.__laststate_internal_name = active_timer_time.strftime(AutoBlindDefaults.laststate_name_suspended)
+            self.__update_in_progress = False
             return
 
         # Update current values
@@ -192,6 +200,7 @@ class AbItem:
                 else:
                     self.__logger.info("No matching state found, staying at {0} ('{1}')", last_state.id,
                                        last_state.name)
+                self.__update_in_progress = False
                 return
         else:
             # if current state can not be left, check if enter conditions are still valid.
@@ -217,6 +226,8 @@ class AbItem:
             new_state.activate()
         else:
             self.__logger.info("Repeating actions is deactivated.")
+
+        self.__update_in_progress = False
 
     # check if state can be left after setting state-specific variables
     # state: state to check
