@@ -95,6 +95,9 @@ class AbItem:
         self.__update_trigger_source = None
         self.__update_trigger_dest = None
         self.__update_in_progress = False
+        self.__update_original_item = None
+        self.__update_original_caller = None
+        self.__update_original_source = None
 
         # initialize logging
         self.__logger = AbLogger.create(self.__item)
@@ -132,6 +135,21 @@ class AbItem:
         if self.__update_in_progress:
             return
 
+        # Find out what initially caused the update to trigger if the caller is "Eval"
+        src_caller = caller
+        src_source = source
+        src_item = item
+        src_dest = dest
+        while src_caller == "Eval":
+            src_item = self.__sh.return_item(src_source)
+            if src_item is None:
+                break
+            src_changed_by = src_item.changed_by()
+            if ":" not in src_changed_by:
+                break
+            src_caller, __, src_source = src_changed_by.partition(":")
+            src_dest = None
+
         self.__update_in_progress = True
 
         self.__logger.update_logfile()
@@ -140,10 +158,17 @@ class AbItem:
             item_id = item.id() if item is not None else "(no item)"
             self.__logger.debug("Update triggered by {0} (item={1} source={2} dest={3})", caller, item_id, source, dest)
 
+        if src_caller != caller:
+            self.__logger.debug(
+                "Eval initially triggered by {0} (item={1} source={2} dest={3})".format(src_caller, src_item.id(),
+                                                                                       src_source, src_dest))
         self.__update_trigger_item = item.id()
         self.__update_trigger_caller = caller
         self.__update_trigger_source = source
         self.__update_trigger_dest = dest
+        self.__update_original_caller = src_caller
+        self.__update_original_item = src_item.id()
+        self.__update_original_source = src_source
 
         # check if locked
         if self.__lock_is_active():
@@ -555,6 +580,18 @@ class AbItem:
     # return update trigger dest
     def get_update_trigger_dest(self):
         return self.__update_trigger_dest
+
+    # return update original item
+    def get_update_original_item(self):
+        return self.__update_original_item
+
+    # return update original caller
+    def get_update_original_caller(self):
+        return self.__update_original_caller
+
+    # return update original source
+    def get_update_original_source(self):
+        return self.__update_original_source
 
     # return value of variable
     def get_variable(self, varname):

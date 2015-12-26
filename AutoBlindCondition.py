@@ -112,6 +112,12 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 self.__eval = self._abitem.get_update_trigger_source
             elif self.__name == "trigger_dest":
                 self.__eval = self._abitem.get_update_trigger_dest
+            elif self.__name == "original_item":
+                self.__eval = self._abitem.get_update_original_item
+            elif self.__name == "original_caller":
+                self.__eval = self._abitem.get_update_original_caller
+            elif self.__name == "original_source":
+                self.__eval = self._abitem.get_update_original_source
 
         # missing item in condition: Try to find it
         if self.__item is None:
@@ -136,7 +142,9 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 self.__cast_all(self.__item.cast)
             elif self.__name in ("weekday", "sun_azimut", "sun_altitude", "age", "delay", "random", "month"):
                 self.__cast_all(AutoBlindTools.cast_num)
-            elif self.__name in ("laststate", "trigger_item", "trigger_caller", "trigger_source", "trigger_dest"):
+            elif self.__name in (
+            "laststate", "trigger_item", "trigger_caller", "trigger_source", "trigger_dest", "original_item",
+            "original_caller", "original_source"):
                 self.__cast_all(AutoBlindTools.cast_str)
             elif self.__name == "time":
                 self.__cast_all(AutoBlindTools.cast_time)
