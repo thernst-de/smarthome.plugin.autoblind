@@ -120,7 +120,8 @@ class AbItem:
         self.__logger.update_logfile()
         self.__logger.header("Update state of item {0}".format(self.__name))
         if caller:
-            self.__logger.debug("Update triggered by {0} (source={1} dest={2})", caller, source, dest)
+            item_id = item.id() if item is not None else "(no item)"
+            self.__logger.debug("Update triggered by {0} (item={1} source={2} dest={3})", caller, item_id, source, dest)
 
         # check if locked
         if self.__lock_is_active():
