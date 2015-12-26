@@ -27,9 +27,10 @@ class AbValue(AutoBlindTools.AbItemChild):
     # Constructor
     # abitem: parent AbItem instance
     # name: Name of value
-    def __init__(self, abitem, name):
+    def __init__(self, abitem, name, allow_value_list = False):
         super().__init__(abitem)
         self.__name = name
+        self.__allow_value_list = allow_value_list
         self.__value = None
         self.__item = None
         self.__eval = None
@@ -44,15 +45,32 @@ class AbValue(AutoBlindTools.AbItemChild):
     # value: string indicating value or source of value
     # name: name of object ("time" is being handeled different)
     def set(self, value, name):
-        source, field_value = AutoBlindTools.partition_strip(value, ":")
 
-        if name == "time" and source.isdigit() and field_value.isdigit():
-            field_value = value
-            source = "value"
-        elif field_value == "":
-            field_value = source
-            source = "value"
+        if type(value) == list:
+            source, field_value = AutoBlindTools.partition_strip(value[0], ":")
+            if field_value == "":
+                source = "value"
+                field_value = value
+            else:
+                value[0] = field_value
+                field_value = value
 
+        else:
+            source, field_value = AutoBlindTools.partition_strip(value, ":")
+
+            if name == "time" and source.isdigit() and field_value.isdigit():
+                field_value = value
+                source = "value"
+            elif field_value == "":
+                field_value = source
+                source = "value"
+
+        if source == "value":
+            if type(field_value) == list and not self.__allow_value_list:
+                raise ValueError("{0}: value_in is not allowed".format(self.__name))
+            self.__value = field_value
+        else:
+            self.__value = None
         self.__value = None if source != "value" else field_value
         self.__item = None if source != "item" else self._sh.return_item(field_value)
         self.__eval = None if source != "eval" else field_value
@@ -107,8 +125,12 @@ class AbValue(AutoBlindTools.AbItemChild):
     def __do_cast(self, value):
         if value is not None and self.__cast_func is not None:
             try:
-                # noinspection PyCallingNonCallable
-                value = self.__cast_func(value)
+                if type(value) == list:
+                    # noinspection PyCallingNonCallable
+                    value = [self.__cast_func(element) for element in value]
+                else:
+                    # noinspection PyCallingNonCallable
+                    value = self.__cast_func(value)
             except Exception as e:
                 self._log_info("Problem casting value '{0}': {1}.", value, e)
                 return None

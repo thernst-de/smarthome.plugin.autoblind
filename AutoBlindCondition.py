@@ -44,7 +44,7 @@ class AbCondition(AutoBlindTools.AbItemChild):
         self.__name = name
         self.__item = None
         self.__eval = None
-        self.__value = AutoBlindValue.AbValue(self._abitem, "value")
+        self.__value = AutoBlindValue.AbValue(self._abitem, "value", True)
         self.__min = AutoBlindValue.AbValue(self._abitem, "min")
         self.__max = AutoBlindValue.AbValue(self._abitem, "max")
         self.__negate = False
@@ -223,26 +223,52 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 # 'value' is given. We ignore 'min' and 'max' and check only for the given value
                 value = self.__value.get()
 
-                # If current and value have different types, convert both to string
-                if type(value) != type(current):
-                    value = str(value)
-                    current = str(current)
+                if type(value) == list:
+                    self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value, self.__negate,
+                                    current)
+                    self._log_increase_indent()
 
-                self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value, self.__negate,
-                                current)
-                self._log_increase_indent()
+                    for element in value:
+                        if type(element) != type(current):
+                            element = str(element)
+                            current = str(current)
+                        if self.__negate:
+                            if current == element:
+                                self._log_debug("{0} found but negated -> not matching".format(element))
+                                return False
+                        else:
+                            if current == element:
+                                self._log_debug("{0} found -> matching".format(element))
+                                return True
 
-                if self.__negate:
-                    if current != value:
-                        self._log_debug("not OK but negated -> matching")
+                    if self.__negate:
+                        self._log_debug("{0} not in list -> matching".format(current))
                         return True
+                    else:
+                        self._log_debug("{0} not in list -> not matching".format(current))
+                        return False
+
                 else:
-                    if current == value:
-                        self._log_debug("OK -> matching")
-                        return True
+                    # If current and value have different types, convert both to string
+                    if type(value) != type(current):
+                        value = str(value)
+                        current = str(current)
 
-                self._log_debug("not OK -> not matching")
-                return False
+                    self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value, self.__negate,
+                                    current)
+                    self._log_increase_indent()
+
+                    if self.__negate:
+                        if current != value:
+                            self._log_debug("not OK but negated -> matching")
+                            return True
+                    else:
+                        if current == value:
+                            self._log_debug("OK -> matching")
+                            return True
+
+                    self._log_debug("not OK -> not matching")
+                    return False
 
             else:
 
