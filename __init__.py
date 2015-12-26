@@ -80,41 +80,22 @@ class AutoBlind:
             self._sh.scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles,
                                    cron=['init', '30 0 * *'], offset=0)
 
-    # Parse an item
-    # item: item to parse
-    def parse_item(self, item):
-        # leave if this is not an autoblind object item
-        if 'as_plugin' not in item.conf or item.conf["as_plugin"] != "active":
-            return None
-
-        try:
-            # Create AbItem object and return update_state method to be triggered on item changes
-            ab_item = AutoBlindItem.AbItem(self._sh, item)
-            self.__items[ab_item.id] = ab_item
-            return None
-
-        except ValueError as ex:
-            logger.error(ex)
-            return None
+#    # Parse an item
+#    # item: item to parse
+#    def parse_item(self, item):
+#            return None
 
     # Initialization of plugin
     def run(self):
-        self.alive = True
-
-        # Complete all items
-        logger.info("Complete AutoBlind items")
-        incomplete = []
-        for name, item in self.__items.items():
-            try:
-                item.complete()
-                item.write_to_log()
-            except ValueError as ex:
-                logger.error(ex)
-                incomplete.append(name)
-
-        # Remove items which caused errors during completion
-        for name in incomplete:
-            del self.__items[name]
+        # Initialize
+        logger.info("Init AutoBlind items")
+        for item in self._sh.find_items("as_plugin"):
+            if item.conf["as_plugin"] == "active":
+                try:
+                    ab_item = AutoBlindItem.AbItem(self._sh, item)
+                    self.__items[ab_item.id] = ab_item
+                except ValueError as ex:
+                    logger.error(ex)
 
         if len(self.__items) > 0:
             logger.info("Using AutoBlind for {} items".format(len(self.__items)))
@@ -122,6 +103,8 @@ class AutoBlind:
             logger.info("AutoBlind deactivated because no items have been found.")
 
         self.__cli = AutoBlindCliCommands.AbCliCommands(self._sh, self.__items)
+
+        self.alive = True
 
     # Stopping of plugin
     def stop(self):
