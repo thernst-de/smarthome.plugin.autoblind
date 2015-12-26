@@ -67,3 +67,23 @@ class AbEval(AutoBlindTools.AbItemChild):
             return self._abitem.get_variable(varname)
         except Exception as ex:
             self._log_exception(ex)
+
+    # Return an item based on the main autoblind item
+    # subitem_id: Id of subitem to return
+    # parent_level: number of levels above main autoblind item to start
+    def get_item(self, subitem_id, parent_level=0):
+        try:
+            levels = self._abitem.id.split(".")
+            use_num_levels = len(levels) - parent_level
+            if use_num_levels < 0:
+                raise ValueError("parent_level {2} ist zu groß. Das Item '{0}' hat nur {1} Elemente".format(self.__abitem.id,len(levels),parent_level))
+            current_num_levels = 0
+            result = ""
+            for level in levels[0:use_num_levels]:
+                result += level + "."
+            result += subitem_id
+            if self._abitem.sh.return_item(result) is None:
+                raise ValueError("Determined item '{0}' does not exist.")
+            return result
+        except Exception as ex:
+            self._log_exception(ex)
