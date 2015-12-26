@@ -78,9 +78,8 @@ class AbActionBase(AutoBlindTools.AbItemChild):
             self._sh.scheduler.add(self._scheduler_name, self._execute, value={'actionname': actionname}, next=next_run)
 
     # set the action based on a set_(action_name) attribute
-    # item_state: state item to read from
     # value: Value of the set_(action_name) attribute
-    def update(self, item_state, value):
+    def update(self, value):
         raise NotImplementedError("Class %s doesn't implement update()" % self.__class__.__name__)
 
     # Complete action
@@ -109,9 +108,8 @@ class AbActionSetItem(AbActionBase):
         self.__mindelta = AutoBlindValue.AbValue(self._abitem, "mindelta")
 
     # set the action based on a set_(action_name) attribute
-    # item_state: state item to read from
     # value: Value of the set_(action_name) attribute
-    def update(self, item_state, value):
+    def update(self, value):
         self.__value.set(value, "")
 
     # Complete action
@@ -187,9 +185,8 @@ class AbActionSetByattr(AbActionBase):
         self.__byattr = None
 
     # set the action based on a set_(action_name) attribute
-    # item_state: state item to read from
     # value: Value of the set_(action_name) attribute
-    def update(self, item_state, value):
+    def update(self, value):
         self.__byattr = value
 
     # Complete action
@@ -222,9 +219,8 @@ class AbActionTrigger(AbActionBase):
         self.__value = None
 
     # set the action based on a set_(action_name) attribute
-    # item_state: state item to read from
     # value: Value of the set_(action_name) attribute
-    def update(self, item_state, value):
+    def update(self, value):
         logic, value = AutoBlindTools.partition_strip(value, ":")
         self.__logic = logic
         self.__value = None if value == "" else value
@@ -259,9 +255,8 @@ class AbActionRun(AbActionBase):
         self.__eval = None
 
     # set the action based on a set_(action_name) attribute
-    # item_state: state item to read from
     # value: Value of the set_(action_name) attribute
-    def update(self, item_state, value):
+    def update(self, value):
         func, value = AutoBlindTools.partition_strip(value, ":")
         if value == "":
             value = func

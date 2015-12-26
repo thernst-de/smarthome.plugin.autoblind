@@ -35,69 +35,67 @@ class AbActions(AutoBlindTools.AbItemChild):
     def count(self):
         return len(self.__actions)
 
-    # get action name from attribute and ensure action exists (base for all updates)
+    # update action
     # attribute: name of attribute that defines action
-    def update(self, item_state, attribute):
+    # value: value of the attribute
+    def update(self, attribute, value):
         # Split attribute in function and action name
-        func, action_name = AutoBlindTools.partition_strip(attribute, "_")
+        func, name = AutoBlindTools.partition_strip(attribute, "_")
 
-        # Set action depending on function
-        if func == "as_set":
-            if action_name not in self.__actions:
-                action = AutoBlindAction.AbActionSetItem(self._abitem, action_name)
-                self.__try_assign_delay(action_name, action)
-                self.__actions[action_name] = action
-            self.__actions[action_name].update(item_state, item_state.conf[attribute])
-        elif func == "as_byattr":
-            if action_name not in self.__actions:
-                action = AutoBlindAction.AbActionSetByattr(self._abitem, action_name)
-                self.__try_assign_delay(action_name, action)
-                self.__actions[action_name] = action
-            self.__actions[action_name].update(item_state, item_state.conf[attribute])
-        elif func == "as_trigger":
-            if action_name not in self.__actions:
-                action = AutoBlindAction.AbActionTrigger(self._abitem, action_name)
-                self.__try_assign_delay(action_name, action)
-                self.__actions[action_name] = action
-            self.__actions[action_name].update(item_state, item_state.conf[attribute])
-        elif func == "as_run":
-            if action_name not in self.__actions:
-                action = AutoBlindAction.AbActionRun(self._abitem, action_name)
-                self.__try_assign_delay(action_name, action)
-                self.__actions[action_name] = action
-            self.__actions[action_name].update(item_state, item_state.conf[attribute])
-        elif func == "as_delay":
-            if action_name not in self.__actions:
+        if func == "as_delay":
+            # set delay
+            if name not in self.__actions:
                 # If we do not have the action yet (delay-attribute before action-attribute), ...
-                self.__add_unassigned_delay(action_name, item_state.conf[attribute])
+                self.__unassigned_delays[name] = value
             else:
-                self.__actions[action_name].update_delay(item_state.conf[attribute])
+                self.__actions[name].update_delay(value)
+            return
+        elif self.__ensure_action_exists(func, name):
+            # update action
+            self.__actions[name].update(value)
 
-    # Add delay value to list of unassigned delay values
-    def __add_unassigned_delay(self, action_name, delay):
-        self.__unassigned_delays[action_name] = delay
+    # ensure that action exists and create if missing
+    # func: action function
+    # name: action name
+    def __ensure_action_exists(self, func, name):
+        # Check if action exists
+        if name in self.__actions:
+            return True
 
-    # Try to assign a value from the list of unassigned delay values
-    def __try_assign_delay(self, action_name, action):
-        if action_name in self.__unassigned_delays:
-            action.update_delay(self.__unassigned_delays[action_name])
-            del self.__unassigned_delays[action_name]
+        # Create action depending on function
+        if func == "as_set":
+            action = AutoBlindAction.AbActionSetItem(self._abitem, name)
+        elif func == "as_byattr":
+            action = AutoBlindAction.AbActionSetByattr(self._abitem, name)
+        elif func == "as_trigger":
+            action = AutoBlindAction.AbActionTrigger(self._abitem, name)
+        elif func == "as_run":
+            action = AutoBlindAction.AbActionRun(self._abitem, name)
+        else:
+            return False
+
+        if name in self.__unassigned_delays:
+            action.update_delay(self.__unassigned_delays[name])
+            del self.__unassigned_delays[name]
+
+        self.__actions[name] = action
+        return True
 
     # Check the actions optimize and complete them
     # item_state: item to read from
     def complete(self, item_state):
-        for action_name in self.__actions:
-            self.__actions[action_name].complete(item_state)
+        for name in self.__actions:
+            self.__actions[name].complete(item_state)
 
     # Execute all actions
     def execute(self):
-        for action_name in self.__actions:
-            self.__actions[action_name].execute()
+        for name in self.__actions:
+            self.__actions[name].execute()
 
     # log all actions
     def write_to_logger(self):
-        for action_name in self.__actions:
-            self._log_info("Action '{0}':", action_name)
+        for name in self.__actions:
+            self._log_info("Action '{0}':", name)
             self._log_increase_indent()
-            self.__actions[action_name].write_to_logger()
+            self.__actions[name].write_to_logger()
             self._log_decrease_indent()

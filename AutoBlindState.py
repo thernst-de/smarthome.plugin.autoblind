@@ -133,7 +133,7 @@ class AbState(AutoBlindTools.AbItemChild):
 
         # Get actions
         for attribute in item_state.conf:
-            self.__actions.update(item_state, attribute)
+            self.__actions.update(attribute, item_state.conf[attribute])
 
         # if an item name is given, or if we do not have a name after returning from all recursions,
         # use item name as state name
