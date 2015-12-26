@@ -21,6 +21,7 @@
 from . import AutoBlindTools
 from . import AutoBlindCurrent
 from . import AutoBlindValue
+from . import AutoBlindEval
 
 
 # Class representing a single condition
@@ -143,8 +144,8 @@ class AbCondition(AutoBlindTools.AbItemChild):
             elif self.__name in ("weekday", "sun_azimut", "sun_altitude", "age", "delay", "random", "month"):
                 self.__cast_all(AutoBlindTools.cast_num)
             elif self.__name in (
-            "laststate", "trigger_item", "trigger_caller", "trigger_source", "trigger_dest", "original_item",
-            "original_caller", "original_source"):
+                    "laststate", "trigger_item", "trigger_caller", "trigger_source", "trigger_dest", "original_item",
+                    "original_caller", "original_source"):
                 self.__cast_all(AutoBlindTools.cast_str)
             elif self.__name == "time":
                 self.__cast_all(AutoBlindTools.cast_time)
@@ -339,6 +340,9 @@ class AbCondition(AutoBlindTools.AbItemChild):
             if isinstance(self.__eval, str):
                 # noinspection PyUnusedLocal
                 sh = self._sh
+                if self.__eval.startswith("autoblind_eval"):
+                    # noinspection PyUnusedLocal
+                    autoblind_eval = AutoBlindEval.AbEval(self._abitem)
                 try:
                     value = eval(self.__eval)
                 except Exception as e:
