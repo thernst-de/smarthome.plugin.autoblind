@@ -90,6 +90,11 @@ class AbItem:
         self.__can_not_leave_current_state_since = 0
         self.__repeat_actions = AutoBlindTools.get_bool_attribute(self.__item, "as_repeat_actions", True)
 
+        self.__update_trigger_item = None
+        self.__update_trigger_caller = None
+        self.__update_trigger_source = None
+        self.__update_trigger_dest = None
+
         # initialize logging
         self.__logger = AbLogger.create(self.__item)
         self.__logger.header("Initialize Item {0}".format(self.id))
@@ -122,6 +127,11 @@ class AbItem:
         if caller:
             item_id = item.id() if item is not None else "(no item)"
             self.__logger.debug("Update triggered by {0} (item={1} source={2} dest={3})", caller, item_id, source, dest)
+
+        self.__update_trigger_item = item.id()
+        self.__update_trigger_caller = caller
+        self.__update_trigger_source = source
+        self.__update_trigger_dest = dest
 
         # check if locked
         if self.__lock_is_active():
@@ -490,3 +500,19 @@ class AbItem:
     # return id of last state
     def get_laststate_id(self):
         return self.__laststate_internal_id
+
+    # return update trigger item
+    def get_update_trigger_item(self):
+        return self.__update_trigger_item
+
+    # return update trigger caller
+    def get_update_trigger_caller(self):
+        return self.__update_trigger_caller
+
+    # return update trigger source
+    def get_update_trigger_source(self):
+        return self.__update_trigger_source
+
+    # return update trigger dest
+    def get_update_trigger_dest(self):
+        return self.__update_trigger_dest

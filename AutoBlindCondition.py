@@ -104,6 +104,14 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 self.__eval = AutoBlindCurrent.values.get_month
             elif self.__name == "laststate":
                 self.__eval = self._abitem.get_laststate_id
+            elif self.__name == "trigger_item":
+                self.__eval = self._abitem.get_update_trigger_item
+            elif self.__name == "trigger_caller":
+                self.__eval = self._abitem.get_update_trigger_caller
+            elif self.__name == "trigger_source":
+                self.__eval = self._abitem.get_update_trigger_source
+            elif self.__name == "trigger_dest":
+                self.__eval = self._abitem.get_update_trigger_dest
 
         # missing item in condition: Try to find it
         if self.__item is None:
@@ -128,7 +136,7 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 self.__cast_all(self.__item.cast)
             elif self.__name in ("weekday", "sun_azimut", "sun_altitude", "age", "delay", "random", "month"):
                 self.__cast_all(AutoBlindTools.cast_num)
-            elif self.__name == "laststate":
+            elif self.__name in ("laststate", "trigger_item", "trigger_caller", "trigger_source", "trigger_dest"):
                 self.__cast_all(AutoBlindTools.cast_str)
             elif self.__name == "time":
                 self.__cast_all(AutoBlindTools.cast_time)
