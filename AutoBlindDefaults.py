@@ -30,6 +30,7 @@ laststate_name_manually_locked = "Manuell gesperrt"
 
 laststate_name_suspended = "Ausgesetzt bis %X"
 
+plugin_identification = "AutoBlind Plugin"
 
 def write_to_log():
     logger.info("AutoBlind default startup delay = {0}".format(startup_delay))

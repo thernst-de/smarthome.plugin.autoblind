@@ -21,6 +21,7 @@
 from . import AutoBlindTools
 from . import AutoBlindEval
 from . import AutoBlindValue
+from . import AutoBlindDefaults
 import datetime
 
 
@@ -172,7 +173,7 @@ class AbActionSetItem(AbActionBase):
 
         self._log_debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
         # noinspection PyCallingNonCallable
-        self.__item(value, caller="AutoBlind Plugin")
+        self.__item(value, caller=AutoBlindDefaults.plugin_identification)
 
 
 # Class representing a single "as_setbyattr" action
@@ -205,7 +206,7 @@ class AbActionSetByattr(AbActionBase):
         self._log_info("{0}: Setting values by attribute '{1}'.", actionname, self.__byattr)
         for item in self._sh.find_items(self.__byattr):
             self._log_info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
-            item(item.conf[self.__byattr], caller="AutoBlind Plugin")
+            item(item.conf[self.__byattr], caller=AutoBlindDefaults.plugin_identification)
 
 
 # Class representing a single "as_trigger" action
@@ -242,7 +243,8 @@ class AbActionTrigger(AbActionBase):
     def _execute(self, actionname: str):
         # Trigger logic
         self._log_info("{0}: Triggering logic '{1}' using value '{2}'.", actionname, self.__logic, self.__value)
-        self._sh.trigger(self.__logic, by="AutoBlind Plugin", source=self._name, value=self.__value)
+        self._sh.trigger(self.__logic, by=AutoBlindDefaults.plugin_identification, source=self._name,
+                         value=self.__value)
 
 
 # Class representing a single "as_run" action

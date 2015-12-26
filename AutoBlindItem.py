@@ -161,7 +161,11 @@ class AbItem:
         if src_caller != caller:
             self.__logger.debug(
                 "Eval initially triggered by {0} (item={1} source={2} dest={3})".format(src_caller, src_item.id(),
-                                                                                       src_source, src_dest))
+                                                                                        src_source, src_dest))
+
+        if src_caller == AutoBlindDefaults.plugin_identification or caller == AutoBlindDefaults.plugin_identification:
+            self.__logger.debug("Ignoring changes from " + AutoBlindDefaults.plugin_identification)
+
         self.__update_trigger_item = item.id()
         self.__update_trigger_caller = caller
         self.__update_trigger_source = source
@@ -374,8 +378,8 @@ class AbItem:
         self.__logger.debug("Manual operation: Change of item '{0}' by '{1}' (source='{2}', dest='{3}')",
                             item.id(), caller, source, dest)
         self.__logger.increase_indent()
-        if caller == "AutoBlind Plugin":
-            self.__logger.debug("Ignoring changes from AutoBlind Plugin")
+        if caller == AutoBlindDefaults.plugin_identification:
+            self.__logger.debug("Ignoring changes from " + AutoBlindDefaults.plugin_identification)
         elif self.__lock_is_active():
             self.__logger.debug("Automatic mode alreadylocked")
         else:
