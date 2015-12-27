@@ -20,7 +20,6 @@
 #########################################################################
 from . import AutoBlindTools
 from . import AutoBlindCurrent
-from . import AutoBlindLogger
 from random import randint
 import subprocess
 
@@ -76,8 +75,10 @@ class AbEval(AutoBlindTools.AbItemChild):
             levels = self._abitem.id.split(".")
             use_num_levels = len(levels) - parent_level
             if use_num_levels < 0:
-                raise ValueError("parent_level {2} ist zu groß. Das Item '{0}' hat nur {1} Elemente".format(self.__abitem.id,len(levels),parent_level))
-            current_num_levels = 0
+                raise ValueError(
+                    "parent_level {2} ist zu groß. Das Item '{0}' hat nur {1} Elemente".format(self._abitem.id,
+                                                                                               len(levels),
+                                                                                               parent_level))
             result = ""
             for level in levels[0:use_num_levels]:
                 result += level + "."

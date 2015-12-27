@@ -38,10 +38,11 @@ class AbCliCommands:
                 cli.add_command("as_detail", self.cli_detail, "as_detail asItem: show details on AutoState item asItem")
                 logger.debug("Two additional CLI commands registered")
         except AttributeError:
-            logger.debug(
-                "Additional CLI commands can not be registered. Required functinality is not yet included in your smarthome.py version")
+            logger.debug("Additional CLI commands can not be registered. " +
+                         "Required functinality is not yet included in your smarthome.py version")
 
     # CLI command as_list
+    # noinspection PyUnusedLocal
     def cli_list(self, handler, parameter):
         handler.push("Items for AutoState Plugin\n")
         handler.push("==========================\n")

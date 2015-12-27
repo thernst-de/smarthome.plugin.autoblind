@@ -25,6 +25,7 @@ from .AutoBlindLogger import AbLogger
 from . import AutoBlindState
 from . import AutoBlindDefaults
 from . import AutoBlindCurrent
+from . import AutoBlindValue
 
 
 # Class representing a blind item
@@ -58,8 +59,10 @@ class AbItem:
         self.__id = self.__item.id()
         self.__name = str(self.__item)
 
-        self.__startup_delay = AutoBlindTools.get_num_attribute(self.__item, "as_startup_delay",
-                                                                AutoBlindDefaults.startup_delay)
+        self.__startup_delay = AutoBlindValue.AbValue(self, "Startup Delay", False, "num")
+        self.__startup_delay.set_from_attr(self.__item, "as_startup_delay", AutoBlindDefaults.startup_delay)
+
+        #    AutoBlindTools.get_num_attribute(self.__item, )
         self.__update_delay = 1
 
         # Init lock settings
@@ -76,8 +79,8 @@ class AbItem:
             for entry in suspend_on:
                 for item in self.__sh.match_items(entry):
                     self.__suspend_watch_items.append(item)
-        self.__suspend_time = AutoBlindTools.get_num_attribute(self.__item, "as_suspend_time",
-                                                               AutoBlindDefaults.suspend_time)
+        self.__suspend_time = AutoBlindValue.AbValue(self, "Suspension time on manual changes", False, "num")
+        self.__suspend_time.set_from_attr(self.__item, "as_suspend_time", AutoBlindDefaults.suspend_time)
 
         # Init laststate items/values
         self.__laststate_item_id = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_id", self.__sh)
@@ -88,7 +91,8 @@ class AbItem:
         self.__states = []
         self.__delay = 0
         self.__can_not_leave_current_state_since = 0
-        self.__repeat_actions = AutoBlindTools.get_bool_attribute(self.__item, "as_repeat_actions", True)
+        self.__repeat_actions = AutoBlindValue.AbValue(self, "Repeat actions if state is not changed", False, "bool")
+        self.__repeat_actions.set_from_attr(self.__item, "as_repeat_actions", True)
 
         self.__update_trigger_item = None
         self.__update_trigger_caller = None
@@ -107,7 +111,7 @@ class AbItem:
         self.__check_item_config()
 
         self.__variables = {
-            "item.suspend_time": self.__suspend_time,
+            "item.suspend_time": self.__suspend_time.get(),
             "current.state_id": "",
             "current.state_name": ""
         }
@@ -125,8 +129,10 @@ class AbItem:
         self.__add_triggers()
 
         # start timer with startup-delay
-        if self.__startup_delay != 0:
-            self.__item.timer(self.__startup_delay, 1)
+        if not self.__startup_delay.is_empty():
+            startup_delay = self.__startup_delay.get()
+            if startup_delay != 0:
+                self.__item.timer(startup_delay, 1)
 
     # Find the state, matching the current conditions and perform the actions of this state
     # caller: Caller that triggered the update
@@ -244,7 +250,7 @@ class AbItem:
             if self.__laststate_internal_name != new_state.name:
                 self.__laststate_set(new_state)
             else:
-                do_actions = self.__repeat_actions
+                do_actions = self.__repeat_actions.get()
             self.__logger.info("Staying at {0} ('{1}')", new_state.id, new_state.name)
         else:
             # New state is different from last state
@@ -337,10 +343,12 @@ class AbItem:
     # region Suspend ***************************************************************************************************
     # suspend automatic mode for a given time
     def __suspend_set(self):
-        self.__logger.debug("Suspending automatic mode for {0} seconds.", self.__suspend_time)
-        self.__suspend_until = self.__sh.now() + datetime.timedelta(seconds=self.__suspend_time)
+        suspend_time = self.__suspend_time.get()
+        self.__logger.debug("Suspending automatic mode for {0} seconds.", suspend_time)
+        self.__suspend_until = self.__sh.now() + datetime.timedelta(seconds=suspend_time)
         self.__sh.scheduler.add(self.id + "SuspensionRemove-Timer", self.__suspend_reactivate_callback,
                                 next=self.__suspend_until)
+        self.__variables["item.suspend_time"] = suspend_time
 
         if self.__suspend_item is not None:
             self.__suspend_item(True, caller="AutoBlind")
@@ -497,15 +505,14 @@ class AbItem:
         # get crons and cycles
         crons, cycles = self.__verbose_crons_and_cycles()
         triggers = self.__verbose_eval_triggers()
-        repeat = "Yes" if self.__repeat_actions else "No"
 
         # log general config
         self.__logger.header("Configuration of item {0}".format(self.__name))
-        self.__logger.info("Startup Delay: {0}", self.__startup_delay)
+        self.__startup_delay.write_to_logger()
         self.__logger.info("Cycle: {0}", cycles)
         self.__logger.info("Cron: {0}", crons)
         self.__logger.info("Trigger: {0}".format(triggers))
-        self.__logger.info("Repeat actions if state is not changed: {0}", repeat)
+        self.__repeat_actions.write_to_logger()
 
         # log laststate settings
         if self.__laststate_item_id is not None:
@@ -521,7 +528,7 @@ class AbItem:
         if self.__suspend_item is not None:
             self.__logger.info("Item 'Suspend': {0}", self.__suspend_item.id())
         if len(self.__suspend_watch_items) > 0:
-            self.__logger.info("Suspension time on manual changes: {0}", self.__suspend_time)
+            self.__suspend_time.write_to_logger()
             self.__logger.info("Items causing suspension when changed:")
             self.__logger.increase_indent()
             for watch_manual_item in self.__suspend_watch_items:
@@ -542,14 +549,13 @@ class AbItem:
         # get data
         crons, cycles = self.__verbose_crons_and_cycles()
         triggers = self.__verbose_eval_triggers()
-        repeat = "Yes" if self.__repeat_actions else "No"
         handler.push("AutoState Item {0}:\n".format(self.id))
         handler.push("\tCurrent state: {0}\n".format(self.__laststate_internal_name))
-        handler.push("\tStartup Delay: {0}\n".format(self.__startup_delay))
+        handler.push(self.__startup_delay.get_text("\t", "\n"))
         handler.push("\tCycle: {0}\n".format(cycles))
         handler.push("\tCron: {0}\n".format(crons))
         handler.push("\tTrigger: {0}\n".format(triggers))
-        handler.push("\tRepeat actions if state is not changed: {0}\n".format(repeat))
+        handler.push(self.__repeat_actions.get_text("\t", "\n"))
 
     # endregion
 

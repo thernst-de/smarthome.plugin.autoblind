@@ -50,7 +50,7 @@ class AbActionBase(AutoBlindTools.AbItemChild):
         self._scheduler_name = None
 
     def update_delay(self, value):
-        self.__delay.set(value, "")
+        self.__delay.set(value)
         self.__delay.set_cast(AbActionBase.__cast_delay)
 
     # Write action to logger
@@ -111,7 +111,7 @@ class AbActionSetItem(AbActionBase):
     # set the action based on a set_(action_name) attribute
     # value: Value of the set_(action_name) attribute
     def update(self, value):
-        self.__value.set(value, "")
+        self.__value.set(value)
 
     # Complete action
     # item_state: state item to read from
@@ -128,7 +128,7 @@ class AbActionSetItem(AbActionBase):
         if self.__mindelta.is_empty():
             mindelta = AutoBlindTools.find_attribute(self._sh, item_state, "as_mindelta_" + self._name)
             if mindelta is not None:
-                self.__mindelta.set(mindelta, "")
+                self.__mindelta.set(mindelta)
 
         if self.__item is not None:
             self.__value.set_cast(self.__item.cast)

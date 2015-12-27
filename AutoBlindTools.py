@@ -40,52 +40,13 @@ def get_child_item(item, child_id):
     return None
 
 
-# Find and return a certain string attribute of an item
-# item: Item to search attribute
-# attribute_name: Name of attribute to search and return
-# default: Value to return if item does not contain attribute
-# returns: Attribute value if found. Otherwise given default value or None of no default value is given
-def get_str_attribute(item, attribute_name, default=None):
-    if attribute_name in item.conf:
-        return cast_str(item.conf[attribute_name])
-    else:
-        return default
-
-
 # Find and return a certain item that is named as attribute of another item
 # item: Item to search attribute
 # attribute_name: Name of attribute to search
 # smarthome: Instance of smarthome.py base class
 # returns: item which is named in the given attribute of the given item or None if attribute or named item not found
 def get_item_attribute(item, attribute_name, smarthome):
-    item_name = get_str_attribute(item, attribute_name)
-    if item_name is None:
-        return None
-    return smarthome.return_item(item_name)
-
-
-# Find and return a certain num attribute of an item
-# item: Item to search attribute
-# attribute_name: Name of attribute to search and return
-# default: Value to return if item does not contain attribute
-# returns: Attribute value if found. Otherwise given default value or 0 of no default value is given
-def get_num_attribute(item, attribute_name, default=None):
-    if attribute_name in item.conf:
-        return cast_num(item.conf[attribute_name])
-    else:
-        return default
-
-
-# Find and return a certain bool attribute of an item
-# item: Item to search attribute
-# attribute_name: Name of attribute to search and return
-# default: Value to return if item does not contain attribute
-# returns: Attribute value if found. Otherwise given default value or 0 of no default value is given
-def get_bool_attribute(item, attribute_name, default=None):
-    if attribute_name in item.conf:
-        return cast_bool(item.conf[attribute_name])
-    else:
-        return default
+    return smarthome.return_item(item.conf[attribute_name]) if attribute_name in item.conf else None
 
 
 # Returns the last part of the id of an item (everythig behind last .)

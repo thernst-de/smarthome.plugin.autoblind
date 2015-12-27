@@ -224,7 +224,8 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 value = self.__value.get()
 
                 if type(value) == list:
-                    self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value, self.__negate,
+                    self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value,
+                                    self.__negate,
                                     current)
                     self._log_increase_indent()
 
@@ -254,7 +255,8 @@ class AbCondition(AutoBlindTools.AbItemChild):
                         value = str(value)
                         current = str(current)
 
-                    self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value, self.__negate,
+                    self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value,
+                                    self.__negate,
                                     current)
                     self._log_increase_indent()
 

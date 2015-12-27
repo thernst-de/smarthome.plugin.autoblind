@@ -27,26 +27,46 @@ class AbValue(AutoBlindTools.AbItemChild):
     # Constructor
     # abitem: parent AbItem instance
     # name: Name of value
-    def __init__(self, abitem, name, allow_value_list = False):
+    # allow_value_list: Flag: list of values allowed
+    # value_type: Type of value to preset the cast function (allowed: str, num, bool, time)
+    def __init__(self, abitem, name, allow_value_list=False, value_type=None):
         super().__init__(abitem)
         self.__name = name
         self.__allow_value_list = allow_value_list
         self.__value = None
         self.__item = None
         self.__eval = None
-        self.__cast_func = None
         self.__varname = None
+
+        if value_type == "str":
+            self.__cast_func = AutoBlindTools.cast_str
+        elif value_type == "num":
+            self.__cast_func = AutoBlindTools.cast_num
+        elif value_type == "bool":
+            self.__cast_func = AutoBlindTools.cast_bool
+        elif value_type == "time":
+            self.__cast_func = AutoBlindTools.cast_time
+        else:
+            self.__cast_func = None
 
     # Indicate of object is empty (neither value nor item nor eval set)
     def is_empty(self):
         return self.__value is None and self.__item is None and self.__eval is None and self.__varname is None
 
+    # Set value directly from attribute
+    # item: item containing the attribute
+    # attribute_name: name of attribute to use
+    # value_type: type of value for casting (allowed: str, num ,bool, time)
+    # default_value: default value to be used if item contains no such attribute
+    def set_from_attr(self, item, attribute_name, default_value=None):
+        value = item.conf[attribute_name] if attribute_name in item.conf else default_value
+        self.set(value)
+
     # Set value
     # value: string indicating value or source of value
     # name: name of object ("time" is being handeled different)
-    def set(self, value, name):
-
-        if type(value) == list:
+    def set(self, value, name=""):
+        if isinstance(value, list):
             source, field_value = AutoBlindTools.partition_strip(value[0], ":")
             if field_value == "":
                 source = "value"
@@ -54,24 +74,24 @@ class AbValue(AutoBlindTools.AbItemChild):
             else:
                 value[0] = field_value
                 field_value = value
-
-        else:
+        elif isinstance(value, str):
             source, field_value = AutoBlindTools.partition_strip(value, ":")
-
             if name == "time" and source.isdigit() and field_value.isdigit():
                 field_value = value
                 source = "value"
             elif field_value == "":
                 field_value = source
                 source = "value"
+        else:
+            source = "value"
+            field_value = value
 
         if source == "value":
-            if type(field_value) == list and not self.__allow_value_list:
+            if isinstance(field_value, list) and not self.__allow_value_list:
                 raise ValueError("{0}: value_in is not allowed".format(self.__name))
-            self.__value = field_value
+            self.__value = self.__do_cast(field_value)
         else:
             self.__value = None
-        self.__value = None if source != "value" else field_value
         self.__item = None if source != "item" else self._sh.return_item(field_value)
         self.__eval = None if source != "eval" else field_value
         self.__varname = None if source != "var" else field_value
@@ -106,19 +126,36 @@ class AbValue(AutoBlindTools.AbItemChild):
             return None
 
     # Write condition to logger
-    # logger: Instance of AbLogger to write log messages to
     def write_to_logger(self):
-        if self.is_empty():
-            return
-
         if self.__value is not None:
             self._log_debug("{0}: {1}", self.__name, self.__value)
-        if self.__item is not None:
+        elif self.__item is not None:
             self._log_debug("{0} from item: {1}", self.__name, self.__item.id())
-        if self.__eval is not None:
+        elif self.__eval is not None:
             self._log_debug("{0} from eval: {1}", self.__name, self.__eval)
-        if self.__varname is not None:
+        elif self.__varname is not None:
             self._log_debug("{0} from variable: {1}", self.__name, self.__varname)
+        else:
+            self._log_debug("{0}: (undefined)", self.__name)
+
+    # Get Text (similar to logger text)
+    # prefix: Prefix for text
+    # suffix: Suffix for text
+    def get_text(self, prefix=None, suffix=None):
+        if self.__value is not None:
+            value = "{0}: {1}".format(self.__name, self.__value, prefix, suffix)
+        elif self.__item is not None:
+            value = "{0} from item: {1}".format(self.__name, self.__item.id())
+        elif self.__eval is not None:
+            value = "{0} from eval: {1}".format(self.__name, self.__eval)
+        elif self.__varname is not None:
+            value = "{0} from variable: {1}".format(self.__name, self.__varname)
+        else:
+            value = "{0}: (undefined)".format(self.__name)
+
+        value = value if prefix is None else prefix + value
+        value = value if suffix is None else value + suffix
+        return value
 
     # Cast given value, if cast-function is set
     # value: value to cast
