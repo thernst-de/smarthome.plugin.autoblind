@@ -46,8 +46,8 @@ class AbCliCommands:
     def cli_list(self, handler, parameter):
         handler.push("Items for AutoState Plugin\n")
         handler.push("==========================\n")
-        for name, item in self.__items.items():
-            item.cli_list(handler)
+        for name in sorted(self.__items):
+            self.__items[name].cli_list(handler)
 
     # CLI command as_detail
     def cli_detail(self, handler, parameter):
