@@ -61,9 +61,7 @@ class AbItem:
         # get startup delay
         self.__startup_delay = AutoBlindValue.AbValue(self, "Startup Delay", False, "num")
         self.__startup_delay.set_from_attr(self.__item, "as_startup_delay", AutoBlindDefaults.startup_delay)
-
-        #    AutoBlindTools.get_num_attribute(self.__item, )
-        self.__update_delay = 1
+        self.__startup_delay_over = False
 
         # Init lock settings
         self.__item_lock = AutoBlindTools.get_item_attribute(self.__item, "as_lock_item", self.__sh)
@@ -122,20 +120,27 @@ class AbItem:
         # Write settings to log
         self.__write_to_log()
 
-        # now add all triggers
-        self.__add_triggers()
-
         # start timer with startup-delay
-        if not self.__startup_delay.is_empty():
-            startup_delay = self.__startup_delay.get()
-            if startup_delay != 0:
-                self.__item.timer(startup_delay, 1)
+        startup_delay = 0 if self.__startup_delay.is_empty() else self.__startup_delay.get()
+        if startup_delay > 0:
+            first_run = self.__sh.now() + datetime.timedelta(seconds=startup_delay)
+            scheduler_name = self.__name + "-Startup Delay"
+            value = {
+                "item": self.__item,
+                "caller": "Init"
+            }
+            self.__sh.scheduler.add(scheduler_name, self.__startup_delay_callback, value=value, next=first_run)
+        elif startup_delay == -1:
+            self.__startup_delay_over = True
+            self.__add_triggers()
+        else:
+            self.__startup_delay_callback(self.__item, "Init", None, None)
 
     # Find the state, matching the current conditions and perform the actions of this state
     # caller: Caller that triggered the update
     # noinspection PyCallingNonCallable,PyUnusedLocal
     def update_state(self, item, caller=None, source=None, dest=None):
-        if self.__update_in_progress:
+        if self.__update_in_progress or not self.__startup_delay_over:
             return
 
         self.__update_in_progress = True
@@ -593,4 +598,11 @@ class AbItem:
     # return value of variable
     def get_variable(self, varname):
         return self.__variables[varname] if varname in self.__variables else "(Unknown variable '{0}'!)".format(varname)
-        # endregion
+    # endregion
+
+    # callback function that is called after the startup delay
+    # noinspection PyUnusedLocal
+    def __startup_delay_callback(self, item, caller=None, source=None, dest=None):
+        self.__startup_delay_over = True
+        self.update_state(item, "Startup Delay", source, dest)
+        self.__add_triggers()
