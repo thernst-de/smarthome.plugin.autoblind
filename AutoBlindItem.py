@@ -46,10 +46,6 @@ class AbItem:
     def logger(self):
         return self.__logger
 
-    # return main autoblind item
-    def item(self):
-        return self.__item
-
     # Constructor
     # smarthome: instance of smarthome.py
     # item: item to use
@@ -58,7 +54,11 @@ class AbItem:
         self.__item = item
         self.__id = self.__item.id()
         self.__name = str(self.__item)
+        # initialize logging
+        self.__logger = AbLogger.create(self.__item)
+        self.__logger.header("Initialize Item {0}".format(self.id))
 
+        # get startup delay
         self.__startup_delay = AutoBlindValue.AbValue(self, "Startup Delay", False, "num")
         self.__startup_delay.set_from_attr(self.__item, "as_startup_delay", AutoBlindDefaults.startup_delay)
 
@@ -103,13 +103,10 @@ class AbItem:
         self.__update_original_caller = None
         self.__update_original_source = None
 
-        # initialize logging
-        self.__logger = AbLogger.create(self.__item)
-        self.__logger.header("Initialize Item {0}".format(self.id))
-
         # Check item configuration
         self.__check_item_config()
 
+        # Init variables
         self.__variables = {
             "item.suspend_time": self.__suspend_time.get(),
             "current.state_id": "",
@@ -141,21 +138,6 @@ class AbItem:
         if self.__update_in_progress:
             return
 
-        # Find out what initially caused the update to trigger if the caller is "Eval"
-        src_caller = caller
-        src_source = source
-        src_item = item
-        src_dest = dest
-        while src_caller == "Eval":
-            src_item = self.__sh.return_item(src_source)
-            if src_item is None:
-                break
-            src_changed_by = src_item.changed_by()
-            if ":" not in src_changed_by:
-                break
-            src_caller, __, src_source = src_changed_by.partition(":")
-            src_dest = None
-
         self.__update_in_progress = True
 
         self.__logger.update_logfile()
@@ -164,21 +146,25 @@ class AbItem:
             item_id = item.id() if item is not None else "(no item)"
             self.__logger.debug("Update triggered by {0} (item={1} source={2} dest={3})", caller, item_id, source, dest)
 
-        if src_caller != caller:
+        # Find out what initially caused the update to trigger if the caller is "Eval"
+        original_caller, original_source, original_item = AutoBlindTools.get_original_caller(self.sh, caller, source,
+                                                                                             item)
+        if original_caller != caller:
             self.__logger.debug(
-                "Eval initially triggered by {0} (item={1} source={2} dest={3})".format(src_caller, src_item.id(),
-                                                                                        src_source, src_dest))
+                "Eval initially triggered by {0} (item={1} source={2})".format(original_caller, original_item.id(),
+                                                                               original_source))
 
-        if src_caller == AutoBlindDefaults.plugin_identification or caller == AutoBlindDefaults.plugin_identification:
+        if original_caller == AutoBlindDefaults.plugin_identification or \
+           caller == AutoBlindDefaults.plugin_identification:
             self.__logger.debug("Ignoring changes from " + AutoBlindDefaults.plugin_identification)
 
         self.__update_trigger_item = item.id()
         self.__update_trigger_caller = caller
         self.__update_trigger_source = source
         self.__update_trigger_dest = dest
-        self.__update_original_caller = src_caller
-        self.__update_original_item = src_item.id()
-        self.__update_original_source = src_source
+        self.__update_original_item = original_item.id()
+        self.__update_original_caller = original_caller
+        self.__update_original_source = original_source
 
         # check if locked
         if self.__lock_is_active():
@@ -336,7 +322,7 @@ class AbItem:
             self.__suspend_remove()
 
         # trigger delayed update
-        self.__item.timer(self.__update_delay, 1)
+        self.__item.timer(1, 1)
 
     # endregion
 
@@ -354,7 +340,7 @@ class AbItem:
             self.__suspend_item(True, caller="AutoBlind")
 
         # trigger delayed update
-        self.__item.timer(self.__update_delay, 1)
+        self.__item.timer(1, 1)
 
     # remove suspension
     def __suspend_remove(self):
@@ -366,7 +352,7 @@ class AbItem:
             self.__suspend_item(False, caller="AutoBlind")
 
         # trigger delayed update
-        self.__item.timer(self.__update_delay, 1)
+        self.__item.timer(1, 1)
 
     # check if suspension is active
     # returns: True = automatic mode is suspended, False = automatic mode is not suspended
@@ -559,6 +545,7 @@ class AbItem:
 
     # endregion
 
+    # region Getter methods for "special" conditions *******************************************************************
     # return age of item
     def get_age(self):
         if self.__laststate_item_id is not None:
@@ -606,3 +593,4 @@ class AbItem:
     # return value of variable
     def get_variable(self, varname):
         return self.__variables[varname] if varname in self.__variables else "(Unknown variable '{0}'!)".format(varname)
+        # endregion

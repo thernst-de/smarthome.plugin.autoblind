@@ -111,41 +111,19 @@ class AutoBlind:
         self.alive = False
 
     def is_changed_by(self, caller, source, changed_by):
-        src_caller, src_source = self.__get_src(caller, source)
+        original_caller, original_source = AutoBlindTools.get_original_caller(self._sh, caller, source)
         for entry in changed_by:
             entry_caller, __, entry_source = entry.partition(":")
-            if (entry_caller == src_caller or entry_caller == "*") and (
-                    entry_source == src_source or entry_source == "*"):
+            if (entry_caller == original_caller or entry_caller == "*") and (
+                    entry_source == original_source or entry_source == "*"):
                 return True
         return False
 
     def not_changed_by(self, caller, source, changed_by):
-        src_caller, src_source = self.__get_src(caller, source)
+        original_caller, original_source = AutoBlindTools.get_original_caller(self._sh, caller, source)
         for entry in changed_by:
             entry_caller, __, entry_source = entry.partition(":")
-            if (entry_caller == src_caller or entry_caller == "*") and (
-                    entry_source == src_source or entry_source == "*"):
+            if (entry_caller == original_caller or entry_caller == "*") and (
+                    entry_source == original_source or entry_source == "*"):
                 return False
         return True
-
-    def __get_item(self, item):
-        if isinstance(item, str):
-            item_obj = self._sh.return_item(item)
-            if item_obj is None:
-                raise ValueError("Item {0} not found!".format(item))
-            return item_obj
-        else:
-            return item
-
-    def __get_src(self, caller, source):
-        src_caller = caller
-        src_source = source
-        while src_caller == "Eval":
-            src_item = self._sh.return_item(src_source)
-            if src_item is None:
-                break
-            src_changed_by = src_item.changed_by()
-            if ":" not in src_changed_by:
-                break
-            src_caller, __, src_source = src_changed_by.partition(":")
-        return src_caller, src_source

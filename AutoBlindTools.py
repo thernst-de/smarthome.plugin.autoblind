@@ -184,6 +184,28 @@ def get_eval_name(eval_func):
             return eval_func.__module__ + "." + eval_func.__name__
 
 
+# determine original caller/source
+# smarthome: instance of smarthome.py
+# caller: caller
+# source: source
+def get_original_caller(smarthome, caller, source, item = None):
+    original_caller = caller
+    original_source = source
+    original_item = item
+    while original_caller == "Eval":
+        original_item = smarthome.return_item(original_source)
+        if original_item is None:
+            break
+        original_changed_by = original_item.changed_by()
+        if ":" not in original_changed_by:
+            break
+        original_caller, __, original_source = original_changed_by.partition(":")
+    if item is None:
+        return original_caller, original_source
+    else:
+        return original_caller, original_source, original_item
+
+
 # General class for everything that is below the AbItem Class
 # This class provides some general stuff:
 # - Protected wrapper-methods for logging
