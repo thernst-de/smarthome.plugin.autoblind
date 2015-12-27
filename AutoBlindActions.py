@@ -85,7 +85,13 @@ class AbActions(AutoBlindTools.AbItemChild):
     # item_state: item to read from
     def complete(self, item_state):
         for name in self.__actions:
-            self.__actions[name].complete(item_state)
+            try:
+                self.__actions[name].complete(item_state)
+                error = None
+            except ValueError as ex:
+                error = str(ex)
+            if error is not None:
+                self._log_error("Item '{0}', Action '{1}': {2}".format(item_state.id(), name, error))
 
     # Execute all actions
     def execute(self):

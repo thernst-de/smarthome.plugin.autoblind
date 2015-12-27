@@ -122,6 +122,8 @@ class AbActionSetItem(AbActionBase):
             if item is not None:
                 if isinstance(item, str):
                     self.__item = self._sh.return_item(item)
+                    if self.__item is None:
+                        raise ValueError("Item {0} not found!".format(item))
                 else:
                     self.__item = item
 

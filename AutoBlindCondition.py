@@ -356,6 +356,9 @@ class AbCondition(AutoBlindTools.AbItemChild):
     def __set_item(self, item):
         if isinstance(item, str):
             self.__item = self._sh.return_item(item)
+            if self.__item is None:
+                raise ValueError(
+                    "Item {0} not found!".format(self._abitem.id, self.name, item))
         else:
             self.__item = item
 
