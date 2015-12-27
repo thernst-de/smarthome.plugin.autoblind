@@ -149,9 +149,10 @@ def find_attribute(smarthome, base_item, attribute, recursion_depth=0):
         if recursion_depth > 5:
             return None
         use_item = smarthome.return_item(base_item.conf["as_use"])
-        result = find_attribute(smarthome, use_item, attribute, recursion_depth + 1)
-        if result is not None:
-            return result
+        if use_item is not None:
+            result = find_attribute(smarthome, use_item, attribute, recursion_depth + 1)
+            if result is not None:
+                return result
 
     # 3: nothing found
     return None
