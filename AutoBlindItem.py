@@ -162,6 +162,8 @@ class AbItem:
         if original_caller == AutoBlindDefaults.plugin_identification or \
            caller == AutoBlindDefaults.plugin_identification:
             self.__logger.debug("Ignoring changes from " + AutoBlindDefaults.plugin_identification)
+            self.__update_in_progress = False
+            return
 
         self.__update_trigger_item = item.id()
         self.__update_trigger_caller = caller
