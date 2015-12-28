@@ -20,8 +20,10 @@
 #########################################################################
 from . import AutoBlindTools
 from . import AutoBlindCurrent
+from . import AutoBlindDefaults
 from random import randint
 import subprocess
+import datetime
 
 
 class AbEval(AutoBlindTools.AbItemChild):
@@ -88,3 +90,23 @@ class AbEval(AutoBlindTools.AbItemChild):
             return result
         except Exception as ex:
             self._log_exception(ex)
+
+    # Insert end time of suspension into text
+    # suspend_item_id: Item whose age is used to determine how much of the suspend time is already over
+    # suspend_text: Text to insert end time of suspension into. Use strftime/strptime format codes for the end time
+    #               (see https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior)
+    def insert_suspend_time(self, suspend_item_id, suspend_text="Ausgesetzt bis %X"):
+        try:
+            suspend_time = self._abitem.get_variable("item.suspend_time")
+            suspend_item = self._abitem.sh.return_item(suspend_item_id)
+            if suspend_item is None:
+                raise ValueError("Eval-Method 'insert_suspend_time': Suspend Item {0} not found!".format(suspend_item_id))
+            suspend_over = suspend_item.age()
+            suspend_remaining = suspend_time - suspend_over
+            if suspend_remaining < 0:
+                raise ValueError("Eval-Method 'insert_suspend_time': Suspend should alredy be finished!")
+            suspend_until = self._abitem.sh.now() + datetime.timedelta(seconds=suspend_remaining)
+            return suspend_until.strftime(suspend_text)
+        except Exception as ex:
+            self._log_exception(ex)
+            return "(Error while determining text. Check log)"

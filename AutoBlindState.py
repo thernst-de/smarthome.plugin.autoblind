@@ -21,6 +21,7 @@
 from . import AutoBlindTools
 from . import AutoBlindConditionSets
 from . import AutoBlindActions
+from . import AutoBlindValue
 
 
 # Class representing an object state, consisting of name, conditions to be met and configured actions for state
@@ -35,6 +36,11 @@ class AbState(AutoBlindTools.AbItemChild):
     def name(self):
         return self.__name
 
+    # Return text of state
+    @property
+    def text(self):
+        return self.__text.get(self.__name)
+
     # Constructor
     # abitem: parent AbItem instance
     # item_state: item containing configuration of state
@@ -43,6 +49,7 @@ class AbState(AutoBlindTools.AbItemChild):
         self.__item = item_state
         self.__id = self.__item.id()
         self.__name = ""
+        self.__text = AutoBlindValue.AbValue(self._abitem, "State Name", False, "str")
         self.__enterConditionSets = AutoBlindConditionSets.AbConditionSets(self._abitem)
         self.__leaveConditionSets = AutoBlindConditionSets.AbConditionSets(self._abitem)
         self.__actions = AutoBlindActions.AbActions(self._abitem)
@@ -80,6 +87,7 @@ class AbState(AutoBlindTools.AbItemChild):
         self._log_info("State {0}:", self.id)
         self._log_increase_indent()
         self._log_info("Name: {0}", self.name)
+        self.__text.write_to_logger()
         if self.__enterConditionSets.count() > 0:
             self._log_info("Condition sets to enter state:")
             self._log_increase_indent()
@@ -139,6 +147,10 @@ class AbState(AutoBlindTools.AbItemChild):
         # use item name as state name
         if str(item_state) != item_state.id() or (self.__name == "" and recursion_depth == 0):
             self.__name = str(item_state)
+        if "as_name" in item_state.conf:
+            self.__text.set_from_attr(item_state, "as_name", self.__text.get(None))
+        elif self.__text.is_empty() and recursion_depth == 0:
+            self.__text.set("value:" + self.__name)
 
         # Complete condition sets and actions at the end
         if recursion_depth == 0:

@@ -103,7 +103,7 @@ class AbValue(AutoBlindTools.AbItemChild):
         self.__value = self.__do_cast(self.__value)
 
     # determine and return value
-    def get(self):
+    def get(self, default=None):
         if self.__value is not None:
             return self.__value
         elif self.__eval is not None:
@@ -112,6 +112,8 @@ class AbValue(AutoBlindTools.AbItemChild):
             return self.__get_from_item()
         elif self.__varname is not None:
             return self.__get_from_variable()
+        else:
+            return default
 
     def get_type(self):
         if self.__value is not None:
@@ -135,8 +137,6 @@ class AbValue(AutoBlindTools.AbItemChild):
             self._log_debug("{0} from eval: {1}", self.__name, self.__eval)
         elif self.__varname is not None:
             self._log_debug("{0} from variable: {1}", self.__name, self.__varname)
-        else:
-            self._log_debug("{0}: (undefined)", self.__name)
 
     # Get Text (similar to logger text)
     # prefix: Prefix for text

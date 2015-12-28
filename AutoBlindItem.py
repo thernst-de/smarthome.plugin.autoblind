@@ -286,7 +286,7 @@ class AbItem:
             # noinspection PyCallingNonCallable
             self.__laststate_item_id(self.__laststate_internal_id)
 
-        self.__laststate_internal_name = new_state.name
+        self.__laststate_internal_name = new_state.text
         if self.__laststate_item_name is not None:
             # noinspection PyCallingNonCallable
             self.__laststate_item_name(self.__laststate_internal_name)
