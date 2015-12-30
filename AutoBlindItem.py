@@ -192,6 +192,7 @@ class AbItem:
 
         # Update current values
         AutoBlindCurrent.update()
+        self.__variables["item.suspend_time"] =  self.__suspend_time.get()
 
         # get last state
         last_state = self.__laststate_get()
