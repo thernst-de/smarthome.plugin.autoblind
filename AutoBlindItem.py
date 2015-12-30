@@ -113,7 +113,11 @@ class AbItem:
 
         # initialize states
         for item_state in self.__item.return_children():
-            self.__states.append(AutoBlindState.AbState(self, item_state))
+            try:
+                self.__states.append(AutoBlindState.AbState(self, item_state))
+            except ValueError as ex:
+                self.__logger.exception("State {0}: {1}".format(item_state.id(), ex))
+
         if len(self.__states) == 0:
             raise ValueError("{0}: No states defined!".format(self.id))
 
@@ -192,7 +196,7 @@ class AbItem:
 
         # Update current values
         AutoBlindCurrent.update()
-        self.__variables["item.suspend_time"] =  self.__suspend_time.get()
+        self.__variables["item.suspend_time"] = self.__suspend_time.get()
 
         # get last state
         last_state = self.__laststate_get()

@@ -134,10 +134,13 @@ class AbState(AutoBlindTools.AbItemChild):
         items_conditionsets = item_state.return_children()
         for item_conditionset in items_conditionsets:
             condition_name = AutoBlindTools.get_last_part_of_item_id(item_conditionset)
-            if condition_name == "enter" or condition_name.startswith("enter_"):
-                self.__enterConditionSets.update(condition_name, item_conditionset, parent_item)
-            elif condition_name == "leave" or condition_name.startswith("leave_"):
-                self.__leaveConditionSets.update(condition_name, item_conditionset, parent_item)
+            try:
+                if condition_name == "enter" or condition_name.startswith("enter_"):
+                    self.__enterConditionSets.update(condition_name, item_conditionset, parent_item)
+                elif condition_name == "leave" or condition_name.startswith("leave_"):
+                    self.__leaveConditionSets.update(condition_name, item_conditionset, parent_item)
+            except ValueError as ex:
+                raise ValueError("Condition {0}: {1}".format(condition_name, ex))
 
         # Get actions
         for attribute in item_state.conf:

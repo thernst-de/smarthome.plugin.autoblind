@@ -41,18 +41,20 @@ class AbActions(AutoBlindTools.AbItemChild):
     def update(self, attribute, value):
         # Split attribute in function and action name
         func, name = AutoBlindTools.partition_strip(attribute, "_")
-
-        if func == "as_delay":
-            # set delay
-            if name not in self.__actions:
-                # If we do not have the action yet (delay-attribute before action-attribute), ...
-                self.__unassigned_delays[name] = value
-            else:
-                self.__actions[name].update_delay(value)
-            return
-        elif self.__ensure_action_exists(func, name):
-            # update action
-            self.__actions[name].update(value)
+        try:
+            if func == "as_delay":
+                # set delay
+                if name not in self.__actions:
+                    # If we do not have the action yet (delay-attribute before action-attribute), ...
+                    self.__unassigned_delays[name] = value
+                else:
+                    self.__actions[name].update_delay(value)
+                return
+            elif self.__ensure_action_exists(func, name):
+                # update action
+                self.__actions[name].update(value)
+        except ValueError as ex:
+            raise ValueError("Action {0}: {1}".format(attribute, ex))
 
     # ensure that action exists and create if missing
     # func: action function

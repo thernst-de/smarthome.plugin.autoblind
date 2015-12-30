@@ -95,7 +95,7 @@ class AutoBlind:
                     ab_item = AutoBlindItem.AbItem(self._sh, item)
                     self.__items[ab_item.id] = ab_item
                 except ValueError as ex:
-                    logger.error(ex)
+                    logger.error("Item: {0}: {1}".format(item.id(), ex))
 
         if len(self.__items) > 0:
             logger.info("Using AutoBlind for {} items".format(len(self.__items)))

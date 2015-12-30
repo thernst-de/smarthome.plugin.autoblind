@@ -49,18 +49,18 @@ class AbConditionSet(AutoBlindTools.AbItemChild):
         # Update conditions in condition set
         if item is not None:
             for attribute in item.conf:
-                try:
-                    func, name = AutoBlindTools.partition_strip(attribute, "_")
-                    if name == "":
-                        continue
+                func, name = AutoBlindTools.partition_strip(attribute, "_")
+                if name == "":
+                    continue
 
+                try:
                     # update this condition
                     if name not in self.__conditions:
                         self.__conditions[name] = AutoBlindCondition.AbCondition(self._abitem, name)
                     self.__conditions[name].set(func, item.conf[attribute])
 
                 except ValueError as ex:
-                    self._log_exception(ex)
+                    self._log_exception("Condition {0}: {1}".format(name, ex))
 
         # Update item from grandparent_item
         for attribute in grandparent_item.conf:
@@ -72,7 +72,10 @@ class AbConditionSet(AutoBlindTools.AbItemChild):
             if func == "as_item" or func == "as_eval":
                 if name not in self.__conditions:
                     self.__conditions[name] = AutoBlindCondition.AbCondition(self._abitem, name)
-                self.__conditions[name].set(func, grandparent_item.conf[attribute])
+                try:
+                    self.__conditions[name].set(func, grandparent_item.conf[attribute])
+                except ValueError as ex:
+                    self._log_exception("Condition {0}: {1}".format(name, ex))
 
     # Check the condition set, optimize and complete it
     # item_state: item to read from
