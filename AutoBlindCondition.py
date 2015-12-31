@@ -357,8 +357,7 @@ class AbCondition(AutoBlindTools.AbItemChild):
         if isinstance(item, str):
             self.__item = self._sh.return_item(item)
             if self.__item is None:
-                raise ValueError(
-                    "Item {0} not found!".format(self._abitem.id, self.name, item))
+                raise ValueError("Referenced item '{0}' not found!".format(item))
         else:
             self.__item = item
 

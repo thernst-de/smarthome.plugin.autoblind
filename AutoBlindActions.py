@@ -93,7 +93,7 @@ class AbActions(AutoBlindTools.AbItemChild):
             except ValueError as ex:
                 error = str(ex)
             if error is not None:
-                self._log_error("Item '{0}', Action '{1}': {2}".format(item_state.id(), name, error))
+                self._log_error("State '{0}', Action '{1}': {2}".format(item_state.id(), name, error))
 
     # Execute all actions
     def execute(self):
