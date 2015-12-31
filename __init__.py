@@ -24,6 +24,7 @@ from . import AutoBlindCurrent
 from . import AutoBlindDefaults
 from . import AutoBlindTools
 from . import AutoBlindCliCommands
+from . import AutoBlindFunctions
 import logging
 import os
 
@@ -80,10 +81,17 @@ class AutoBlind:
             self._sh.scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles,
                                    cron=['init', '30 0 * *'], offset=0)
 
-        #    # Parse an item
-        #    # item: item to parse
-        #    def parse_item(self, item):
-        #            return None
+        smarthome.autoblind_plugin_functions = AutoBlindFunctions.AbFunctions(self._sh)
+
+    # Parse an item
+    # noinspection PyMethodMayBeStatic
+    def parse_item(self, item):
+        if "as_manual_include" in item.conf or "as_manual_exclude" in item.conf:
+            item._eval = "sh.autoblind_plugin_functions.manual_item_update_eval('" + item.id() + "', caller, source)"
+        elif "as_manual_invert" in item.conf:
+            item._eval = "not sh." + item.id() + "()"
+
+        return None
 
     # Initialization of plugin
     def run(self):
