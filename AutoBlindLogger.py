@@ -162,6 +162,7 @@ class AbLogger:
     # *args: parameters for text
     # noinspection PyMethodMayBeStatic
     def warning(self, text, *args):
+        self.log(1, "WARNING: " + text, *args)
         logger.warning(text.format(*args))
 
     # log error (always to main smarthome.py log)
@@ -169,6 +170,7 @@ class AbLogger:
     # *args: parameters for text
     # noinspection PyMethodMayBeStatic
     def error(self, text, *args):
+        self.log(1, "ERROR: " + text, *args)
         logger.error(text.format(*args))
 
     # log exception (always to main smarthome.py log'
@@ -177,4 +179,5 @@ class AbLogger:
     # **kwargs: known arguments for message
     # noinspection PyMethodMayBeStatic
     def exception(self, msg, *args, **kwargs):
+        self.log(1, "EXCEPTION: " + msg, *args)
         logger.exception(msg, *args, **kwargs)
