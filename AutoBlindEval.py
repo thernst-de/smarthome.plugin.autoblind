@@ -20,7 +20,6 @@
 #########################################################################
 from . import AutoBlindTools
 from . import AutoBlindCurrent
-from . import AutoBlindDefaults
 from random import randint
 import subprocess
 import datetime
@@ -86,7 +85,7 @@ class AbEval(AutoBlindTools.AbItemChild):
                 result += level + "."
             result += subitem_id
             if self._abitem.sh.return_item(result) is None:
-                raise ValueError("Determined item '{0}' does not exist.")
+                raise ValueError("Determined item '{0}' does not exist.".format(result))
             return result
         except Exception as ex:
             self._log_exception(ex)
@@ -100,7 +99,8 @@ class AbEval(AutoBlindTools.AbItemChild):
             suspend_time = self._abitem.get_variable("item.suspend_time")
             suspend_item = self._abitem.sh.return_item(suspend_item_id)
             if suspend_item is None:
-                raise ValueError("Eval-Method 'insert_suspend_time': Suspend Item {0} not found!".format(suspend_item_id))
+                text = "Eval-Method 'insert_suspend_time': Suspend Item {0} not found!"
+                raise ValueError(text.format(suspend_item_id))
             suspend_over = suspend_item.age()
             suspend_remaining = suspend_time - suspend_over
             if suspend_remaining < 0:
