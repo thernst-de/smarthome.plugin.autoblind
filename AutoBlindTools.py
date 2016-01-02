@@ -40,15 +40,6 @@ def get_child_item(item, child_id):
     return None
 
 
-# Find and return a certain item that is named as attribute of another item
-# item: Item to search attribute
-# attribute_name: Name of attribute to search
-# smarthome: Instance of smarthome.py base class
-# returns: item which is named in the given attribute of the given item or None if attribute or named item not found
-def get_item_attribute(item, attribute_name, smarthome):
-    return smarthome.return_item(item.conf[attribute_name]) if attribute_name in item.conf else None
-
-
 # Returns the last part of the id of an item (everythig behind last .)
 # item: Item for which the last part of the id should be returned
 # returns: last part of item id
@@ -188,7 +179,7 @@ def get_eval_name(eval_func):
 # smarthome: instance of smarthome.py
 # caller: caller
 # source: source
-def get_original_caller(smarthome, caller, source, item = None):
+def get_original_caller(smarthome, caller, source, item=None):
     original_caller = caller
     original_source = source
     original_item = item

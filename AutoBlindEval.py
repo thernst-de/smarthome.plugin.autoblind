@@ -97,7 +97,7 @@ class AbEval(AutoBlindTools.AbItemChild):
     def insert_suspend_time(self, suspend_item_id, suspend_text="Ausgesetzt bis %X"):
         try:
             suspend_time = self._abitem.get_variable("item.suspend_time")
-            suspend_item = self._abitem.sh.return_item(suspend_item_id)
+            suspend_item = self._abitem.return_item(suspend_item_id)
             if suspend_item is None:
                 text = "Eval-Method 'insert_suspend_time': Suspend Item {0} not found!"
                 raise ValueError(text.format(suspend_item_id))

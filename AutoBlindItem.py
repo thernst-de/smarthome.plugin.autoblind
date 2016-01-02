@@ -64,10 +64,10 @@ class AbItem:
         self.__startup_delay_over = False
 
         # Init lock settings
-        self.__item_lock = AutoBlindTools.get_item_attribute(self.__item, "as_lock_item", self.__sh)
+        self.__item_lock = self.return_item_by_attribute("as_lock_item")
 
         # Init suspend settings
-        self.__suspend_item = AutoBlindTools.get_item_attribute(self.__item, "as_suspend_item", self.__sh)
+        self.__suspend_item = self.return_item_by_attribute("as_suspend_item")
         self.__suspend_until = None
         self.__suspend_watch_items = []
         if "as_suspend_watch" in self.__item.conf:
@@ -81,9 +81,9 @@ class AbItem:
         self.__suspend_time.set_from_attr(self.__item, "as_suspend_time", AutoBlindDefaults.suspend_time)
 
         # Init laststate items/values
-        self.__laststate_item_id = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_id", self.__sh)
+        self.__laststate_item_id = self.return_item_by_attribute("as_laststate_item_id")
         self.__laststate_internal_id = "" if self.__laststate_item_id is None else self.__laststate_item_id()
-        self.__laststate_item_name = AutoBlindTools.get_item_attribute(self.__item, "as_laststate_item_name", self.__sh)
+        self.__laststate_item_name = self.return_item_by_attribute("as_laststate_item_name")
         self.__laststate_internal_name = "" if self.__laststate_item_name is None else self.__laststate_item_name()
 
         self.__states = []
@@ -605,6 +605,7 @@ class AbItem:
     # return value of variable
     def get_variable(self, varname):
         return self.__variables[varname] if varname in self.__variables else "(Unknown variable '{0}'!)".format(varname)
+
     # endregion
 
     # callback function that is called after the startup delay
@@ -613,3 +614,52 @@ class AbItem:
         self.__startup_delay_over = True
         self.update_state(item, "Startup Delay", source, dest)
         self.__add_triggers()
+
+    # Return an item related to the AutoBlind Object Item
+    # item_id: Id of item to return
+    #
+    # With this function it is possible to provide items relative to the current AutoBlind object item.
+    # If an item_id starts with one or more ".", the item is relative to the AutoBlind object item. One "." means
+    # that the given item Id is relative to the current level of the AutoBlind object item. Every additional "."
+    # removes one level of the AutoBlind object item before adding the item_id.
+    # Examples (based on AutoBlind object item "my.autoblind.objectitem":
+    # - item_id = "not.prefixed.with.dots" will return item "not.prefixed.with.dots"
+    # - item_id = ".onedot" will return item "my.autoblind.objectitem.onedot"
+    # - item_id = "..twodots" will return item "my.autoblind.twodots"
+    # - item_id = "..threedots" will return item "my.threedots"
+    # - item_id = "..threedots.further.down" will return item "my.threedots.further.down"
+    def return_item(self, item_id: str):
+        if not item_id.startswith("."):
+            item = self.__sh.return_item(item_id)
+            if item is None:
+                raise ValueError("Item '{0}' not found!".format(item_id))
+            return item
+
+        parent_level = 0
+        for c in item_id:
+            if c != '.':
+                break
+            parent_level += 1
+
+        levels = self.id.split(".")
+        use_num_levels = len(levels) - parent_level + 1
+        if use_num_levels < 0:
+            text = "Item '{0}' kann nicht ermittelt werden. Das Parent-Item '{1}' hat nur {2} Elemente!"
+            raise ValueError(text.format(item_id, self.id, len(levels)))
+        result = ""
+        for level in levels[0:use_num_levels]:
+            result += level if result == "" else "." + level
+        rel_item_id = item_id[parent_level:]
+        if rel_item_id != "":
+            result += "." + rel_item_id
+        item = self.__sh.return_item(result)
+        if item is None:
+            raise ValueError("Determined item '{0}' does not exist.".format(result))
+        return item
+
+    # Return an item related to the AutoBlind object item
+    # attribute: Name of the attribute of the AutoBlind object item, which contains the item_id to read
+    def return_item_by_attribute(self, attribute):
+        if attribute not in self.__item.conf:
+            return None
+        return self.return_item(self.__item.conf[attribute])

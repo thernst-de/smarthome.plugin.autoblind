@@ -58,7 +58,7 @@ class AbCondition(AutoBlindTools.AbItemChild):
     # value: Value for function
     def set(self, func, value):
         if func == "as_item":
-            self.__set_item(value)
+            self.__item = self._abitem.return_item(value)
         elif func == "as_eval":
             self.__eval = value
         if func == "as_value":
@@ -124,7 +124,7 @@ class AbCondition(AutoBlindTools.AbItemChild):
         if self.__item is None:
             result = AutoBlindTools.find_attribute(self._sh, item_state, "as_item_" + self.__name)
             if result is not None:
-                self.__set_item(result)
+                self.__item = self._abitem.return_item(result)
 
         # missing eval in condition: Try to find it
         if self.__eval is None:
@@ -350,16 +350,6 @@ class AbCondition(AutoBlindTools.AbItemChild):
             return True
         finally:
             self._log_decrease_indent()
-
-    # set item
-    # item: value for item
-    def __set_item(self, item):
-        if isinstance(item, str):
-            self.__item = self._sh.return_item(item)
-            if self.__item is None:
-                raise ValueError("Referenced item '{0}' not found!".format(item))
-        else:
-            self.__item = item
 
     # Current value of condition (based on item or eval)
     def __get_current(self):

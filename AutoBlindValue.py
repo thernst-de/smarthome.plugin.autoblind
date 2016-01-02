@@ -92,7 +92,7 @@ class AbValue(AutoBlindTools.AbItemChild):
             self.__value = self.__do_cast(field_value)
         else:
             self.__value = None
-        self.__item = None if source != "item" else self._sh.return_item(field_value)
+        self.__item = None if source != "item" else self._abitem.return_item(field_value)
         self.__eval = None if source != "eval" else field_value
         self.__varname = None if source != "var" else field_value
 

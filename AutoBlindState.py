@@ -125,7 +125,7 @@ class AbState(AutoBlindTools.AbItemChild):
 
         # Import data from other item if attribute "use" is found
         if "as_use" in item_state.conf:
-            use_item = self._sh.return_item(item_state.conf["as_use"])
+            use_item = self._abitem.return_item(item_state.conf["as_use"])
             if use_item is not None:
                 self.__fill(use_item, recursion_depth + 1)
             else:
