@@ -94,8 +94,8 @@ class AbEval(AutoBlindTools.AbItemChild):
         except Exception as ex:
             self._log_exception(ex)
 
-    # Return an item related to the AutoBlind Object Item
-    # item_id: Id of item to return
+    # Return the absolute id of an item related to the AutoBlind Object Item
+    # item_id: Relative id of item whose absolute id should be returned
     #
     # See describtion if AutoBlindItem.AbItem.return_item for details
     def get_relative_itemid(self, subitem_id):
@@ -103,6 +103,18 @@ class AbEval(AutoBlindTools.AbItemChild):
         try:
             item = self._abitem.return_item(subitem_id)
             return item.id()
+        except Exception as ex:
+            self._log_exception(ex)
+
+    # Return the value of an item related to the AutoBlind Object Item
+    # item_id: Relative id of item whose value should be returned
+    #
+    # See describtion if AutoBlindItem.AbItem.return_item for details
+    def get_relative_itemvalue(self, subitem_id):
+        self._log_debug("Executing method 'get_relative_itemvalue({0})'", subitem_id)
+        try:
+            item = self._abitem.return_item(subitem_id)
+            return item()
         except Exception as ex:
             self._log_exception(ex)
 
