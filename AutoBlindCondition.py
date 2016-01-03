@@ -31,11 +31,6 @@ class AbCondition(AutoBlindTools.AbItemChild):
     def name(self):
         return self.__name
 
-    # Error in condition
-    @property
-    def error(self):
-        return self.__error
-
     # Initialize the condition
     # abitem: parent AbItem instance
     # name: Name of condition
@@ -132,10 +127,9 @@ class AbCondition(AutoBlindTools.AbItemChild):
             if result is not None:
                 self.__eval = result
 
-        # no we should have either 'item' or 'eval' set. If not ... very bad ....
+        # no we should have either 'item' or 'eval' set. If not, raise ValueError
         if self.__item is None and self.__eval is None:
-            self.__error = "Condition {}: Neither 'item' nor 'eval' given!".format(self.__name)
-            raise ValueError(self.__error)
+            raise ValueError("Condition {}: Neither 'item' nor 'eval' given!".format(self.__name))
 
         # cast stuff
         try:
@@ -150,29 +144,21 @@ class AbCondition(AutoBlindTools.AbItemChild):
             elif self.__name == "time":
                 self.__cast_all(AutoBlindTools.cast_time)
         except Exception as ex:
-            self.__error = str(ex)
-            raise ValueError(self.__error)
+            raise ValueError("Condition {0}: Error when casting: {1}".format(self.__name, ex))
 
         # 'min' must not be greater than 'max'
         if self.__min.get_type() == "value" and self.__max.get_type() == "value":
             if self.__min.get() > self.__max.get():
-                self.__error = "Condition {}: 'min' must not be greater than 'max'!".format(self.__name)
-                raise ValueError(self.__error)
+                raise ValueError("Condition {}: 'min' must not be greater than 'max'!".format(self.__name))
 
         # 'agemin' and 'agemax' can only be used for items, not for eval
         if self.__item is None and not (self.__agemin.is_empty() and self.__agemax.is_empty()):
-            self.__error = "Condition {}: 'agemin'/'agemax' can not be used for eval!".format(self.__name)
-            raise ValueError(self.__error)
+            raise ValueError("Condition {}: 'agemin'/'agemax' can not be used for eval!".format(self.__name))
 
         return True
 
     # Check if condition is matching
     def check(self):
-        # Ignore if errors occured during preparing
-        if self.__error is not None:
-            self._log_info("condition'{0}': Ignoring because of error: {1}", self.__name, self.__error)
-            return True
-
         # Ignore if no current value can be determined (should not happen as we check this earlier, but to be sure ...)
         if self.__item is None and self.__eval is None:
             self._log_info("condition '{0}': No item or eval found! Considering condition as matching!", self.__name)

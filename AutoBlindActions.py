@@ -89,11 +89,8 @@ class AbActions(AutoBlindTools.AbItemChild):
         for name in self.__actions:
             try:
                 self.__actions[name].complete(item_state)
-                error = None
             except ValueError as ex:
-                error = str(ex)
-            if error is not None:
-                self._log_error("State '{0}', Action '{1}': {2}", item_state.id(), name, error)
+                raise ValueError("State '{0}', Action '{1}': {2}".format(item_state.id(), name, ex))
 
     # Execute all actions
     def execute(self):

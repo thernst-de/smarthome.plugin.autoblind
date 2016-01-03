@@ -116,7 +116,7 @@ class AbItem:
             try:
                 self.__states.append(AutoBlindState.AbState(self, item_state))
             except ValueError as ex:
-                self.__logger.exception("State {0}: {1}".format(item_state.id(), ex))
+                self.__logger.error("Ignoring state {0} because:  {1}".format(item_state.id(), ex))
 
         if len(self.__states) == 0:
             raise ValueError("{0}: No states defined!".format(self.id))
@@ -638,7 +638,7 @@ class AbItem:
         levels = self.id.split(".")
         use_num_levels = len(levels) - parent_level + 1
         if use_num_levels < 0:
-            text = "Item '{0}' kann nicht ermittelt werden. Das Parent-Item '{1}' hat nur {2} Elemente!"
+            text = "Item '{0}' can not be determined. Parent item '{1}' has only {2} levels!"
             raise ValueError(text.format(item_id, self.id, len(levels)))
         result = ""
         for level in levels[0:use_num_levels]:
