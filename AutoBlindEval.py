@@ -75,6 +75,9 @@ class AbEval(AutoBlindTools.AbItemChild):
     # parent_level: number of levels above main autoblind item to start
     def get_item(self, subitem_id, parent_level=0):
         self._log_debug("Executing method 'get_item({0}, {1})'", subitem_id, parent_level)
+        # Warning: Obsolete!
+        text = "eval-Method 'get_item' is obsolete and may be removed in the future. Use 'get_relative_itemid' instead."
+        self._log_warning(text)
         try:
             levels = self._abitem.id.split(".")
             use_num_levels = len(levels) - parent_level
@@ -88,6 +91,18 @@ class AbEval(AutoBlindTools.AbItemChild):
             if self._abitem.sh.return_item(result) is None:
                 raise ValueError("Determined item '{0}' does not exist.".format(result))
             return result
+        except Exception as ex:
+            self._log_exception(ex)
+
+    # Return an item related to the AutoBlind Object Item
+    # item_id: Id of item to return
+    #
+    # See describtion if AutoBlindItem.AbItem.return_item for details
+    def get_relative_itemid(self, subitem_id):
+        self._log_debug("Executing method 'get_relative_itemid({0})'", subitem_id)
+        try:
+            item = self._abitem.return_item(subitem_id)
+            return item.id()
         except Exception as ex:
             self._log_exception(ex)
 
