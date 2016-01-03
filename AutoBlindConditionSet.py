@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
+#  Copyright 2014-2016 Thomas Ernst                       offline@gmx.net
 #########################################################################
 #  This file is part of SmartHome.py.
 #
@@ -60,7 +60,7 @@ class AbConditionSet(AutoBlindTools.AbItemChild):
                     self.__conditions[name].set(func, item.conf[attribute])
 
                 except ValueError as ex:
-                    self._log_exception("Condition {0}: {1}".format(name, ex))
+                    self._log_exception("Condition {0}: {1}", name, ex)
 
         # Update item from grandparent_item
         for attribute in grandparent_item.conf:
@@ -75,7 +75,7 @@ class AbConditionSet(AutoBlindTools.AbItemChild):
                 try:
                     self.__conditions[name].set(func, grandparent_item.conf[attribute])
                 except ValueError as ex:
-                    self._log_error("Item '{0}', Attribute '{1}': {2}".format(grandparent_item.id(), attribute, ex))
+                    self._log_error("Item '{0}', Attribute '{1}': {2}", grandparent_item.id(), attribute, ex)
 
     # Check the condition set, optimize and complete it
     # item_state: item to read from
@@ -91,9 +91,8 @@ class AbConditionSet(AutoBlindTools.AbItemChild):
             except ValueError as ex:
                 error = str(ex)
             if error is not None:
-                self._log_error(
-                    "State '{0}', Condition Set '{1}', Condition '{2}': {3}".format(item_state.id(), self.name, name,
-                                                                                    error))
+                text = "State '{0}', Condition Set '{1}', Condition '{2}': {3}"
+                self._log_error(text, item_state.id(), self.name, name, error)
 
         # Remove incomplete conditions
         for name in conditions_to_remove:

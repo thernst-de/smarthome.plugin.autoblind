@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
+#  Copyright 2014-2016 Thomas Ernst                       offline@gmx.net
 #########################################################################
 #  This file is part of SmartHome.py.
 #
@@ -33,7 +33,7 @@ class AbEval(AutoBlindTools.AbItemChild):
 
     # Get lamella angle based on sun_altitute for sun tracking
     def sun_tracking(self):
-        self._log_debug("Executing method 'SunTracking'")
+        self._log_debug("Executing method 'SunTracking()'")
         self._log_increase_indent()
 
         altitude = AutoBlindCurrent.values.get_sun_altitude()
@@ -49,12 +49,13 @@ class AbEval(AutoBlindTools.AbItemChild):
     # min_value: minimum value for random integer (default 0)
     # max_value: maximum value for random integer (default 255)
     def get_random_int(self, min_value=0, max_value=255):
-        self._log_debug("Executing method 'GetRandomInt({0},{1}'", min_value, max_value)
+        self._log_debug("Executing method 'GetRandomInt({0},{1})'", min_value, max_value)
         return randint(min_value, max_value)
 
     # Execute a command
     # command: command to execute
     def execute(self, command):
+        self._log_debug("Executing method 'execute({0})'", command)
         try:
             return subprocess.call(command, shell=True)
         except Exception as ex:
@@ -63,6 +64,7 @@ class AbEval(AutoBlindTools.AbItemChild):
     # Return a variable
     # varname: name of variable to return
     def get_variable(self, varname):
+        self._log_debug("Executing method 'get_variable({0})'", varname)
         try:
             return self._abitem.get_variable(varname)
         except Exception as ex:
@@ -72,14 +74,13 @@ class AbEval(AutoBlindTools.AbItemChild):
     # subitem_id: Id of subitem to return
     # parent_level: number of levels above main autoblind item to start
     def get_item(self, subitem_id, parent_level=0):
+        self._log_debug("Executing method 'get_item({0}, {1})'", subitem_id, parent_level)
         try:
             levels = self._abitem.id.split(".")
             use_num_levels = len(levels) - parent_level
             if use_num_levels < 0:
-                raise ValueError(
-                    "parent_level {2} ist zu groß. Das Item '{0}' hat nur {1} Elemente".format(self._abitem.id,
-                                                                                               len(levels),
-                                                                                               parent_level))
+                text = "parent_level {2} ist zu groß. Das Item '{0}' hat nur {1} Elemente"
+                raise ValueError(text.format(self._abitem.id, len(levels), parent_level))
             result = ""
             for level in levels[0:use_num_levels]:
                 result += level + "."
@@ -95,6 +96,7 @@ class AbEval(AutoBlindTools.AbItemChild):
     # suspend_text: Text to insert end time of suspension into. Use strftime/strptime format codes for the end time
     #               (see https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior)
     def insert_suspend_time(self, suspend_item_id, suspend_text="Ausgesetzt bis %X"):
+        self._log_debug("Executing method 'insert_suspend_time({0}, {1})'", suspend_item_id, suspend_text)
         try:
             suspend_time = self._abitem.get_variable("item.suspend_time")
             suspend_item = self._abitem.return_item(suspend_item_id)

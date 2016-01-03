@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
+#  Copyright 2014-2016 Thomas Ernst                       offline@gmx.net
 #########################################################################
 #  This file is part of SmartHome.py.
 #
@@ -38,9 +38,17 @@ class AutoBlind:
     # manual_break_default: default break after manual changes of items
     # log_level: loglevel for extended logging
     # log_directory: directory for extended logging files
-    def __init__(self, smarthome, startup_delay_default=10, suspend_time_default=3600, manual_break_default=0,
-                 log_level=0, log_directory="var/log/AutoBlind/", log_maxage="0",
-                 laststate_name_manually_locked="Manuell gesperrt", laststate_name_suspended="Ausgesetzt bis %X"):
+    def __init__(self,
+                 smarthome,
+                 startup_delay_default=10,
+                 suspend_time_default=3600,
+                 manual_break_default=0,
+                 log_level=0,
+                 log_directory="var/log/AutoBlind/",
+                 log_maxage="0",
+                 laststate_name_manually_locked="Manuell gesperrt",
+                 laststate_name_suspended="Ausgesetzt bis %X"):
+
         self._sh = smarthome
         self.__items = {}
         self.alive = False
@@ -55,8 +63,8 @@ class AutoBlind:
         AutoBlindDefaults.write_to_log()
 
         if manual_break_default != 0:
-            logger.warning("Using obsolete plugin configuration attribute 'manual_break_default'. "
-                           + "Change to 'suspend_time_default'!")
+            text = "Using obsolete plugin config attribute 'manual_break_default'. Change to 'suspend_time_default'!"
+            logger.warning(text)
 
         AutoBlindCurrent.init(smarthome)
 
@@ -71,15 +79,14 @@ class AutoBlind:
                 os.makedirs(log_directory)
             AbLogger.set_loglevel(log_level)
             AbLogger.set_logdirectory(log_directory)
-            logger.info(
-                "AutoBlind extended logging is active. Logging to '{0}' with loglevel {1}.".format(log_directory,
-                                                                                                   log_level))
+            text = "AutoBlind extended logging is active. Logging to '{0}' with loglevel {1}."
+            logger.info(text.format(log_directory, log_level))
         log_maxage = AutoBlindTools.cast_num(log_maxage)
         if log_level > 0 and log_maxage > 0:
             logger.info("AutoBlind extended log files will be deleted after {0} days.".format(log_maxage))
             AbLogger.set_logmaxage(log_maxage)
-            self._sh.scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles,
-                                   cron=['init', '30 0 * *'], offset=0)
+            cron = ['init', '30 0 * *']
+            self._sh.scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles, cron=cron, offset=0)
 
         smarthome.autoblind_plugin_functions = AutoBlindFunctions.AbFunctions(self._sh)
 
@@ -118,6 +125,10 @@ class AutoBlind:
     def stop(self):
         self.alive = False
 
+    # Determine if caller/source are contained in changed_by list
+    # caller: Caller to check
+    # source: Source to check
+    # changed_by: List of callers/source (element format <caller>:<source>) to check against
     def is_changed_by(self, caller, source, changed_by):
         original_caller, original_source = AutoBlindTools.get_original_caller(self._sh, caller, source)
         for entry in changed_by:
@@ -127,6 +138,10 @@ class AutoBlind:
                 return True
         return False
 
+    # Determine if caller/source are not contained in changed_by list
+    # caller: Caller to check
+    # source: Source to check
+    # changed_by: List of callers/source (element format <caller>:<source>) to check against
     def not_changed_by(self, caller, source, changed_by):
         original_caller, original_source = AutoBlindTools.get_original_caller(self._sh, caller, source)
         for entry in changed_by:

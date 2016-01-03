@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
+#  Copyright 2014-2016 Thomas Ernst                       offline@gmx.net
 #########################################################################
 #  This file is part of SmartHome.py.
 #
@@ -162,9 +162,8 @@ class AbActionSetItem(AbActionBase):
             # noinspection PyCallingNonCallable
             delta = float(abs(self.__item() - value))
             if delta < mindelta:
-                self._log_debug(
-                    "{0}: Not setting '{1}' to '{2}' because delta '{3:.2}' is lower than mindelta '{4}'", actionname,
-                    self.__item.id(), value, delta, mindelta)
+                text = "{0}: Not setting '{1}' to '{2}' because delta '{3:.2}' is lower than mindelta '{4}'"
+                self._log_debug(text, actionname, self.__item.id(), value, delta, mindelta)
                 return
 
         self._log_debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
@@ -239,8 +238,8 @@ class AbActionTrigger(AbActionBase):
     def _execute(self, actionname: str):
         # Trigger logic
         self._log_info("{0}: Triggering logic '{1}' using value '{2}'.", actionname, self.__logic, self.__value)
-        self._sh.trigger(self.__logic, by=AutoBlindDefaults.plugin_identification, source=self._name,
-                         value=self.__value)
+        by = AutoBlindDefaults.plugin_identification
+        self._sh.trigger(self.__logic, by=by, source=self._name, value=self.__value)
 
 
 # Class representing a single "as_run" action
@@ -285,13 +284,12 @@ class AbActionRun(AbActionBase):
             try:
                 eval(self.__eval)
             except Exception as e:
-                self._log_error(
-                    "{0}: Problem evaluating '{1}': {2}.".format(actionname, AutoBlindTools.get_eval_name(self.__eval),
-                                                                 e))
+                text = "{0}: Problem evaluating '{1}': {2}."
+                self._log_error(text.format(actionname, AutoBlindTools.get_eval_name(self.__eval), e))
         else:
             try:
                 # noinspection PyCallingNonCallable
                 self.__eval()
             except Exception as e:
-                self._log_error(
-                    "{0}: Problem calling '{0}': {1}.".format(actionname, AutoBlindTools.get_eval_name(self.__eval), e))
+                text = "{0}: Problem calling '{0}': {1}."
+                self._log_error(text.format(actionname, AutoBlindTools.get_eval_name(self.__eval), e))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
+#  Copyright 2014-2016 Thomas Ernst                       offline@gmx.net
 #########################################################################
 #  This file is part of SmartHome.py.
 #
@@ -31,6 +31,7 @@ laststate_name_manually_locked = "Manuell gesperrt"
 laststate_name_suspended = "Ausgesetzt bis %X"
 
 plugin_identification = "AutoBlind Plugin"
+
 
 def write_to_log():
     logger.info("AutoBlind default startup delay = {0}".format(startup_delay))

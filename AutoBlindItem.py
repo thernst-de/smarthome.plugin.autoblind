@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
+#  Copyright 2014-2016 Thomas Ernst                       offline@gmx.net
 #########################################################################
 #  This file is part of SmartHome.py.
 #
@@ -129,10 +129,7 @@ class AbItem:
         if startup_delay > 0:
             first_run = self.__sh.now() + datetime.timedelta(seconds=startup_delay)
             scheduler_name = self.__name + "-Startup Delay"
-            value = {
-                "item": self.__item,
-                "caller": "Init"
-            }
+            value = {"item": self.__item, "caller": "Init"}
             self.__sh.scheduler.add(scheduler_name, self.__startup_delay_callback, value=value, next=first_run)
         elif startup_delay == -1:
             self.__startup_delay_over = True
@@ -156,16 +153,13 @@ class AbItem:
             self.__logger.debug("Update triggered by {0} (item={1} source={2} dest={3})", caller, item_id, source, dest)
 
         # Find out what initially caused the update to trigger if the caller is "Eval"
-        original_caller, original_source, original_item = AutoBlindTools.get_original_caller(self.sh, caller, source,
-                                                                                             item)
-        if original_caller != caller:
-            self.__logger.debug(
-                "Eval initially triggered by {0} (item={1} source={2})".format(original_caller, original_item.id(),
-                                                                               original_source))
+        orig_caller, orig_source, orig_item = AutoBlindTools.get_original_caller(self.sh, caller, source, item)
+        if orig_caller != caller:
+            text = "Eval initially triggered by {0} (item={1} source={2})"
+            self.__logger.debug(text, orig_caller, orig_item.id(), orig_source)
 
-        if original_caller == AutoBlindDefaults.plugin_identification or \
-           caller == AutoBlindDefaults.plugin_identification:
-            self.__logger.debug("Ignoring changes from " + AutoBlindDefaults.plugin_identification)
+        if orig_caller == AutoBlindDefaults.plugin_identification or caller == AutoBlindDefaults.plugin_identification:
+            self.__logger.debug("Ignoring changes from {0}", AutoBlindDefaults.plugin_identification)
             self.__update_in_progress = False
             return
 
@@ -173,9 +167,9 @@ class AbItem:
         self.__update_trigger_caller = caller
         self.__update_trigger_source = source
         self.__update_trigger_dest = dest
-        self.__update_original_item = original_item.id()
-        self.__update_original_caller = original_caller
-        self.__update_original_source = original_source
+        self.__update_original_item = orig_item.id()
+        self.__update_original_caller = orig_caller
+        self.__update_original_source = orig_source
 
         # check if locked
         if self.__lock_is_active():
@@ -188,8 +182,8 @@ class AbItem:
         if self.__suspend_is_active():
             # noinspection PyNoneFunctionAssignment
             active_timer_time = self.__suspend_get_time()
-            self.__logger.info(
-                "AutoBlind has been suspended after manual changes. Reactivating at {0}", active_timer_time)
+            text = "AutoBlind has been suspended after manual changes. Reactivating at {0}"
+            self.__logger.info(text, active_timer_time)
             self.__laststate_internal_name = active_timer_time.strftime(AutoBlindDefaults.laststate_name_suspended)
             self.__update_in_progress = False
             return
@@ -231,8 +225,8 @@ class AbItem:
                 if last_state is None:
                     self.__logger.info("No matching state found, no previous state available. Doing nothing.")
                 else:
-                    self.__logger.info("No matching state found, staying at {0} ('{1}')", last_state.id,
-                                       last_state.name)
+                    text = "No matching state found, staying at {0} ('{1}')"
+                    self.__logger.info(text, last_state.id, last_state.name)
                 self.__update_in_progress = False
                 return
         else:
@@ -344,8 +338,8 @@ class AbItem:
         suspend_time = self.__suspend_time.get()
         self.__logger.debug("Suspending automatic mode for {0} seconds.", suspend_time)
         self.__suspend_until = self.__sh.now() + datetime.timedelta(seconds=suspend_time)
-        self.__sh.scheduler.add(self.id + "SuspensionRemove-Timer", self.__suspend_reactivate_callback,
-                                next=self.__suspend_until)
+        name = self.id + "SuspensionRemove-Timer"
+        self.__sh.scheduler.add(name, self.__suspend_reactivate_callback, next=self.__suspend_until)
         self.__variables["item.suspend_time"] = suspend_time
 
         if self.__suspend_item is not None:
@@ -381,13 +375,13 @@ class AbItem:
     def __suspend_watch_callback(self, item, caller=None, source=None, dest=None):
         self.__logger.update_logfile()
         self.__logger.header("Watch suspend triggered")
-        self.__logger.debug("Manual operation: Change of item '{0}' by '{1}' (source='{2}', dest='{3}')",
-                            item.id(), caller, source, dest)
+        text = "Manual operation: Change of item '{0}' by '{1}' (source='{2}', dest='{3}')"
+        self.__logger.debug(text, item.id(), caller, source, dest)
         self.__logger.increase_indent()
         if caller == AutoBlindDefaults.plugin_identification:
-            self.__logger.debug("Ignoring changes from " + AutoBlindDefaults.plugin_identification)
+            self.__logger.debug("Ignoring changes from {0}", AutoBlindDefaults.plugin_identification)
         elif self.__lock_is_active():
-            self.__logger.debug("Automatic mode alreadylocked")
+            self.__logger.debug("Automatic mode already locked")
         else:
             self.__suspend_set()
         self.__logger.decrease_indent()

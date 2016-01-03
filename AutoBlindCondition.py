@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
+#  Copyright 2014-2016 Thomas Ernst                       offline@gmx.net
 #########################################################################
 #  This file is part of SmartHome.py.
 #
@@ -224,9 +224,8 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 value = self.__value.get()
 
                 if type(value) == list:
-                    self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value,
-                                    self.__negate,
-                                    current)
+                    text = "Condition '{0}': value={1} negate={2} current={3}"
+                    self._log_debug(text, self.__name, value, self.__negate, current)
                     self._log_increase_indent()
 
                     for element in value:
@@ -235,18 +234,18 @@ class AbCondition(AutoBlindTools.AbItemChild):
                             current = str(current)
                         if self.__negate:
                             if current == element:
-                                self._log_debug("{0} found but negated -> not matching".format(element))
+                                self._log_debug("{0} found but negated -> not matching", element)
                                 return False
                         else:
                             if current == element:
-                                self._log_debug("{0} found -> matching".format(element))
+                                self._log_debug("{0} found -> matching", element)
                                 return True
 
                     if self.__negate:
-                        self._log_debug("{0} not in list -> matching".format(current))
+                        self._log_debug("{0} not in list -> matching", current)
                         return True
                     else:
-                        self._log_debug("{0} not in list -> not matching".format(current))
+                        self._log_debug("{0} not in list -> not matching", current)
                         return False
 
                 else:
@@ -254,10 +253,8 @@ class AbCondition(AutoBlindTools.AbItemChild):
                     if type(value) != type(current):
                         value = str(value)
                         current = str(current)
-
-                    self._log_debug("Condition '{0}': value={1} negate={2} current={3}", self.__name, value,
-                                    self.__negate,
-                                    current)
+                    text = "Condition '{0}': value={1} negate={2} current={3}"
+                    self._log_debug(text, self.__name, value, self.__negate, current)
                     self._log_increase_indent()
 
                     if self.__negate:
@@ -278,8 +275,8 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 max_value = self.__max.get()
 
                 # 'value' is not given. We check 'min' and 'max' (if given)
-                self._log_debug("Condition '{0}': min={1} max={2} negate={3} current={4}", self.__name, min_value,
-                                max_value, self.__negate, current)
+                text = "Condition '{0}': min={1} max={2} negate={3} current={4}"
+                self._log_debug(text, self.__name, min_value, max_value, self.__negate, current)
                 self._log_increase_indent()
 
                 if min_value is None and max_value is None:
@@ -325,8 +322,8 @@ class AbCondition(AutoBlindTools.AbItemChild):
         agemax = None if self.__agemax.is_empty() else self.__agemax.get()
         try:
             # We check 'min' and 'max' (if given)
-            self._log_debug("Age of '{0}': min={1} max={2} negate={3} current={4}", self.__name, agemin, agemax,
-                            self.__agenegate, current)
+            text = "Age of '{0}': min={1} max={2} negate={3} current={4}"
+            self._log_debug(text, self.__name, agemin, agemax, self.__agenegate, current)
             self._log_increase_indent()
 
             if not self.__agenegate:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2014-2015 Thomas Ernst                       offline@gmx.net
+#  Copyright 2014-2016 Thomas Ernst                       offline@gmx.net
 #########################################################################
 #  This file is part of SmartHome.py.
 #
@@ -93,7 +93,7 @@ class AbActions(AutoBlindTools.AbItemChild):
             except ValueError as ex:
                 error = str(ex)
             if error is not None:
-                self._log_error("State '{0}', Action '{1}': {2}".format(item_state.id(), name, error))
+                self._log_error("State '{0}', Action '{1}': {2}", item_state.id(), name, error)
 
     # Execute all actions
     def execute(self):
