@@ -208,26 +208,30 @@ class AbItemChild:
         self._abitem = abitem
         self._sh = abitem.sh
 
-    # wrapper method fpr logger.info
+    # wrapper method for logger.info
     def _log_info(self, text, *args):
         self._abitem.logger.info(text, *args)
 
-    # wrapper method fpr logger.debug
+    # wrapper method for logger.debug
     def _log_debug(self, text, *args):
         self._abitem.logger.debug(text, *args)
 
-    # wrapper method fpr logger.error
+    # wrapper method for logger.warning
+    def _log_warning(self, text, *args):
+        self._abitem.logger.warning(text, *args)
+
+    # wrapper method for logger.error
     def _log_error(self, text, *args):
         self._abitem.logger.error(text, *args)
 
-    # wrapper method fpr logger.exception
+    # wrapper method for logger.exception
     def _log_exception(self, msg, *args, **kwargs):
         self._abitem.logger.exception(msg, *args, **kwargs)
 
-    # wrapper method fpr logger.increase_indent
+    # wrapper method for logger.increase_indent
     def _log_increase_indent(self, by=1):
         self._abitem.logger.increase_indent(by)
 
-    # wrapper method fpr logger.decrease_indent
+    # wrapper method for logger.decrease_indent
     def _log_decrease_indent(self, by=1):
         self._abitem.logger.decrease_indent(by)
