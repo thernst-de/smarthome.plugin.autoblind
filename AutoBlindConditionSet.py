@@ -60,7 +60,7 @@ class AbConditionSet(AutoBlindTools.AbItemChild):
                     self.__conditions[name].set(func, item.conf[attribute])
 
                 except ValueError as ex:
-                    raise ValueError("Condition {0}: {1}".format(name, ex))
+                    raise ValueError("Condition {0}: {1}".format(name, str(ex)))
 
         # Update item from grandparent_item
         for attribute in grandparent_item.conf:
@@ -75,7 +75,8 @@ class AbConditionSet(AutoBlindTools.AbItemChild):
                 try:
                     self.__conditions[name].set(func, grandparent_item.conf[attribute])
                 except ValueError as ex:
-                    raise ValueError("Item '{0}', Attribute '{1}': {2}".format(grandparent_item.id(), attribute, ex))
+                    text = "Item '{0}', Attribute '{1}': {2}"
+                    raise ValueError(text.format(grandparent_item.id(), attribute, str(ex)))
 
     # Check the condition set, optimize and complete it
     # item_state: item to read from
@@ -89,7 +90,7 @@ class AbConditionSet(AutoBlindTools.AbItemChild):
                     continue
             except ValueError as ex:
                 text = "State '{0}', Condition Set '{1}', Condition '{2}': {3}"
-                raise ValueError(text.format(item_state.id(), self.name, name, ex))
+                raise ValueError(text.format(item_state.id(), self.name, name, str(ex)))
 
         # Remove incomplete conditions
         for name in conditions_to_remove:

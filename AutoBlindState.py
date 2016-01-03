@@ -142,7 +142,7 @@ class AbState(AutoBlindTools.AbItemChild):
                 elif condition_name == "leave" or condition_name.startswith("leave_"):
                     self.__leaveConditionSets.update(condition_name, item_conditionset, parent_item)
             except ValueError as ex:
-                raise ValueError("Condition {0}: {1}".format(condition_name, ex))
+                raise ValueError("Condition {0}: {1}".format(condition_name, str(ex)))
 
         # Get actions
         for attribute in item_state.conf:

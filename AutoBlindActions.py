@@ -54,7 +54,7 @@ class AbActions(AutoBlindTools.AbItemChild):
                 # update action
                 self.__actions[name].update(value)
         except ValueError as ex:
-            raise ValueError("Action {0}: {1}".format(attribute, ex))
+            raise ValueError("Action {0}: {1}".format(attribute, str(ex)))
 
     # ensure that action exists and create if missing
     # func: action function
@@ -90,7 +90,7 @@ class AbActions(AutoBlindTools.AbItemChild):
             try:
                 self.__actions[name].complete(item_state)
             except ValueError as ex:
-                raise ValueError("State '{0}', Action '{1}': {2}".format(item_state.id(), name, ex))
+                raise ValueError("State '{0}', Action '{1}': {2}".format(item_state.id(), name, str(ex)))
 
     # Execute all actions
     def execute(self):

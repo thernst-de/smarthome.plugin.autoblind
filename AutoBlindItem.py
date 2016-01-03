@@ -116,7 +116,7 @@ class AbItem:
             try:
                 self.__states.append(AutoBlindState.AbState(self, item_state))
             except ValueError as ex:
-                self.__logger.error("Ignoring state {0} because:  {1}".format(item_state.id(), ex))
+                self.__logger.error("Ignoring state {0} because:  {1}".format(item_state.id(), str(ex)))
 
         if len(self.__states) == 0:
             raise ValueError("{0}: No states defined!".format(self.id))

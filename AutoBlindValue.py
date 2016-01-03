@@ -168,8 +168,8 @@ class AbValue(AutoBlindTools.AbItemChild):
                 else:
                     # noinspection PyCallingNonCallable
                     value = self.__cast_func(value)
-            except Exception as e:
-                self._log_info("Problem casting value '{0}': {1}.", value, e)
+            except Exception as ex:
+                self._log_info("Problem casting value '{0}': {1}.", value, str(ex))
                 return None
 
         return value
@@ -184,15 +184,15 @@ class AbValue(AutoBlindTools.AbItemChild):
                 autoblind_eval = AutoBlindEval.AbEval(self._abitem)
             try:
                 value = eval(self.__eval)
-            except Exception as e:
-                self._log_info("Problem evaluating '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), e)
+            except Exception as ex:
+                self._log_info("Problem evaluating '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), str(ex))
                 return None
         else:
             try:
                 # noinspection PyCallingNonCallable
                 value = self.__eval()
-            except Exception as e:
-                self._log_info("Problem calling '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), e)
+            except Exception as ex:
+                self._log_info("Problem calling '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), str(ex))
                 return None
 
         return self.__do_cast(value)
@@ -202,8 +202,8 @@ class AbValue(AutoBlindTools.AbItemChild):
         try:
             # noinspection PyCallingNonCallable
             value = self.__item()
-        except Exception as e:
-            self._log_info("Problem while reading item '{0}': {1}.", self.__item.id(), e)
+        except Exception as ex:
+            self._log_info("Problem while reading item '{0}': {1}.", self.__item.id(), str(ex))
             return None
 
         return self.__do_cast(value)
@@ -212,8 +212,8 @@ class AbValue(AutoBlindTools.AbItemChild):
     def __get_from_variable(self):
         try:
             value = self._abitem.get_variable(self.__varname)
-        except Exception as e:
-            self._log_info("Problem while reading variable '{0}': {1}.", self.__varname, e)
+        except Exception as ex:
+            self._log_info("Problem while reading variable '{0}': {1}.", self.__varname, str(ex))
             return None
 
         return self.__do_cast(value)

@@ -87,7 +87,7 @@ class AbLogger:
                         os.unlink(abs_file)
                         count_success += 1
                 except Exception as ex:
-                    logger.error(ex)
+                    logger.error(str(ex))
                     count_error += 1
         logger.info("{0} files removed, {1} errors occured".format(count_success, count_error))
 

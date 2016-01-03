@@ -144,7 +144,7 @@ class AbCondition(AutoBlindTools.AbItemChild):
             elif self.__name == "time":
                 self.__cast_all(AutoBlindTools.cast_time)
         except Exception as ex:
-            raise ValueError("Condition {0}: Error when casting: {1}".format(self.__name, ex))
+            raise ValueError("Condition {0}: Error when casting: {1}".format(self.__name, str(ex)))
 
         # 'min' must not be greater than 'max'
         if self.__min.get_type() == "value" and self.__max.get_type() == "value":
@@ -348,8 +348,9 @@ class AbCondition(AutoBlindTools.AbItemChild):
                     autoblind_eval = AutoBlindEval.AbEval(self._abitem)
                 try:
                     value = eval(self.__eval)
-                except Exception as e:
-                    raise ValueError("Condition {}: problem evaluating {}: {}".format(self.__name, str(self.__eval), e))
+                except Exception as ex:
+                    text = "Condition {}: problem evaluating {}: {}"
+                    raise ValueError(text.format(self.__name, str(self.__eval), str(ex)))
                 else:
                     return value
             else:
