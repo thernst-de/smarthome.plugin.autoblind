@@ -119,7 +119,8 @@ class AbActionSetItem(AbActionBase):
         # missing item in action: Try to find it.
         if self.__item is None:
             item = AutoBlindTools.find_attribute(self._sh, item_state, "as_item_" + self._name)
-            self.__item = self._abitem.return_item(item)
+            if item is not None:
+                self.__item = self._abitem.return_item(item)
 
         if self.__mindelta.is_empty():
             mindelta = AutoBlindTools.find_attribute(self._sh, item_state, "as_mindelta_" + self._name)
