@@ -37,8 +37,16 @@ class AbFunctions:
     # If the original caller/source should be consiedered, the method returns the inverted value of the item.
     # Otherwise, the method returns the current value of the item, so that no change will be made
     def manual_item_update_eval(self, item_id, caller=None, source=None):
+        text = "running manual_item_update_eval for item '{0}' source '{1} caller '{2}'"
+        logger.debug(text.format(item_id, caller, source))
+
         item = self.__sh.return_item(item_id)
         original_caller, original_source = AutoBlindTools.get_original_caller(self.__sh, caller, source)
+
+        text = "original trigger by caller '{0}' source '{1}'"
+        logger.debug(text.format(original_caller, original_source))
+
+        logger.debug("Current value of item {0} is {1}".format(item.id(), item()))
 
         retval_no_trigger = item()
         retval_trigger = not item()
@@ -46,18 +54,22 @@ class AbFunctions:
         if "as_manual_exclude" in item.conf:
             # get list of exclude entries
             exclude = item.conf["as_manual_exclude"]
+
             if isinstance(exclude, str):
                 exclude = [exclude, ]
             elif not isinstance(exclude, list):
                 logger.error("Item '{0}', Attribute 'as_manual_exclude': Value must be a string or a list!")
                 return retval_no_trigger
+            logger.debug("checking exclude values: {0}".format(exclude))
 
             # If current value is in list -> Return "NoTrigger"
             for entry in exclude:
                 entry_caller, __, entry_source = entry.partition(":")
                 if (entry_caller == original_caller or entry_caller == "*") and (
                         entry_source == original_source or entry_source == "*"):
+                    logger.debug("{0}: matching. Writing value {1}".format(entry, retval_no_trigger))
                     return retval_no_trigger
+                logger.debug("{0}: not matching".format(entry))
 
         if "as_manual_include" in item.conf:
             # get list of include entries
@@ -67,16 +79,21 @@ class AbFunctions:
             elif not isinstance(include, list):
                 logger.error("Item '{0}', Attribute 'as_manual_include': Value must be a string or a list!")
                 return retval_no_trigger
+            logger.debug("checking include values: {0}".format(include))
 
             # If current value is in list -> Return "Trigger"
             for entry in include:
                 entry_caller, __, entry_source = entry.partition(":")
                 if (entry_caller == original_caller or entry_caller == "*") and (
                         entry_source == original_source or entry_source == "*"):
+                    logger.debug("{0}: matching. Writing value {1}".format(entry, retval_trigger))
                     return retval_trigger
+                logger.debug("{0}: not matching".format(entry))
 
             # Current value not in list -> Return "No Trigger
+            logger.debug("No include values matching. Writing value {0}".format(retval_no_trigger))
             return retval_no_trigger
         else:
             # No include-entries -> return "Trigger"
+            logger.debug("No include limitation. Writing value {0}".format(retval_trigger))
             return retval_trigger
