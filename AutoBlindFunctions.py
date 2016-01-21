@@ -37,11 +37,12 @@ class AbFunctions:
     # If the original caller/source should be consiedered, the method returns the inverted value of the item.
     # Otherwise, the method returns the current value of the item, so that no change will be made
     def manual_item_update_eval(self, item_id, caller=None, source=None):
-        text = "running manual_item_update_eval for item '{0}' source '{1} caller '{2}'"
+        text = "running manual_item_update_eval for item '{0}' source '{1}' caller '{2}'"
         logger.debug(text.format(item_id, caller, source))
 
         item = self.__sh.return_item(item_id)
-        original_caller, original_source = AutoBlindTools.get_original_caller(self.__sh, caller, source)
+        # original_caller, original_source = AutoBlindTools.get_original_caller(self.__sh, caller, source)
+        original_caller, original_source = self.get_original_caller(self.__sh, caller, source)
 
         text = "original trigger by caller '{0}' source '{1}'"
         logger.debug(text.format(original_caller, original_source))
@@ -97,3 +98,35 @@ class AbFunctions:
             # No include-entries -> return "Trigger"
             logger.debug("No include limitation. Writing value {0}".format(retval_trigger))
             return retval_trigger
+
+
+    # determine original caller/source
+    # smarthome: instance of smarthome.py
+    # caller: caller
+    # source: source
+    def get_original_caller(self, smarthome, caller, source, item=None):
+        original_caller = caller
+        original_source = source
+        original_item = item
+        while original_caller == "Eval":
+            original_item = smarthome.return_item(original_source)
+            if original_item is None:
+                text = "get_original_caller({0}, {1}): original item not found"
+                logger.debug(text.format(original_caller, original_source))
+                break
+            original_changed_by = original_item.changed_by()
+            if ":" not in original_changed_by:
+                text = "get_original_caller({0}, {1}): changed by {2} -> separator missing"
+                logger.debug(text.format(original_caller, original_source, original_changed_by))
+                break
+            oc = original_caller
+            os = original_source
+            original_caller, __, original_source = original_changed_by.partition(":")
+            text = "get_original_caller({0}, {1}): changed by {2}, {3}"
+            logger.debug(text.format(oc, os, original_caller, original_source))
+        if item is None:
+            text = "get_original_caller: returning {0}, {1}"
+            logger.debug(text.format(original_caller, original_source))
+            return original_caller, original_source
+        else:
+            return original_caller, original_source, original_item
