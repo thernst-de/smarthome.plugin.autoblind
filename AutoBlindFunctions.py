@@ -18,8 +18,9 @@
 #  You should have received a copy of the GNU General Public License
 #  along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
-from . import AutoBlindTools
 import logging
+import threading
+from . import AutoBlindLogger
 
 logger = logging.getLogger()
 
@@ -27,6 +28,14 @@ logger = logging.getLogger()
 class AbFunctions:
     def __init__(self, smarthome):
         self.__sh = smarthome
+        self.__locks = {}
+
+    # get a lock object
+    # lock_id: Id of the lock object to return
+    def __get_lock(self, lock_id):
+        if lock_id not in self.__locks:
+            self.__locks[lock_id] = threading.Lock()
+        return self.__locks[lock_id]
 
     # return new item value for "manual" item
     # item_id: Id of "manual" item
@@ -37,96 +46,103 @@ class AbFunctions:
     # If the original caller/source should be consiedered, the method returns the inverted value of the item.
     # Otherwise, the method returns the current value of the item, so that no change will be made
     def manual_item_update_eval(self, item_id, caller=None, source=None):
-        text = "running manual_item_update_eval for item '{0}' source '{1}' caller '{2}'"
-        logger.debug(text.format(item_id, caller, source))
+        lock = self.__get_lock(item_id)
 
-        item = self.__sh.return_item(item_id)
-        # original_caller, original_source = AutoBlindTools.get_original_caller(self.__sh, caller, source)
-        original_caller, original_source = self.get_original_caller(self.__sh, caller, source)
+        try:
+            lock.acquire()
 
-        text = "original trigger by caller '{0}' source '{1}'"
-        logger.debug(text.format(original_caller, original_source))
+            item = self.__sh.return_item(item_id)
+            if item is None:
+                logger.error("manual_item_update_eval: item {0} not found!".format(item_id))
 
-        logger.debug("Current value of item {0} is {1}".format(item.id(), item()))
+            if "as_manual_logitem" in item.conf:
+                elog_item = self.__sh.return_item(item.conf["as_manual_logitem"])
+                elog = AutoBlindLogger.AbLogger.create(elog_item)
+            else:
+                elog = AutoBlindLogger.AbLoggerDummy()
+            elog.header("manual_item_update_eval")
+            elog.debug("running for item '{0}' source '{1}' caller '{2}'", item_id, caller, source)
 
-        retval_no_trigger = item()
-        retval_trigger = not item()
+            retval_no_trigger = item()
+            retval_trigger = not item()
+            elog.debug("Current value of item {0} is {1}", item_id, retval_no_trigger)
 
-        if "as_manual_exclude" in item.conf:
-            # get list of exclude entries
-            exclude = item.conf["as_manual_exclude"]
+            original_caller, original_source = self.get_original_caller(elog, caller, source)
+            elog.debug("original trigger by caller '{0}' source '{1}'", original_caller, original_source)
 
-            if isinstance(exclude, str):
-                exclude = [exclude, ]
-            elif not isinstance(exclude, list):
-                logger.error("Item '{0}', Attribute 'as_manual_exclude': Value must be a string or a list!")
-                return retval_no_trigger
-            logger.debug("checking exclude values: {0}".format(exclude))
+            if "as_manual_exclude" in item.conf:
+                # get list of exclude entries
+                exclude = item.conf["as_manual_exclude"]
 
-            # If current value is in list -> Return "NoTrigger"
-            for entry in exclude:
-                entry_caller, __, entry_source = entry.partition(":")
-                if (entry_caller == original_caller or entry_caller == "*") and (
-                        entry_source == original_source or entry_source == "*"):
-                    logger.debug("{0}: matching. Writing value {1}".format(entry, retval_no_trigger))
+                if isinstance(exclude, str):
+                    exclude = [exclude, ]
+                elif not isinstance(exclude, list):
+                    elog.error("Item '{0}', Attribute 'as_manual_exclude': Value must be a string or a list!", item_id)
                     return retval_no_trigger
-                logger.debug("{0}: not matching".format(entry))
+                elog.debug("checking exclude values: {0}", exclude)
+                elog.increase_indent()
 
-        if "as_manual_include" in item.conf:
-            # get list of include entries
-            include = item.conf["as_manual_include"]
-            if isinstance(include, str):
-                include = [include, ]
-            elif not isinstance(include, list):
-                logger.error("Item '{0}', Attribute 'as_manual_include': Value must be a string or a list!")
+                # If current value is in list -> Return "NoTrigger"
+                for entry in exclude:
+                    entry_caller, __, entry_source = entry.partition(":")
+                    if (entry_caller == original_caller or entry_caller == "*") and (
+                            entry_source == original_source or entry_source == "*"):
+                        elog.debug("{0}: matching. Writing value {1}", entry, retval_no_trigger)
+                        return retval_no_trigger
+                    elog.debug("{0}: not matching", entry)
+                elog.decrease_indent()
+
+            if "as_manual_include" in item.conf:
+                # get list of include entries
+                include = item.conf["as_manual_include"]
+                if isinstance(include, str):
+                    include = [include, ]
+                elif not isinstance(include, list):
+                    elog.error("Item '{0}', Attribute 'as_manual_include': Value must be a string or a list!", item_id)
+                    return retval_no_trigger
+                elog.debug("checking include values: {0}", include)
+                elog.increase_indent()
+
+                # If current value is in list -> Return "Trigger"
+                for entry in include:
+                    entry_caller, __, entry_source = entry.partition(":")
+                    if (entry_caller == original_caller or entry_caller == "*") and (
+                            entry_source == original_source or entry_source == "*"):
+                        elog.debug("{0}: matching. Writing value {1}", entry, retval_trigger)
+                        return retval_trigger
+                    elog.debug("{0}: not matching", entry)
+
+                # Current value not in list -> Return "No Trigger
+                elog.debug("No include values matching. Writing value {0}", retval_no_trigger)
                 return retval_no_trigger
-            logger.debug("checking include values: {0}".format(include))
-
-            # If current value is in list -> Return "Trigger"
-            for entry in include:
-                entry_caller, __, entry_source = entry.partition(":")
-                if (entry_caller == original_caller or entry_caller == "*") and (
-                        entry_source == original_source or entry_source == "*"):
-                    logger.debug("{0}: matching. Writing value {1}".format(entry, retval_trigger))
-                    return retval_trigger
-                logger.debug("{0}: not matching".format(entry))
-
-            # Current value not in list -> Return "No Trigger
-            logger.debug("No include values matching. Writing value {0}".format(retval_no_trigger))
-            return retval_no_trigger
-        else:
-            # No include-entries -> return "Trigger"
-            logger.debug("No include limitation. Writing value {0}".format(retval_trigger))
-            return retval_trigger
-
+            else:
+                # No include-entries -> return "Trigger"
+                elog.debug("No include limitation. Writing value {0}", retval_trigger)
+                return retval_trigger
+        finally:
+            lock.release()
 
     # determine original caller/source
-    # smarthome: instance of smarthome.py
+    # elog: instance of logging class
     # caller: caller
     # source: source
-    def get_original_caller(self, smarthome, caller, source, item=None):
+    def get_original_caller(self, elog, caller, source):
         original_caller = caller
         original_source = source
-        original_item = item
         while original_caller == "Eval":
-            original_item = smarthome.return_item(original_source)
+            original_item = self.__sh.return_item(original_source)
             if original_item is None:
-                text = "get_original_caller({0}, {1}): original item not found"
-                logger.debug(text.format(original_caller, original_source))
+                elog.debug("get_original_caller({0}, {1}): original item not found", original_caller, original_source)
                 break
             original_changed_by = original_item.changed_by()
             if ":" not in original_changed_by:
                 text = "get_original_caller({0}, {1}): changed by {2} -> separator missing"
-                logger.debug(text.format(original_caller, original_source, original_changed_by))
+                elog.debug(text, original_caller, original_source, original_changed_by)
                 break
             oc = original_caller
             os = original_source
             original_caller, __, original_source = original_changed_by.partition(":")
-            text = "get_original_caller({0}, {1}): changed by {2}, {3}"
-            logger.debug(text.format(oc, os, original_caller, original_source))
-        if item is None:
-            text = "get_original_caller: returning {0}, {1}"
-            logger.debug(text.format(original_caller, original_source))
-            return original_caller, original_source
-        else:
-            return original_caller, original_source, original_item
+            elog.debug("get_original_caller({0}, {1}): changed by {2}, {3}", oc, os, original_caller, original_source)
+
+        elog.debug("get_original_caller: returning {0}, {1}", original_caller, original_source)
+        return original_caller, original_source

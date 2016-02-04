@@ -181,3 +181,68 @@ class AbLogger:
     def exception(self, msg, *args, **kwargs):
         self.log(1, "EXCEPTION: " + msg, *args)
         logger.exception(msg, *args, **kwargs)
+
+class AbLoggerDummy:
+        # Constructor
+    # item: item for which the detailed log is (used as part of file name)
+    def __init__(self, item=None):
+        pass
+
+    # Update name logfile if required
+    def update_logfile(self):
+        pass
+
+    # Increase indentation level
+    # by: number of levels to increase
+    def increase_indent(self, by=1):
+        pass
+
+    # Decrease indentation level
+    # by: number of levels to decrease
+    def decrease_indent(self, by=1):
+        pass
+
+    # log text something
+    # level: required loglevel
+    # text: text to log
+    def log(self, level, text, *args):
+        pass
+
+    # log header line (as info)
+    # text: header text
+    def header(self, text):
+        pass
+
+    # log with level=info
+    # @param text text to log
+    # @param *args parameters for text
+    def info(self, text, *args):
+        pass
+
+    # log with lebel=debug
+    # text: text to log
+    # *args: parameters for text
+    def debug(self, text, *args):
+        pass
+
+    # log warning (always to main smarthome.py log)
+    # text: text to log
+    # *args: parameters for text
+    # noinspection PyMethodMayBeStatic
+    def warning(self, text, *args):
+        logger.warning(text.format(*args))
+
+    # log error (always to main smarthome.py log)
+    # text: text to log
+    # *args: parameters for text
+    # noinspection PyMethodMayBeStatic
+    def error(self, text, *args):
+        logger.error(text.format(*args))
+
+    # log exception (always to main smarthome.py log'
+    # msg: message to log
+    # *args: arguments for message
+    # **kwargs: known arguments for message
+    # noinspection PyMethodMayBeStatic
+    def exception(self, msg, *args, **kwargs):
+        logger.exception(msg, *args, **kwargs)
