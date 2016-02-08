@@ -56,8 +56,13 @@ class AbFunctions:
                 logger.error("manual_item_update_eval: item {0} not found!".format(item_id))
 
             if "as_manual_logitem" in item.conf:
-                elog_item = self.__sh.return_item(item.conf["as_manual_logitem"])
-                elog = AutoBlindLogger.AbLogger.create(elog_item)
+                elog_item_id = item.conf["as_manual_logitem"]
+                elog_item = self.__sh.return_item(elog_item_id)
+                if elog_item is None:
+                    logger.error ("manual_item_update_item: as_manual_logitem {0} not found!".format(elog_item_id))
+                    elog = AutoBlindLogger.AbLoggerDummy()
+                else:
+                    elog = AutoBlindLogger.AbLogger.create(elog_item)
             else:
                 elog = AutoBlindLogger.AbLoggerDummy()
             elog.header("manual_item_update_eval")
