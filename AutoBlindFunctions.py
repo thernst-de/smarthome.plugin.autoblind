@@ -29,6 +29,7 @@ class AbFunctions:
     def __init__(self, smarthome):
         self.__sh = smarthome
         self.__locks = {}
+        self.__ab_alive = False
 
     # get a lock object
     # lock_id: Id of the lock object to return
@@ -46,20 +47,23 @@ class AbFunctions:
     # If the original caller/source should be consiedered, the method returns the inverted value of the item.
     # Otherwise, the method returns the current value of the item, so that no change will be made
     def manual_item_update_eval(self, item_id, caller=None, source=None):
-        lock = self.__get_lock(item_id)
+        item = self.__sh.return_item(item_id)
+        if item is None:
+            logger.error("manual_item_update_eval: item {0} not found!".format(item_id))
 
+        # Leave immediately in case AutoBlind Plugin is not yet fully running
+        if not self.__ab_alive:
+            return item()
+
+        lock = self.__get_lock(item_id)
         try:
             lock.acquire()
-
-            item = self.__sh.return_item(item_id)
-            if item is None:
-                logger.error("manual_item_update_eval: item {0} not found!".format(item_id))
 
             if "as_manual_logitem" in item.conf:
                 elog_item_id = item.conf["as_manual_logitem"]
                 elog_item = self.__sh.return_item(elog_item_id)
                 if elog_item is None:
-                    logger.error ("manual_item_update_item: as_manual_logitem {0} not found!".format(elog_item_id))
+                    logger.error("manual_item_update_item: as_manual_logitem {0} not found!".format(elog_item_id))
                     elog = AutoBlindLogger.AbLoggerDummy()
                 else:
                     elog = AutoBlindLogger.AbLogger.create(elog_item)
