@@ -120,7 +120,7 @@ class AutoBlind:
         self.__cli = AutoBlindCliCommands.AbCliCommands(self._sh, self.__items)
 
         self.alive = True
-        self._sh.autoblind_plugin_functions.__ab_alive = True
+        self._sh.autoblind_plugin_functions.ab_alive = True
 
     # Stopping of plugin
     def stop(self):

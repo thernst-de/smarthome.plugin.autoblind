@@ -26,6 +26,16 @@ logger = logging.getLogger()
 
 
 class AbFunctions:
+    # return instance of smarthome.py class
+    @property
+    def ab_alive(self):
+        return self.__ab_alive
+
+    @ab_alive.setter
+    def ab_alive(self, value):
+        self.__ab_alive = value
+        logger.debug("ab_alive set to {0}".format(value))
+
     def __init__(self, smarthome):
         self.__sh = smarthome
         self.__locks = {}
