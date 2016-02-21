@@ -128,7 +128,7 @@ class AbItem:
         startup_delay = 0 if self.__startup_delay.is_empty() else self.__startup_delay.get()
         if startup_delay > 0:
             first_run = self.__sh.now() + datetime.timedelta(seconds=startup_delay)
-            scheduler_name = self.__name + "-Startup Delay"
+            scheduler_name = self.__id + "-Startup Delay"
             value = {"item": self.__item, "caller": "Init"}
             self.__sh.scheduler.add(scheduler_name, self.__startup_delay_callback, value=value, next=first_run)
         elif startup_delay == -1:
