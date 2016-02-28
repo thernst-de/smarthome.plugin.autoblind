@@ -279,7 +279,7 @@ class AbActionRun(AbActionBase):
         if isinstance(self.__eval, str):
             # noinspection PyUnusedLocal
             sh = self._sh
-            if self.__eval.startswith("autoblind_eval"):
+            if "autoblind_eval" in self.__eval:
                 # noinspection PyUnusedLocal
                 autoblind_eval = AutoBlindEval.AbEval(self._abitem)
             try:
