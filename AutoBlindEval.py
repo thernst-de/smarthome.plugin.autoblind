@@ -124,18 +124,26 @@ class AbEval(AutoBlindTools.AbItemChild):
     #               (see https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior)
     def insert_suspend_time(self, suspend_item_id, suspend_text="Ausgesetzt bis %X"):
         self._log_debug("Executing method 'insert_suspend_time({0}, {1})'", suspend_item_id, suspend_text)
+        self._log_increase_indent()
         try:
             suspend_time = self._abitem.get_variable("item.suspend_time")
+            self._log_debug("Suspend time is {0}", suspend_time)
             suspend_item = self._abitem.return_item(suspend_item_id)
             if suspend_item is None:
                 text = "Eval-Method 'insert_suspend_time': Suspend Item {0} not found!"
                 raise ValueError(text.format(suspend_item_id))
+            self._log_debug("Suspend item is {0}", suspend_item.id())
             suspend_over = suspend_item.age()
+            self._log_debug("Current suspend age: {0}", suspend_over)
             suspend_remaining = suspend_time - suspend_over
+            self._log_debug("Remaining suspend time: {0}", suspend_remaining)
             if suspend_remaining < 0:
                 raise ValueError("Eval-Method 'insert_suspend_time': Suspend should alredy be finished!")
             suspend_until = self._abitem.sh.now() + datetime.timedelta(seconds=suspend_remaining)
+            self._log_debug("Suspend finished at {0}",suspend_until)
             return suspend_until.strftime(suspend_text)
         except Exception as ex:
             self._log_exception(ex)
             return "(Error while determining text. Check log)"
+        finally:
+            self._log_decrease_indent()
