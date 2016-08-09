@@ -22,7 +22,7 @@ import logging
 import threading
 from . import AutoBlindLogger
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class AbFunctions:

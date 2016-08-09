@@ -20,7 +20,7 @@
 #########################################################################
 import logging
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 startup_delay = 10
 

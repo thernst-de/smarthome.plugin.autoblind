@@ -29,7 +29,7 @@ import logging
 import datetime
 import os
 
-logger = logging.getLogger("")
+logger = logging.getLogger(__name__)
 
 
 class AbLogger:
@@ -181,6 +181,7 @@ class AbLogger:
     def exception(self, msg, *args, **kwargs):
         self.log(1, "EXCEPTION: " + msg, *args)
         logger.exception(msg, *args, **kwargs)
+
 
 class AbLoggerDummy:
         # Constructor
