@@ -20,7 +20,6 @@
 #########################################################################
 import logging
 
-logger = logging.getLogger(__name__)
 
 startup_delay = 10
 
@@ -34,5 +33,6 @@ plugin_identification = "AutoBlind Plugin"
 
 
 def write_to_log():
+    logger = logging.getLogger(__name__)
     logger.info("AutoBlind default startup delay = {0}".format(startup_delay))
     logger.info("AutoBlind default suspension time = {0}".format(suspend_time))

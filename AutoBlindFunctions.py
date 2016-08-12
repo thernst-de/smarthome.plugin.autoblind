@@ -22,8 +22,6 @@ import logging
 import threading
 from . import AutoBlindLogger
 
-logger = logging.getLogger(__name__)
-
 
 class AbFunctions:
     # return instance of smarthome.py class
@@ -37,6 +35,7 @@ class AbFunctions:
         logger.debug("ab_alive set to {0}".format(value))
 
     def __init__(self, smarthome):
+        self.logger = logging.getLogger(__name__)
         self.__sh = smarthome
         self.__locks = {}
         self.__ab_alive = False
@@ -59,7 +58,7 @@ class AbFunctions:
     def manual_item_update_eval(self, item_id, caller=None, source=None):
         item = self.__sh.return_item(item_id)
         if item is None:
-            logger.error("manual_item_update_eval: item {0} not found!".format(item_id))
+            self.logger.error("manual_item_update_eval: item {0} not found!".format(item_id))
 
         # Leave immediately in case AutoBlind Plugin is not yet fully running
         if not self.__ab_alive:
@@ -73,7 +72,7 @@ class AbFunctions:
                 elog_item_id = item.conf["as_manual_logitem"]
                 elog_item = self.__sh.return_item(elog_item_id)
                 if elog_item is None:
-                    logger.error("manual_item_update_item: as_manual_logitem {0} not found!".format(elog_item_id))
+                    self.logger.error("manual_item_update_item: as_manual_logitem {0} not found!".format(elog_item_id))
                     elog = AutoBlindLogger.AbLoggerDummy()
                 else:
                     elog = AutoBlindLogger.AbLogger.create(elog_item)

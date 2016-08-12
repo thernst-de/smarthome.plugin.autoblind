@@ -20,26 +20,25 @@
 #########################################################################
 import logging
 
-logger = logging.getLogger(__name__)
-
 
 class AbCliCommands:
     def __init__(self, smarthome, items):
         self.__items = items
         self._sh = smarthome
+        self.logger = logging.getLogger(__name__)
 
         # Add additional cli commands if cli is active (and functionality to add own cli commands is available)
         try:
             cli = self._sh.return_plugin("CLI")
             if cli is None:
-                logger.debug("Additional CLI commands not registered because CLI plugin is not active")
+                self.logger.warning("Additional CLI commands not registered because CLI plugin is not active")
             else:
                 cli.add_command("as_list", self.cli_list, "as_list: list AutoState items")
                 cli.add_command("as_detail", self.cli_detail, "as_detail asItem: show details on AutoState item asItem")
-                logger.debug("Two additional CLI commands registered")
+                self.logger.warning("Two additional CLI commands registered")
         except AttributeError:
-            logger.debug("Additional CLI commands can not be registered. " +
-                         "Required functinality is not yet included in your smarthome.py version")
+            self.logger.warning("Additional CLI commands can not be registered. " +
+                                "Required functinality is not yet included in your smarthome.py version")
 
     # CLI command as_list
     # noinspection PyUnusedLocal

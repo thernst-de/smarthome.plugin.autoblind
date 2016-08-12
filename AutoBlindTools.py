@@ -21,8 +21,6 @@
 import datetime
 import logging
 
-logger = logging.getLogger(__name__)
-
 #
 # Some general tool functions
 #

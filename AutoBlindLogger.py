@@ -22,8 +22,6 @@ import logging
 import datetime
 import os
 
-logger = logging.getLogger(__name__)
-
 
 class AbLogger:
     # Log-Level: (0=off 1=Info, 2=Debug)
@@ -43,6 +41,7 @@ class AbLogger:
             AbLogger.__loglevel = int(loglevel)
         except ValueError:
             AbLogger.__loglevel = 2
+            logger = logging.getLogger('plugins.autoblind.AutoBlindLogger')
             logger.error("Das Log-Level muss numerisch angegeben werden.")
 
     # Set log directory
@@ -59,12 +58,14 @@ class AbLogger:
             AbLogger.__logmaxage = int(logmaxage)
         except ValueError:
             AbLogger.__logmaxage = 0
+            logger = logging.getLogger('plugins.autoblind.AutoBlindLogger')
             logger.error("Das maximale Alter der Logdateien muss numerisch angegeben werden.")
 
     @staticmethod
     def remove_old_logfiles():
         if AbLogger.__logmaxage == 0:
             return
+        logger = logging.getLogger('plugins.autoblind.AutoBlindLogger')
         logger.info("Removing logfiles older than {0} days".format(AbLogger.__logmaxage))
         count_success = 0
         count_error = 0
@@ -93,6 +94,7 @@ class AbLogger:
     # Constructor
     # item: item for which the detailed log is (used as part of file name)
     def __init__(self, item):
+        self.logger = logging.getLogger(__name__)
         self.__section = item.id().replace(".", "_").replace("/", "")
         self.__indentlevel = 0
         self.__date = None
@@ -156,7 +158,7 @@ class AbLogger:
     # noinspection PyMethodMayBeStatic
     def warning(self, text, *args):
         self.log(1, "WARNING: " + text, *args)
-        logger.warning(text.format(*args))
+        self.logger.warning(text.format(*args))
 
     # log error (always to main smarthome.py log)
     # text: text to log
@@ -164,7 +166,7 @@ class AbLogger:
     # noinspection PyMethodMayBeStatic
     def error(self, text, *args):
         self.log(1, "ERROR: " + text, *args)
-        logger.error(text.format(*args))
+        self.logger.error(text.format(*args))
 
     # log exception (always to main smarthome.py log'
     # msg: message to log
@@ -173,14 +175,15 @@ class AbLogger:
     # noinspection PyMethodMayBeStatic
     def exception(self, msg, *args, **kwargs):
         self.log(1, "EXCEPTION: " + msg, *args)
-        logger.exception(msg, *args, **kwargs)
+        self.logger.exception(msg, *args, **kwargs)
 
 
 class AbLoggerDummy:
-        # Constructor
+    # Constructor
     # item: item for which the detailed log is (used as part of file name)
+    # noinspection PyUnusedLocal
     def __init__(self, item=None):
-        pass
+        self.logger = logging.getLogger(__name__)
 
     # Update name logfile if required
     def update_logfile(self):
@@ -224,14 +227,14 @@ class AbLoggerDummy:
     # *args: parameters for text
     # noinspection PyMethodMayBeStatic
     def warning(self, text, *args):
-        logger.warning(text.format(*args))
+        self.logger.warning(text.format(*args))
 
     # log error (always to main smarthome.py log)
     # text: text to log
     # *args: parameters for text
     # noinspection PyMethodMayBeStatic
     def error(self, text, *args):
-        logger.error(text.format(*args))
+        self.logger.error(text.format(*args))
 
     # log exception (always to main smarthome.py log'
     # msg: message to log
@@ -239,4 +242,4 @@ class AbLoggerDummy:
     # **kwargs: known arguments for message
     # noinspection PyMethodMayBeStatic
     def exception(self, msg, *args, **kwargs):
-        logger.exception(msg, *args, **kwargs)
+        self.logger.exception(msg, *args, **kwargs)

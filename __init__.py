@@ -29,8 +29,6 @@ import logging
 import os
 from lib.model.smartplugin import SmartPlugin
 
-logger = logging.getLogger(__name__)
-
 
 class AutoBlind(SmartPlugin):
     ALLOW_MULTIINSTANCE = False
@@ -53,12 +51,13 @@ class AutoBlind(SmartPlugin):
                  laststate_name_manually_locked="Manuell gesperrt",
                  laststate_name_suspended="Ausgesetzt bis %X"):
 
+        self.logger = logging.getLogger(__name__)
         self._sh = smarthome
         self.__items = {}
         self.alive = False
         self.__cli = None
 
-        logger.info("Init AutoBlind (log_level={0}, log_directory={1}".format(log_level, log_directory))
+        self.logger.info("Init AutoBlind (log_level={0}, log_directory={1})".format(log_level, log_directory))
 
         AutoBlindDefaults.startup_delay = int(startup_delay_default)
         AutoBlindDefaults.suspend_time = int(suspend_time_default)
@@ -68,7 +67,7 @@ class AutoBlind(SmartPlugin):
 
         if manual_break_default != 0:
             text = "Using obsolete plugin config attribute 'manual_break_default'. Change to 'suspend_time_default'!"
-            logger.warning(text)
+            self.logger.warning(text)
 
         AutoBlindCurrent.init(smarthome)
 
@@ -84,10 +83,10 @@ class AutoBlind(SmartPlugin):
             AbLogger.set_loglevel(log_level)
             AbLogger.set_logdirectory(log_directory)
             text = "AutoBlind extended logging is active. Logging to '{0}' with loglevel {1}."
-            logger.info(text.format(log_directory, log_level))
+            self.logger.info(text.format(log_directory, log_level))
         log_maxage = AutoBlindTools.cast_num(log_maxage)
         if log_level > 0 and log_maxage > 0:
-            logger.info("AutoBlind extended log files will be deleted after {0} days.".format(log_maxage))
+            self.logger.info("AutoBlind extended log files will be deleted after {0} days.".format(log_maxage))
             AbLogger.set_logmaxage(log_maxage)
             cron = ['init', '30 0 * *']
             self._sh.scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles, cron=cron, offset=0)
@@ -107,19 +106,19 @@ class AutoBlind(SmartPlugin):
     # Initialization of plugin
     def run(self):
         # Initialize
-        logger.info("Init AutoBlind items")
+        self.logger.info("Init AutoBlind items")
         for item in self._sh.find_items("as_plugin"):
             if item.conf["as_plugin"] == "active":
                 try:
                     ab_item = AutoBlindItem.AbItem(self._sh, item)
                     self.__items[ab_item.id] = ab_item
                 except ValueError as ex:
-                    logger.error("Item: {0}: {1}".format(item.id(), str(ex)))
+                    self.logger.error("Item: {0}: {1}".format(item.id(), str(ex)))
 
         if len(self.__items) > 0:
-            logger.info("Using AutoBlind for {} items".format(len(self.__items)))
+            self.logger.info("Using AutoBlind for {} items".format(len(self.__items)))
         else:
-            logger.info("AutoBlind deactivated because no items have been found.")
+            self.logger.info("AutoBlind deactivated because no items have been found.")
 
         self.__cli = AutoBlindCliCommands.AbCliCommands(self._sh, self.__items)
 
