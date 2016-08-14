@@ -32,7 +32,6 @@ class AbFunctions:
     @ab_alive.setter
     def ab_alive(self, value):
         self.__ab_alive = value
-        logger.debug("ab_alive set to {0}".format(value))
 
     def __init__(self, smarthome):
         self.logger = logging.getLogger(__name__)
