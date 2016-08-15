@@ -19,6 +19,7 @@
 #  along with this plugin. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 import logging
+from lib.model.smartplugin import SmartPlugin
 
 
 class AbCliCommands:
@@ -29,27 +30,29 @@ class AbCliCommands:
 
         # Add additional cli commands if cli is active (and functionality to add own cli commands is available)
         try:
-            cli = self._sh.return_plugin("CLI")
+            cli = self._get_cli_plugin()
             if cli is None:
-                self.logger.warning("Additional CLI commands not registered because CLI plugin is not active")
+                self.logger.info("AutoBlind: Additional CLI commands not registered because CLI plugin is not active")
+            elif not isinstance(cli,SmartPlugin):
+                self.logger.info("AutoBlind: Additional CLI commands not registered because CLI plugin is to old")
             else:
                 cli.add_command("as_list", self.cli_list, "as_list: list AutoState items")
-                cli.add_command("as_detail", self.cli_detail, "as_detail asItem: show details on AutoState item asItem")
-                self.logger.warning("Two additional CLI commands registered")
-        except AttributeError:
-            self.logger.warning("Additional CLI commands can not be registered. " +
-                                "Required functinality is not yet included in your smarthome.py version")
+                cli.add_command("as_detail", self.cli_detail, "as_detail [asItem]: show details on AutoState item [asItem]")
+                self.logger.info("AutoBlind: Two additional CLI commands registered")
+        except AttributeError as err:
+            self.logger.error("AutoBlind: Additional CLI commands not registered because error occured.")
+            self.logger.exception(err)
 
     # CLI command as_list
     # noinspection PyUnusedLocal
-    def cli_list(self, handler, parameter):
+    def cli_list(self, handler, parameter, source):
         handler.push("Items for AutoState Plugin\n")
         handler.push("==========================\n")
         for name in sorted(self.__items):
             self.__items[name].cli_list(handler)
 
     # CLI command as_detail
-    def cli_detail(self, handler, parameter):
+    def cli_detail(self, handler, parameter, source):
         item = self.__cli_getitem(handler, parameter)
         if item is not None:
             item.cli_detail(handler)
@@ -60,3 +63,12 @@ class AbCliCommands:
             handler.push("no AutoState item \"{0}\" found.\n".format(parameter))
             return None
         return self.__items[parameter]
+
+    def _get_cli_plugin(self):
+        try:
+            for plugin in self._sh.return_plugins():
+                if (plugin.__module__ == 'plugins.cli'):
+                    return plugin
+            return None
+        except Exception:
+            return None
