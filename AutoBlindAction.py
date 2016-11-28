@@ -107,6 +107,7 @@ class AbActionSetItem(AbActionBase):
         self.__item = None
         self.__value = AutoBlindValue.AbValue(self._abitem, "value")
         self.__mindelta = AutoBlindValue.AbValue(self._abitem, "mindelta")
+        self.__caller = AutoBlindDefaults.plugin_identification
 
     # set the action based on a set_(action_name) attribute
     # value: Value of the set_(action_name) attribute
@@ -131,6 +132,8 @@ class AbActionSetItem(AbActionBase):
             self.__value.set_cast(self.__item.cast)
             self.__mindelta.set_cast(self.__item.cast)
             self._scheduler_name = self.__item.id() + "-AbItemDelayTimer"
+            if self._abitem.id == self.__item.id():
+                self.__caller +='_self'
 
     # Write action to logger
     def write_to_logger(self):
@@ -169,7 +172,7 @@ class AbActionSetItem(AbActionBase):
 
         self._log_debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
         # noinspection PyCallingNonCallable
-        self.__item(value, caller=AutoBlindDefaults.plugin_identification)
+        self.__item(value, caller=self.__caller)
 
 
 # Class representing a single "as_setbyattr" action
