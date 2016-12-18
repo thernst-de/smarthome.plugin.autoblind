@@ -67,6 +67,8 @@ class AbActions(AutoBlindTools.AbItemChild):
         # Create action depending on function
         if func == "as_set":
             action = AutoBlindAction.AbActionSetItem(self._abitem, name)
+        elif func == "as_force":
+            action = AutoBlindAction.AbActionForceItem(self._abitem, name)
         elif func == "as_byattr":
             action = AutoBlindAction.AbActionSetByattr(self._abitem, name)
         elif func == "as_trigger":
@@ -103,4 +105,5 @@ class AbActions(AutoBlindTools.AbItemChild):
             self._log_info("Action '{0}':", name)
             self._log_increase_indent()
             self.__actions[name].write_to_logger()
+
             self._log_decrease_indent()

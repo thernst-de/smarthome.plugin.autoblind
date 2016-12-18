@@ -297,3 +297,103 @@ class AbActionRun(AbActionBase):
             except Exception as ex:
                 text = "{0}: Problem calling '{0}': {1}."
                 self._log_error(text.format(actionname, AutoBlindTools.get_eval_name(self.__eval), str(ex)))
+
+
+# Class representing a single "as_force" action
+class AbActionForceItem(AbActionBase):
+    # Initialize the action
+    # abitem: parent AbItem instance
+    # name: Name of action
+    def __init__(self, abitem, name: str):
+        super().__init__(abitem, name)
+        self.__item = None
+        self.__value = AutoBlindValue.AbValue(self._abitem, "value")
+        self.__mindelta = AutoBlindValue.AbValue(self._abitem, "mindelta")
+
+    # set the action based on a set_(action_name) attribute
+    # value: Value of the set_(action_name) attribute
+    def update(self, value):
+        self.__value.set(value)
+
+    # Complete action
+    # item_state: state item to read from
+    def complete(self, item_state):
+        # missing item in action: Try to find it.
+        if self.__item is None:
+            item = AutoBlindTools.find_attribute(self._sh, item_state, "as_item_" + self._name)
+            if item is not None:
+                self.__item = self._abitem.return_item(item)
+
+        if self.__mindelta.is_empty():
+            mindelta = AutoBlindTools.find_attribute(self._sh, item_state, "as_mindelta_" + self._name)
+            if mindelta is not None:
+                self.__mindelta.set(mindelta)
+
+        if self.__item is not None:
+            self.__value.set_cast(self.__item.cast)
+            self.__mindelta.set_cast(self.__item.cast)
+            self._scheduler_name = self.__item.id() + "-AbItemDelayTimer"
+
+    # Write action to logger
+    def write_to_logger(self):
+        AbActionBase.write_to_logger(self)
+        if self.__item is not None:
+            self._log_debug("item: {0}", self.__item.id())
+        self.__mindelta.write_to_logger()
+        self.__value.write_to_logger()
+        self._log_debug("force update: yes")
+
+    # Check if execution is possible
+    def _can_execute(self):
+        if self.__item is None:
+            self._log_info("Action '{0}': No item defined. Ignoring.", self._name)
+            return False
+
+        if self.__value.is_empty():
+            self._log_info("Action '{0}': No value defined. Ignoring.", self._name)
+            return False
+
+        return True
+
+    # Really execute the action (needs to be implemented in derived classes)
+    def _execute(self, actionname: str):
+        value = self.__value.get()
+        if value is None:
+            return
+
+        if not self.__mindelta.is_empty():
+            mindelta = self.__mindelta.get()
+            # noinspection PyCallingNonCallable
+            delta = float(abs(self.__item() - value))
+            if delta < mindelta:
+                text = "{0}: Not setting '{1}' to '{2}' because delta '{3:.2}' is lower than mindelta '{4}'"
+                self._log_debug(text, actionname, self.__item.id(), value, delta, mindelta)
+                return
+
+        # Set to different value first ("force")
+        if self.__item() == value:
+            if self.__item._type == 'bool':
+                self._log_debug("{0}: Set '{1}' to '{2}' (Force)", actionname, self.__item.id(), not value)
+                self.__item(not value, caller=AutoBlindDefaults.plugin_identification)
+            elif self.__item._type == 'str':
+                if value != '':
+                    self._log_debug("{0}: Set '{1}' to '{2}' (Force)", actionname, self.__item.id(), '')
+                    self.__item('', caller=AutoBlindDefaults.plugin_identification)
+                else:
+                    self._log_debug("{0}: Set '{1}' to '{2}' (Force)", actionname, self.__item.id(), '-')
+                    self.__item('-', caller=AutoBlindDefaults.plugin_identification)
+            elif self.__item._type == 'num':
+                if value != 0:
+                    self._log_debug("{0}: Set '{1}' to '{2}' (Force)", actionname, self.__item.id(), 0)
+                    self.__item(0, caller=AutoBlindDefaults.plugin_identification)
+                else:
+                    self._log_debug("{0}: Set '{1}' to '{2}' (Force)", actionname, self.__item.id(), 1)
+                    self.__item(1, caller=AutoBlindDefaults.plugin_identification)
+            else:
+                self._log_warning("{0}: Force not implemented for item type '{1}'", actionname, self.__item._type)
+        else:
+            self._log_debug("{0}: New value differs from old value, no force required.", actionname)
+
+        self._log_debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
+        # noinspection PyCallingNonCallable
+        self.__item(value, caller=AutoBlindDefaults.plugin_identification)
