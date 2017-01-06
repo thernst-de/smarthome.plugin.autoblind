@@ -159,7 +159,7 @@ class AbFunctions:
             oc = original_caller
             os = original_source
             original_caller, __, original_source = original_changed_by.partition(":")
-            elog.debug("get_original_caller({0}, {1}): changed by {2}, {3}", oc, os, original_caller, original_source)
+            elog.debug("get_original_caller({0}, {1}): changed by {2}, {3} at {4}", oc, os, original_caller, original_source, original_item.last_change())
 
         elog.debug("get_original_caller: returning {0}, {1}", original_caller, original_source)
         return original_caller, original_source
