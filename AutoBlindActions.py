@@ -30,6 +30,7 @@ class AbActions(AutoBlindTools.AbItemChild):
         super().__init__(abitem)
         self.__actions = {}
         self.__unassigned_delays = {}
+        self.__unassigned_repeats = {}
 
     # Return number of actions in list
     def count(self):
@@ -49,6 +50,14 @@ class AbActions(AutoBlindTools.AbItemChild):
                     self.__unassigned_delays[name] = value
                 else:
                     self.__actions[name].update_delay(value)
+                return
+            elif func == "as_repeat":
+                # set repeat
+                if name not in self.__actions:
+                    # If we do not have the action yet (repeat-attribute before action-attribute), ...
+                    self.__unassigned_repeats[name] = value
+                else:
+                    self.__actions[name].update_repeat(value)
                 return
             elif self.__ensure_action_exists(func, name):
                 # update action
@@ -82,6 +91,10 @@ class AbActions(AutoBlindTools.AbItemChild):
             action.update_delay(self.__unassigned_delays[name])
             del self.__unassigned_delays[name]
 
+        if name in self.__unassigned_repeats:
+            action.update_repeat(self.__unassigned_repeats[name])
+            del self.__unassigned_repeats[name]
+
         self.__actions[name] = action
         return True
 
@@ -95,9 +108,11 @@ class AbActions(AutoBlindTools.AbItemChild):
                 raise ValueError("State '{0}', Action '{1}': {2}".format(item_state.id(), name, str(ex)))
 
     # Execute all actions
-    def execute(self):
+    # is_repeat: Inidicate if this is a repeated action without changing the state
+    # item_allow_repeat: Is repeating actions generally allowed for the item?
+    def execute(self, is_repeat: bool, allow_item_repeat: bool):
         for name in self.__actions:
-            self.__actions[name].execute()
+            self.__actions[name].execute(is_repeat, allow_item_repeat)
 
     # log all actions
     def write_to_logger(self):

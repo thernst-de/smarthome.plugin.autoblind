@@ -108,9 +108,11 @@ class AbState(AutoBlindTools.AbItemChild):
         self._log_decrease_indent()
 
     # activate state
-    def activate(self):
+    # is_repeat: Inidicate if this is a repeated action without changing the state
+    # item_allow_repeat: Is repeating actions generally allowed for the item?
+    def activate(self, is_repeat: bool, allow_item_repeat: bool):
         self._log_increase_indent()
-        self.__actions.execute()
+        self.__actions.execute(is_repeat, allow_item_repeat)
         self._log_decrease_indent()
 
     # Read configuration from item and populate data in class

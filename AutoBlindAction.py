@@ -47,20 +47,45 @@ class AbActionBase(AutoBlindTools.AbItemChild):
         super().__init__(abitem)
         self._name = name
         self.__delay = AutoBlindValue.AbValue(self._abitem, "delay")
+        self.__repeat = None
         self._scheduler_name = None
 
     def update_delay(self, value):
         self.__delay.set(value)
         self.__delay.set_cast(AbActionBase.__cast_delay)
 
+    def update_repeat(self, value):
+        if self.__repeat is None:
+            self.__repeat = AutoBlindValue.AbValue(self._abitem, "repeat", False, "bool")
+        self.__repeat.set(value)
+
     # Write action to logger
     def write_to_logger(self):
         self.__delay.write_to_logger()
+        if self.__repeat is not None:
+            self.__repeat.write_to_logger()
 
     # Execute action (considering delay, etc)
-    def execute(self):
+    # is_repeat: Inidicate if this is a repeated action without changing the state
+    # item_allow_repeat: Is repeating actions generally allowed for the item?
+    def execute(self, is_repeat: bool, allow_item_repeat: bool):
         if not self._can_execute():
             return
+
+        if is_repeat:
+            if self.__repeat is None:
+                if allow_item_repeat:
+                    repeat_text = " Repeat allowed by item configuration."
+                else:
+                    self._log_info("Action '{0}': Repeat denied by item configuration.", self._name)
+                    return
+            elif self.__repeat:
+                repeat_text = " Repeat allowed by action configuration."
+            else:
+                self._log_info("Action '{0}': Repeat denied by action configuration.", self._name)
+                return
+        else:
+            repeat_text = ""
 
         plan_next = self._sh.scheduler.return_next(self._scheduler_name)
         if plan_next is not None and plan_next > self._sh.now():
@@ -71,10 +96,10 @@ class AbActionBase(AutoBlindTools.AbItemChild):
         actionname = "Action '{0}'".format(self._name) if delay == 0 else "Delay Timer '{0}'".format(
             self._scheduler_name)
         if delay == 0:
-            self._execute(actionname)
+            self._execute(actionname, repeat_text)
         else:
-            self._log_info("Action '{0}: Add {1} second timer '{2}' for delayed execution.", self._name, delay,
-                           self._scheduler_name)
+            self._log_info("Action '{0}: Add {1} second timer '{2}' for delayed execution. {3}", self._name, delay,
+                           self._scheduler_name, repeat_text)
             next_run = self._sh.now() + datetime.timedelta(seconds=delay)
             self._sh.scheduler.add(self._scheduler_name, self._execute, value={'actionname': actionname}, next=next_run)
 
@@ -93,7 +118,7 @@ class AbActionBase(AutoBlindTools.AbItemChild):
         return True
 
     # Really execute the action (needs to be implemented in derived classes)
-    def _execute(self, actionname: str):
+    def _execute(self, actionname: str, repeat_text: str = ""):
         raise NotImplementedError("Class %s doesn't implement _execute()" % self.__class__.__name__)
 
 
@@ -133,7 +158,7 @@ class AbActionSetItem(AbActionBase):
             self.__mindelta.set_cast(self.__item.cast)
             self._scheduler_name = self.__item.id() + "-AbItemDelayTimer"
             if self._abitem.id == self.__item.id():
-                self.__caller +='_self'
+                self.__caller += '_self'
 
     # Write action to logger
     def write_to_logger(self):
@@ -156,7 +181,7 @@ class AbActionSetItem(AbActionBase):
         return True
 
     # Really execute the action (needs to be implemented in derived classes)
-    def _execute(self, actionname: str):
+    def _execute(self, actionname: str, repeat_text: str = ""):
         value = self.__value.get()
         if value is None:
             return
@@ -170,7 +195,7 @@ class AbActionSetItem(AbActionBase):
                 self._log_debug(text, actionname, self.__item.id(), value, delta, mindelta)
                 return
 
-        self._log_debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
+        self._log_debug("{0}: Set '{1}' to '{2}'.{3}", actionname, self.__item.id(), value, repeat_text)
         # noinspection PyCallingNonCallable
         self.__item(value, caller=self.__caller)
 
@@ -201,8 +226,8 @@ class AbActionSetByattr(AbActionBase):
             self._log_debug("set by attriute: {0}", self.__byattr)
 
     # Really execute the action
-    def _execute(self, actionname: str):
-        self._log_info("{0}: Setting values by attribute '{1}'.", actionname, self.__byattr)
+    def _execute(self, actionname: str, repeat_text: str = ""):
+        self._log_info("{0}: Setting values by attribute '{1}'.{2}", actionname, self.__byattr, repeat_text)
         for item in self._sh.find_items(self.__byattr):
             self._log_info("\t{0} = {1}", item.id(), item.conf[self.__byattr])
             item(item.conf[self.__byattr], caller=AutoBlindDefaults.plugin_identification)
@@ -239,9 +264,9 @@ class AbActionTrigger(AbActionBase):
             self._log_debug("value: {0}", self.__value)
 
     # Really execute the action
-    def _execute(self, actionname: str):
+    def _execute(self, actionname: str, repeat_text: str = ""):
         # Trigger logic
-        self._log_info("{0}: Triggering logic '{1}' using value '{2}'.", actionname, self.__logic, self.__value)
+        self._log_info("{0}: Triggering logic '{1}' using value '{2}'.{3}", actionname, self.__logic, self.__value, repeat_text)
         by = AutoBlindDefaults.plugin_identification
         self._sh.trigger(self.__logic, by=by, source=self._name, value=self.__value)
 
@@ -278,7 +303,7 @@ class AbActionRun(AbActionBase):
             self._log_debug("eval: {0}", AutoBlindTools.get_eval_name(self.__eval))
 
     # Really execute the action
-    def _execute(self, actionname: str):
+    def _execute(self, actionname: str, repeat_text: str = ""):
         if isinstance(self.__eval, str):
             # noinspection PyUnusedLocal
             sh = self._sh
@@ -356,7 +381,7 @@ class AbActionForceItem(AbActionBase):
         return True
 
     # Really execute the action (needs to be implemented in derived classes)
-    def _execute(self, actionname: str):
+    def _execute(self, actionname: str, repeat_text: str = ""):
         value = self.__value.get()
         if value is None:
             return
@@ -394,6 +419,6 @@ class AbActionForceItem(AbActionBase):
         else:
             self._log_debug("{0}: New value differs from old value, no force required.", actionname)
 
-        self._log_debug("{0}: Set '{1}' to '{2}'", actionname, self.__item.id(), value)
+        self._log_debug("{0}: Set '{1}' to '{2}'.{3}", actionname, self.__item.id(), value, repeat_text)
         # noinspection PyCallingNonCallable
         self.__item(value, caller=AutoBlindDefaults.plugin_identification)
