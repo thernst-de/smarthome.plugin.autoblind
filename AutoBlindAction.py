@@ -79,7 +79,7 @@ class AbActionBase(AutoBlindTools.AbItemChild):
                 else:
                     self._log_info("Action '{0}': Repeat denied by item configuration.", self._name)
                     return
-            elif self.__repeat:
+            elif self.__repeat.get():
                 repeat_text = " Repeat allowed by action configuration."
             else:
                 self._log_info("Action '{0}': Repeat denied by action configuration.", self._name)
