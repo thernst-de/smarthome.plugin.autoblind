@@ -84,6 +84,8 @@ class AbActions(AutoBlindTools.AbItemChild):
             action = AutoBlindAction.AbActionTrigger(self._abitem, name)
         elif func == "as_run":
             action = AutoBlindAction.AbActionRun(self._abitem, name)
+        elif func == "as_special":
+            action = AutoBlindAction.AbActionSpecial(self._abitem,name)
         else:
             return False
 

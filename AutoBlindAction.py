@@ -381,6 +381,7 @@ class AbActionForceItem(AbActionBase):
         return True
 
     # Really execute the action (needs to be implemented in derived classes)
+    # noinspection PyProtectedMember
     def _execute(self, actionname: str, repeat_text: str = ""):
         value = self.__value.get()
         if value is None:
@@ -422,3 +423,79 @@ class AbActionForceItem(AbActionBase):
         self._log_debug("{0}: Set '{1}' to '{2}'.{3}", actionname, self.__item.id(), value, repeat_text)
         # noinspection PyCallingNonCallable
         self.__item(value, caller=AutoBlindDefaults.plugin_identification)
+
+
+# Class representing a single "as_special" action
+class AbActionSpecial(AbActionBase):
+    # Initialize the action
+    # abitem: parent AbItem instance
+    # name: Name of action
+    def __init__(self, abitem, name: str):
+        super().__init__(abitem, name)
+        self.__special = None
+        self.__value = None
+
+    # set the action based on a set_(action_name) attribute
+    # value: Value of the set_(action_name) attribute
+    def update(self, value):
+        special, value = AutoBlindTools.partition_strip(value, ":")
+        if special == "suspend":
+            self.__value = self.suspend_get_value(value)
+        else:
+            raise ValueError("Action {0}: Unknown special value '{1}'!".format(self._name, special))
+        self.__special = special
+        # self.__value = None if value == "" else value
+
+    # Complete action
+    # item_state: state item to read from
+    def complete(self, item_state):
+        self._scheduler_name = self.__special + "-AbSpecialDelayTimer"
+
+    # Write action to logger
+    def write_to_logger(self):
+        AbActionBase.write_to_logger(self)
+        self._log_debug("Special Action: {0}", self.__special)
+        if self.__value is not None:
+            self._log_debug("value: {0}", self.__value)
+
+    # Really execute the action
+    def _execute(self, actionname: str, repeat_text: str = ""):
+        # Trigger logic
+        self._log_info("{0}: Executing special action '{1}' using value '{2}'.{3}", actionname, self.__special, self.__value, repeat_text)
+        self._log_increase_indent();
+        if self.__special == "suspend":
+            self.suspend_execute()
+        else:
+            self._log_decrease_indent();
+            raise ValueError("{0}: Unknown special value '{1}'!".format(actionname, self.__special))
+        self._log_decrease_indent();
+
+    def suspend_get_value(self, value):
+        if value is None:
+            raise ValueError("Action {0}: Secial action 'suspend' requires arguments!")
+
+        suspend, manual = AutoBlindTools.partition_strip(value, ",")
+        if suspend is None or manual is None:
+            raise ValueError("Action {0}: Secial action 'suspend' requires two arguments (separated by a comma)!")
+
+        suspend_item = self._abitem.return_item(suspend)
+        if suspend_item is None:
+            raise ValueError("Action {0}: Suspend item '{1}' not found!", self._name, suspend)
+
+        manual_item = self._abitem.return_item(manual)
+        if manual_item is None:
+            raise ValueError("Action {0}: Manual item '{1}' not found!", self._name, manual)
+
+        return [suspend_item, manual_item.id()]
+
+    def suspend_execute(self):
+        suspend_item = self.__value[0]
+        if self._abitem.get_update_trigger_source() == self.__value[1]:
+            # triggered by manual-item: Update suspend item
+            if suspend_item():
+                self._log_debug("Set '{0}' to '{1}' (Force)", suspend_item.id(), False)
+                suspend_item(False)
+            self._log_debug("Set '{0}' to '{1}'.", suspend_item.id(), True)
+            suspend_item(True)
+        else:
+            self._log_debug("Leaving '{0}' untouched.", suspend_item.id())

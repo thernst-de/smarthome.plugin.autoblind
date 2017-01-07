@@ -242,12 +242,11 @@ class AbItem:
 
         # get data for new state
         if last_state is not None and new_state.id == last_state.id:
+            self.__logger.info("Staying at {0} ('{1}')", new_state.id, new_state.name)
+            new_state.activate(True, self.__repeat_actions.get())
             # New state is last state
             if self.__laststate_internal_name != new_state.name:
                 self.__laststate_set(new_state)
-
-            self.__logger.info("Staying at {0} ('{1}')", new_state.id, new_state.name)
-            new_state.activate(True, self.__repeat_actions.get())
         else:
             # New state is different from last state
             self.__logger.info("Changing to {0} ('{1}')", new_state.id, new_state.name)
