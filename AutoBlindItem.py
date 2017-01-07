@@ -65,12 +65,17 @@ class AbItem:
 
         # Init lock settings
         self.__item_lock = self.return_item_by_attribute("as_lock_item")
+        if self.__item_lock is not None:
+            self.__logger.warning("AUTOBLIND WARNING: Item {0}: Usage of 'as_log_item' is obsolete. Functionality will be removed in the future!", self.__id)
 
         # Init suspend settings
         self.__suspend_item = self.return_item_by_attribute("as_suspend_item")
+        if self.__suspend_item is not None:
+            self.__logger.warning("AUTOBLIND WARNING: Item {0}: Usage of 'as_suspend_item' is obsolete. Functionality will be removed in the future!", self.__id)
         self.__suspend_until = None
         self.__suspend_watch_items = []
         if "as_suspend_watch" in self.__item.conf:
+            self.__logger.warning("AUTOBLIND WARNING: Item {0}: Usage of 'as_suspend_watch' is obsolete. Functionality will be removed in the future!", self.__id)
             suspend_on = self.__item.conf["as_suspend_watch"]
             if isinstance(suspend_on, str):
                 suspend_on = [suspend_on]

@@ -142,6 +142,7 @@ class AbState(AutoBlindTools.AbItemChild):
                 if condition_name == "enter" or condition_name.startswith("enter_"):
                     self.__enterConditionSets.update(condition_name, item_conditionset, parent_item)
                 elif condition_name == "leave" or condition_name.startswith("leave_"):
+                    self._log_warning("AUTOBLIND WARNING: Item {0}: Usage of leave-conditions is obsolete. Functionality will be removed in the future!", item_conditionset.id())
                     self.__leaveConditionSets.update(condition_name, item_conditionset, parent_item)
             except ValueError as ex:
                 raise ValueError("Condition {0}: {1}".format(condition_name, str(ex)))
