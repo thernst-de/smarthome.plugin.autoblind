@@ -170,9 +170,6 @@ class AbValue(AutoBlindTools.AbItemChild):
                     value = self.__cast_func(value)
             except Exception as ex:
                 self._log_info("Problem casting value '{0}': {1}.", value, str(ex))
-                self._log_increase_indent()
-                self._log_exception(ex)
-                self._log_decrease_indent()
                 return None
 
         return value
@@ -189,9 +186,6 @@ class AbValue(AutoBlindTools.AbItemChild):
                 value = eval(self.__eval)
             except Exception as ex:
                 self._log_info("Problem evaluating '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), str(ex))
-                self._log_increase_indent()
-                self._log_exception(ex)
-                self._log_decrease_indent()
                 return None
         else:
             try:
@@ -199,9 +193,6 @@ class AbValue(AutoBlindTools.AbItemChild):
                 value = self.__eval()
             except Exception as ex:
                 self._log_info("Problem calling '{0}': {1}.", AutoBlindTools.get_eval_name(self.__eval), str(ex))
-                self._log_increase_indent()
-                self._log_exception(ex)
-                self._log_decrease_indent()
                 return None
 
         return self.__do_cast(value)
@@ -213,9 +204,6 @@ class AbValue(AutoBlindTools.AbItemChild):
             value = self.__item()
         except Exception as ex:
             self._log_info("Problem while reading item '{0}': {1}.", self.__item.id(), str(ex))
-            self._log_increase_indent()
-            self._log_exception(ex)
-            self._log_decrease_indent()
             return None
 
         return self.__do_cast(value)
@@ -226,9 +214,6 @@ class AbValue(AutoBlindTools.AbItemChild):
             value = self._abitem.get_variable(self.__varname)
         except Exception as ex:
             self._log_info("Problem while reading variable '{0}': {1}.", self.__varname, str(ex))
-            self._log_increase_indent()
-            self._log_exception(ex)
-            self._log_decrease_indent()
             return None
 
         return self.__do_cast(value)
