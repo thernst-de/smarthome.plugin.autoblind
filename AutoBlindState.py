@@ -52,7 +52,10 @@ class AbState(AutoBlindTools.AbItemChild):
         self.__text = AutoBlindValue.AbValue(self._abitem, "State Name", False, "str")
         self.__enterConditionSets = AutoBlindConditionSets.AbConditionSets(self._abitem)
         self.__leaveConditionSets = AutoBlindConditionSets.AbConditionSets(self._abitem)
-        self.__actions = AutoBlindActions.AbActions(self._abitem)
+        self.__actions_enter_or_stay = AutoBlindActions.AbActions(self._abitem)
+        self.__actions_enter = AutoBlindActions.AbActions(self._abitem)
+        self.__actions_stay = AutoBlindActions.AbActions(self._abitem)
+        self.__actions_leave = AutoBlindActions.AbActions(self._abitem)
         self._log_info("Init state {}", item_state.id())
         self._log_increase_indent()
         self.__fill(self.__item, 0)
@@ -100,19 +103,49 @@ class AbState(AutoBlindTools.AbItemChild):
             self._log_increase_indent()
             self.__leaveConditionSets.write_to_logger()
             self._log_decrease_indent()
-        if self.__actions.count() > 0:
-            self._log_info("Actions to perform if state becomes active:")
+        if self.__actions_enter.count() > 0:
+            self._log_info("Actions to perform on enter:")
             self._log_increase_indent()
-            self.__actions.write_to_logger()
+            self.__actions_enter.write_to_logger()
+            self._log_decrease_indent()
+        if self.__actions_stay.count() > 0:
+            self._log_info("Actions to perform on stay:")
+            self._log_increase_indent()
+            self.__actions_stay.write_to_logger()
+            self._log_decrease_indent()
+        if self.__actions_enter_or_stay.count() > 0:
+            self._log_info("Actions to perform on enter or stay:")
+            self._log_increase_indent()
+            self.__actions_enter_or_stay.write_to_logger()
+            self._log_decrease_indent()
+        if self.__actions_leave.count() > 0:
+            self._log_info("Actions to perform on leave:")
+            self._log_increase_indent()
+            self.__actions_leave.write_to_logger()
             self._log_decrease_indent()
         self._log_decrease_indent()
 
-    # activate state
-    # is_repeat: Inidicate if this is a repeated action without changing the state
+    # run actions when entering the state
     # item_allow_repeat: Is repeating actions generally allowed for the item?
-    def activate(self, is_repeat: bool, allow_item_repeat: bool):
+    def run_enter(self, allow_item_repeat: bool):
         self._log_increase_indent()
-        self.__actions.execute(is_repeat, allow_item_repeat)
+        self.__actions_enter.execute(False, allow_item_repeat)
+        self.__actions_enter_or_stay.execute(False, allow_item_repeat)
+        self._log_decrease_indent()
+
+    # run actions when staying at the state
+    # item_allow_repeat: Is repeating actions generally allowed for the item?
+    def run_stay(self, allow_item_repeat: bool):
+        self._log_increase_indent()
+        self.__actions_stay.execute(True, allow_item_repeat)
+        self.__actions_enter_or_stay.execute(True, allow_item_repeat)
+        self._log_decrease_indent()
+
+    # run actions when leaving the state
+    # item_allow_repeat: Is repeating actions generally allowed for the item?
+    def run_leave(self, allow_item_repeat: bool):
+        self._log_increase_indent()
+        self.__actions_leave.execute(False, allow_item_repeat)
         self._log_decrease_indent()
 
     # Read configuration from item and populate data in class
@@ -133,23 +166,35 @@ class AbState(AutoBlindTools.AbItemChild):
             else:
                 self._log_error("{0}: Referenced item '{1}' not found!", item_state.id(), item_state.conf["as_use"])
 
-        # Get condition sets
+        # Get action sets and condition sets
         parent_item = item_state.return_parent()
-        items_conditionsets = item_state.return_children()
-        for item_conditionset in items_conditionsets:
-            condition_name = AutoBlindTools.get_last_part_of_item_id(item_conditionset)
+        child_items = item_state.return_children()
+        for child_item in child_items:
+            child_name = AutoBlindTools.get_last_part_of_item_id(child_item)
             try:
-                if condition_name == "enter" or condition_name.startswith("enter_"):
-                    self.__enterConditionSets.update(condition_name, item_conditionset, parent_item)
-                elif condition_name == "leave" or condition_name.startswith("leave_"):
-                    self._log_warning("AUTOBLIND WARNING: Item {0}: Usage of leave-conditions is obsolete. Functionality will be removed in the future!", item_conditionset.id())
-                    self.__leaveConditionSets.update(condition_name, item_conditionset, parent_item)
+                if child_name == "on_enter":
+                    for attribute in child_item.conf:
+                        self.__actions_enter.update(attribute, child_item.conf[attribute])
+                elif child_name == "on_stay":
+                    for attribute in child_item.conf:
+                        self.__actions_stay.update(attribute, child_item.conf[attribute])
+                elif child_name == "on_enter_or_stay":
+                    for attribute in child_item.conf:
+                        self.__actions_enter_or_stay.update(attribute, child_item.conf[attribute])
+                elif child_name == "on_leave":
+                    for attribute in child_item.conf:
+                        self.__actions_leave.update(attribute, child_item.conf[attribute])
+                elif child_name == "enter" or child_name.startswith("enter_"):
+                    self.__enterConditionSets.update(child_name, child_item, parent_item)
+                elif child_name == "leave" or child_name.startswith("leave_"):
+                    self._log_warning("AUTOBLIND WARNING: Item {0}: Usage of leave-conditions is obsolete. Functionality will be removed in the future!", child_item.id())
+                    self.__leaveConditionSets.update(child_name, child_item, parent_item)
             except ValueError as ex:
-                raise ValueError("Condition {0}: {1}".format(condition_name, str(ex)))
+                raise ValueError("Condition {0}: {1}".format(child_name, str(ex)))
 
-        # Get actions
+        # Actions defined directly in the item go to "enter_or_stay"
         for attribute in item_state.conf:
-            self.__actions.update(attribute, item_state.conf[attribute])
+            self.__actions_enter_or_stay.update(attribute, item_state.conf[attribute])
 
         # if an item name is given, or if we do not have a name after returning from all recursions,
         # use item name as state name
@@ -164,4 +209,7 @@ class AbState(AutoBlindTools.AbItemChild):
         if recursion_depth == 0:
             self.__enterConditionSets.complete(item_state)
             self.__leaveConditionSets.complete(item_state)
-            self.__actions.complete(item_state)
+            self.__actions_enter.complete(item_state)
+            self.__actions_stay.complete(item_state)
+            self.__actions_enter_or_stay.complete(item_state)
+            self.__actions_leave.complete(item_state)
