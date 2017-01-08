@@ -58,8 +58,10 @@ class AbState(AutoBlindTools.AbItemChild):
         self.__actions_leave = AutoBlindActions.AbActions(self._abitem)
         self._log_info("Init state {}", item_state.id())
         self._log_increase_indent()
-        self.__fill(self.__item, 0)
-        self._log_decrease_indent()
+        try:
+            self.__fill(self.__item, 0)
+        finally:
+            self._log_decrease_indent()
 
     # Check conditions if state can be entered
     # returns: True = At least one enter condition set is fulfulled, False = No enter condition set is fulfilled
