@@ -174,7 +174,7 @@ class AbLogger:
     # **kwargs: known arguments for message
     # noinspection PyMethodMayBeStatic
     def exception(self, msg, *args, **kwargs):
-        self.log(1, "EXCEPTION: " + msg, *args)
+        self.log(1, "EXCEPTION: " + str(msg), *args)
         self.logger.exception(msg, *args, **kwargs)
 
 
