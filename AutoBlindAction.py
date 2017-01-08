@@ -444,7 +444,6 @@ class AbActionSpecial(AbActionBase):
         else:
             raise ValueError("Action {0}: Unknown special value '{1}'!".format(self._name, special))
         self.__special = special
-        # self.__value = None if value == "" else value
 
     # Complete action
     # item_state: state item to read from
@@ -462,13 +461,13 @@ class AbActionSpecial(AbActionBase):
     def _execute(self, actionname: str, repeat_text: str = ""):
         # Trigger logic
         self._log_info("{0}: Executing special action '{1}' using value '{2}'.{3}", actionname, self.__special, self.__value, repeat_text)
-        self._log_increase_indent();
+        self._log_increase_indent()
         if self.__special == "suspend":
             self.suspend_execute()
         else:
-            self._log_decrease_indent();
+            self._log_decrease_indent()
             raise ValueError("{0}: Unknown special value '{1}'!".format(actionname, self.__special))
-        self._log_decrease_indent();
+        self._log_decrease_indent()
 
     def suspend_get_value(self, value):
         if value is None:
