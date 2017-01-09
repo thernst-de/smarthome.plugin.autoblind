@@ -59,6 +59,8 @@ class AbActions(AutoBlindTools.AbItemChild):
                 else:
                     self.__actions[name].update_repeat(value)
                 return
+            elif func == "as_action":  # and name not in self.__actions:
+                self.__handle_combined_action_attribute(name, value)
             elif self.__ensure_action_exists(func, name):
                 # update action
                 self.__actions[name].update(value)
@@ -85,7 +87,7 @@ class AbActions(AutoBlindTools.AbItemChild):
         elif func == "as_run":
             action = AutoBlindAction.AbActionRun(self._abitem, name)
         elif func == "as_special":
-            action = AutoBlindAction.AbActionSpecial(self._abitem,name)
+            action = AutoBlindAction.AbActionSpecial(self._abitem, name)
         else:
             return False
 
@@ -99,6 +101,62 @@ class AbActions(AutoBlindTools.AbItemChild):
 
         self.__actions[name] = action
         return True
+
+    def __handle_combined_action_attribute(self, name, value_list):
+        # value_list needs to be string or list
+        if isinstance(value_list, str):
+            value_list = [value_list, ]
+        elif not isinstance(value_list, list):
+            raise ValueError("Attribute 'as_action_{0}': Value must be a string or a list!".format(name))
+
+        # parse parameters
+        function = None
+        value = None
+        repeat = None
+        delay = None
+        force = None
+        for entry in value_list:
+            key, val = AutoBlindTools.partition_strip(entry, ":")
+            if key == "function":
+                function = AutoBlindTools.cast_str(val)
+            elif key == "value":
+                value = val
+            elif key == "force":
+                force = AutoBlindTools.cast_bool(val)
+            elif key == "repeat":
+                repeat = AutoBlindTools.cast_bool(val)
+            elif key == "delay":
+                delay = AutoBlindTools.cast_num(val)
+            else:
+                self._log_warning("Unknown parameter '{0}: {1}'!".format(key, val))
+
+        # handle force
+        if force is not None:
+            # Parameter force is supported only for type "set" and type "force"
+            if function != "set" and function != "force":
+                self._log_warning("Attribute 'as_action_{0}': Parameter 'force' not supported for function '{1}'".format(name, function))
+            elif force and function == "set":
+                # Convert type "set" with force=True to type "force"
+                self._log_info("Attribute 'as_action_{0}': Parameter 'function' changed from 'set' to 'force', because parameter 'force' is 'True'!".format(name))
+                function = "force"
+            elif not force and function == "force":
+                # Convert type "force" with force=False to type "set"
+                self._log_info("Attribute 'as_action_{0}': Parameter 'function' changed from 'force' to 'set', because parameter 'force' is 'False'!".format(name))
+                function = "set"
+
+        # create action based on function
+        if function is None:
+            raise ValueError("Attribute 'as_action_{0}: Parameter 'function' must be set!".format(name))
+        elif function in ("set", "force", "byattr", "trigger", "run", "special"):
+            func = "as_" + function
+            if self.__ensure_action_exists(func, name):
+                self.__actions[name].update(value)
+                if repeat is not None:
+                    self.__actions[name].update_repeat(repeat)
+                if delay != 0:
+                    self.__actions[name].update_delay(delay)
+        else:
+            raise ValueError("Attribute 'as_action_{0}: Invalid value '{1}' for parameter 'function'!".format(name, function))
 
     # Check the actions optimize and complete them
     # item_state: item to read from
