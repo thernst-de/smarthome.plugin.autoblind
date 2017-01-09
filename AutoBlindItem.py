@@ -112,6 +112,7 @@ class AbItem:
         # Init variables
         self.__variables = {
             "item.suspend_time": self.__suspend_time.get(),
+            "item.suspend_remaining": 0,
             "current.state_id": "",
             "current.state_name": ""
         }
@@ -606,6 +607,12 @@ class AbItem:
     # return value of variable
     def get_variable(self, varname):
         return self.__variables[varname] if varname in self.__variables else "(Unknown variable '{0}'!)".format(varname)
+
+    # set value of variable
+    def set_variable(self, varname, value):
+        if varname not in self.__variables:
+            raise ValueError("Unknown variable '{0}!".format(varname))
+        self.__variables[varname] = value
 
     # endregion
 

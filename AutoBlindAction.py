@@ -504,3 +504,10 @@ class AbActionSpecial(AbActionBase):
             suspend_item(True)
         else:
             self._log_debug("Leaving '{0}' untouched.", suspend_item.id())
+
+        # determine remaining suspend time and write to variable item.suspend_remaining
+        suspend_time = self._abitem.get_variable("item.suspend_time")
+        suspend_over = suspend_item.age()
+        suspend_remaining = int (suspend_time - suspend_over + 0.5)   # adding 0.5 causes round up ...
+        self._abitem.set_variable("item.suspend_remaining", suspend_remaining)
+        self._log_debug("Updated variable 'item.suspend_remaining' to {0}".format(suspend_remaining))
