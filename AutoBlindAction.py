@@ -39,6 +39,10 @@ class AbActionBase(AutoBlindTools.AbItemChild):
                 return int(delay)
         elif isinstance(value, int):
             return value
+        elif isinstance(value, float):
+            return int(value)
+        else:
+            raise ValueError("Can not cast delay value {0} to int!".format(value))
 
     # Initialize the action
     # abitem: parent AbItem instance
@@ -97,6 +101,8 @@ class AbActionBase(AutoBlindTools.AbItemChild):
             self._scheduler_name)
         if delay == 0:
             self._execute(actionname, repeat_text)
+        elif delay is None:
+            self._log_warning("Action'{0}: Ignored because of errors while determining the delay!", self._name)
         else:
             self._log_info("Action '{0}: Add {1} second timer '{2}' for delayed execution. {3}", self._name, delay,
                            self._scheduler_name, repeat_text)
