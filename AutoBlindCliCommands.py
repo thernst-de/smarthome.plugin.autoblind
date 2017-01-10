@@ -19,6 +19,7 @@
 #  along with this plugin. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 import logging
+# noinspection PyUnresolvedReferences
 from lib.model.smartplugin import SmartPlugin
 
 
@@ -33,7 +34,7 @@ class AbCliCommands:
             cli = self._get_cli_plugin()
             if cli is None:
                 self.logger.info("AutoBlind: Additional CLI commands not registered because CLI plugin is not active")
-            elif not isinstance(cli,SmartPlugin):
+            elif not isinstance(cli, SmartPlugin):
                 self.logger.info("AutoBlind: Additional CLI commands not registered because CLI plugin is to old")
             else:
                 cli.add_command("as_list", self.cli_list, "as_list: list AutoState items")
@@ -52,6 +53,7 @@ class AbCliCommands:
             self.__items[name].cli_list(handler)
 
     # CLI command as_detail
+    # noinspection PyUnusedLocal
     def cli_detail(self, handler, parameter, source):
         item = self.__cli_getitem(handler, parameter)
         if item is not None:
@@ -65,9 +67,10 @@ class AbCliCommands:
         return self.__items[parameter]
 
     def _get_cli_plugin(self):
+        # noinspection PyBroadException
         try:
             for plugin in self._sh.return_plugins():
-                if (plugin.__module__ == 'plugins.cli'):
+                if plugin.__module__ == 'plugins.cli':
                     return plugin
             return None
         except Exception:

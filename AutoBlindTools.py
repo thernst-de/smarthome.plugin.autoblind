@@ -19,7 +19,6 @@
 #  along with this plugin. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 import datetime
-import logging
 
 #
 # Some general tool functions

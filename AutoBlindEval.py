@@ -139,9 +139,9 @@ class AbEval(AutoBlindTools.AbItemChild):
             self._log_debug("Remaining suspend time: {0}", suspend_remaining)
             if suspend_remaining < 0:
                 self._log_debug("Eval-Method 'insert_suspend_time': Suspend should alredy be finished!")
-                return ("Suspend already over.")
+                return "Suspend already over."
             suspend_until = self._abitem.sh.now() + datetime.timedelta(seconds=suspend_remaining)
-            self._log_debug("Suspend finished at {0}",suspend_until)
+            self._log_debug("Suspend finished at {0}", suspend_until)
             return suspend_until.strftime(suspend_text)
         except Exception as ex:
             self._log_exception(ex)
