@@ -131,16 +131,14 @@ class AbState(AutoBlindTools.AbItemChild):
     # item_allow_repeat: Is repeating actions generally allowed for the item?
     def run_enter(self, allow_item_repeat: bool):
         self._log_increase_indent()
-        self.__actions_enter.execute(False, allow_item_repeat)
-        self.__actions_enter_or_stay.execute(False, allow_item_repeat)
+        self.__actions_enter.execute(False, allow_item_repeat, self.__actions_enter_or_stay)
         self._log_decrease_indent()
 
     # run actions when staying at the state
     # item_allow_repeat: Is repeating actions generally allowed for the item?
     def run_stay(self, allow_item_repeat: bool):
         self._log_increase_indent()
-        self.__actions_stay.execute(True, allow_item_repeat)
-        self.__actions_enter_or_stay.execute(True, allow_item_repeat)
+        self.__actions_stay.execute(True, allow_item_repeat, self.__actions_enter_or_stay)
         self._log_decrease_indent()
 
     # run actions when leaving the state

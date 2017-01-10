@@ -31,6 +31,7 @@ class AbActions(AutoBlindTools.AbItemChild):
         self.__actions = {}
         self.__unassigned_delays = {}
         self.__unassigned_repeats = {}
+        self.__unassigned_orders = {}
 
     # Return number of actions in list
     def count(self):
@@ -58,6 +59,14 @@ class AbActions(AutoBlindTools.AbItemChild):
                     self.__unassigned_repeats[name] = value
                 else:
                     self.__actions[name].update_repeat(value)
+                return
+            elif func == "as_order":
+                # set order
+                if name not in self.__actions:
+                    # If we do not have the action yet (order-attribute before action-attribute), ...
+                    self.__unassigned_orders[name] = value
+                else:
+                    self.__actions[name].update_order(value)
                 return
             elif func == "as_action":  # and name not in self.__actions:
                 self.__handle_combined_action_attribute(name, value)
@@ -99,6 +108,10 @@ class AbActions(AutoBlindTools.AbItemChild):
             action.update_repeat(self.__unassigned_repeats[name])
             del self.__unassigned_repeats[name]
 
+        if name in self.__unassigned_orders:
+            action.update_order(self.__unassigned_orders[name])
+            del self.__unassigned_orders[name]
+
         self.__actions[name] = action
         return True
 
@@ -115,6 +128,7 @@ class AbActions(AutoBlindTools.AbItemChild):
         repeat = None
         delay = None
         force = None
+        order = None
         for entry in value_list:
             key, val = AutoBlindTools.partition_strip(entry, ":")
             if key == "function":
@@ -127,6 +141,8 @@ class AbActions(AutoBlindTools.AbItemChild):
                 repeat = AutoBlindTools.cast_bool(val)
             elif key == "delay":
                 delay = AutoBlindTools.cast_num(val)
+            elif key == "order":
+                order = AutoBlindTools.cast_num(val)
             else:
                 self._log_warning("Unknown parameter '{0}: {1}'!".format(key, val))
 
@@ -155,6 +171,8 @@ class AbActions(AutoBlindTools.AbItemChild):
                     self.__actions[name].update_repeat(repeat)
                 if delay != 0:
                     self.__actions[name].update_delay(delay)
+                if order is not None:
+                    self.__actions[name].update_order(order)
         else:
             raise ValueError("Attribute 'as_action_{0}: Invalid value '{1}' for parameter 'function'!".format(name, function))
 
@@ -170,15 +188,24 @@ class AbActions(AutoBlindTools.AbItemChild):
     # Execute all actions
     # is_repeat: Inidicate if this is a repeated action without changing the state
     # item_allow_repeat: Is repeating actions generally allowed for the item?
-    def execute(self, is_repeat: bool, allow_item_repeat: bool):
+    # additional_actions: AbActions-Instance containing actions which should be executed, too
+    def execute(self, is_repeat: bool, allow_item_repeat: bool, additional_actions=None):
+        actions = []
         for name in self.__actions:
-            self.__actions[name].execute(is_repeat, allow_item_repeat)
+            actions.append((self.__actions[name].get_order(), self.__actions[name]))
+        if additional_actions is not None:
+            for name in additional_actions.__actions:
+                actions.append((additional_actions.__actions[name].get_order(), additional_actions.__actions[name]))
+        for order, action in sorted(actions):
+            action.execute(is_repeat, allow_item_repeat)
 
     # log all actions
     def write_to_logger(self):
+        actions = []
         for name in self.__actions:
-            self._log_info("Action '{0}':", name)
+            actions.append((self.__actions[name].get_order(), self.__actions[name]))
+        for order, action in sorted(actions):
+            self._log_info("Action '{0}':", action._name)
             self._log_increase_indent()
-            self.__actions[name].write_to_logger()
-
+            action.write_to_logger()
             self._log_decrease_indent()

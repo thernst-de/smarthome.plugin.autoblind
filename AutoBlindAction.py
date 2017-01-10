@@ -52,6 +52,7 @@ class AbActionBase(AutoBlindTools.AbItemChild):
         self._name = name
         self.__delay = AutoBlindValue.AbValue(self._abitem, "delay")
         self.__repeat = None
+        self.__order = AutoBlindValue.AbValue(self._abitem, "order", False, "num")
         self._scheduler_name = None
 
     def update_delay(self, value):
@@ -63,11 +64,19 @@ class AbActionBase(AutoBlindTools.AbItemChild):
             self.__repeat = AutoBlindValue.AbValue(self._abitem, "repeat", False, "bool")
         self.__repeat.set(value)
 
+    def update_order(self, value):
+        self._log_debug("Got order {0}", value)
+        self.__order.set(value)
+
+    def get_order(self):
+        return self.__order.get(1)
+
     # Write action to logger
     def write_to_logger(self):
         self.__delay.write_to_logger()
         if self.__repeat is not None:
             self.__repeat.write_to_logger()
+        self.__order.write_to_logger()
 
     # Execute action (considering delay, etc)
     # is_repeat: Inidicate if this is a repeated action without changing the state
