@@ -103,6 +103,8 @@ class AbActionBase(AutoBlindTools.AbItemChild):
             self._execute(actionname, repeat_text)
         elif delay is None:
             self._log_warning("Action'{0}: Ignored because of errors while determining the delay!", self._name)
+        elif delay < 0:
+            self._log_warning("Action'{0}: Ignored because of delay is negative!", self._name)
         else:
             self._log_info("Action '{0}: Add {1} second timer '{2}' for delayed execution. {3}", self._name, delay,
                            self._scheduler_name, repeat_text)
