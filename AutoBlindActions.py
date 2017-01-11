@@ -138,11 +138,11 @@ class AbActions(AutoBlindTools.AbItemChild):
             elif key == "force":
                 force = AutoBlindTools.cast_bool(val)
             elif key == "repeat":
-                repeat = AutoBlindTools.cast_bool(val)
+                repeat = val
             elif key == "delay":
-                delay = AutoBlindTools.cast_num(val)
+                delay = val
             elif key == "order":
-                order = AutoBlindTools.cast_num(val)
+                order = val
             else:
                 self._log_warning("Unknown parameter '{0}: {1}'!".format(key, val))
 
@@ -205,6 +205,7 @@ class AbActions(AutoBlindTools.AbItemChild):
         for name in self.__actions:
             actions.append((self.__actions[name].get_order(), self.__actions[name]))
         for order, action in sorted(actions, key=lambda x: x[0]):
+            # noinspection PyProtectedMember
             self._log_info("Action '{0}':", action._name)
             self._log_increase_indent()
             action.write_to_logger()

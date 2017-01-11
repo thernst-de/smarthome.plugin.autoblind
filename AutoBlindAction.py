@@ -65,7 +65,6 @@ class AbActionBase(AutoBlindTools.AbItemChild):
         self.__repeat.set(value)
 
     def update_order(self, value):
-        self._log_debug("Got order {0}", value)
         self.__order.set(value)
 
     def get_order(self):

@@ -60,7 +60,7 @@ def cast_num(value):
         return float(value)
     except:
         pass
-    raise ValueError
+    raise ValueError("Can't cast {0} to int!".format(str(value)))
 
 
 # cast a value as boolean. Throws ValueError or TypeError if cast is not possible
@@ -74,16 +74,16 @@ def cast_bool(value):
         elif value in [True, 1]:
             return True
         else:
-            raise ValueError
+            raise ValueError("Can't cast {0} to bool!".format(str(value)))
     elif type(value) in [str, str]:
         if value.lower() in ['0', 'false', 'no', 'off']:
             return False
         elif value.lower() in ['1', 'true', 'yes', 'on']:
             return True
         else:
-            raise ValueError
+            raise ValueError("Can't cast {0} to bool!".format(str(value)))
     else:
-        raise TypeError
+        raise ValueError("Can't cast {0} to bool!".format(str(value)))
 
 
 # cast a value as string. Throws ValueError if cast is not possible
@@ -94,7 +94,7 @@ def cast_str(value):
     if isinstance(value, str):
         return value
     else:
-        raise ValueError
+        raise ValueError("Can't cast {0} to str!".format(str(value)))
 
 
 # cast value as datetime.time. Throws ValueError if cast is not possible
