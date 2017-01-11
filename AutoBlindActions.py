@@ -196,7 +196,7 @@ class AbActions(AutoBlindTools.AbItemChild):
         if additional_actions is not None:
             for name in additional_actions.__actions:
                 actions.append((additional_actions.__actions[name].get_order(), additional_actions.__actions[name]))
-        for order, action in sorted(actions):
+        for order, action in sorted(actions, key=lambda x: x[0]):
             action.execute(is_repeat, allow_item_repeat)
 
     # log all actions
@@ -204,7 +204,7 @@ class AbActions(AutoBlindTools.AbItemChild):
         actions = []
         for name in self.__actions:
             actions.append((self.__actions[name].get_order(), self.__actions[name]))
-        for order, action in sorted(actions):
+        for order, action in sorted(actions, key=lambda x: x[0]):
             self._log_info("Action '{0}':", action._name)
             self._log_increase_indent()
             action.write_to_logger()
