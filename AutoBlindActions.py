@@ -123,58 +123,86 @@ class AbActions(AutoBlindTools.AbItemChild):
             raise ValueError("Attribute 'as_action_{0}': Value must be a string or a list!".format(name))
 
         # parse parameters
-        function = None
-        value = None
-        repeat = None
-        delay = None
-        force = None
-        order = None
+        parameter = {'function': None, 'force': None, 'repeat': None, 'delay': 0, 'order': None}
         for entry in value_list:
             key, val = AutoBlindTools.partition_strip(entry, ":")
             if key == "function":
-                function = AutoBlindTools.cast_str(val)
-            elif key == "value":
-                value = val
+                parameter[key] = AutoBlindTools.cast_str(val)
             elif key == "force":
-                force = AutoBlindTools.cast_bool(val)
-            elif key == "repeat":
-                repeat = val
-            elif key == "delay":
-                delay = val
-            elif key == "order":
-                order = val
+                parameter[key] = AutoBlindTools.cast_bool(val)
             else:
-                self._log_warning("Unknown parameter '{0}: {1}'!".format(key, val))
+                parameter[key] = val
+        parameter['action'] = name
+
+        # function given?
+        if parameter['function'] is None:
+            raise ValueError("Attribute 'as_action_{0}: Parameter 'function' must be set!".format(name))
 
         # handle force
-        if force is not None:
+        if parameter['force'] is not None:
             # Parameter force is supported only for type "set" and type "force"
-            if function != "set" and function != "force":
-                self._log_warning("Attribute 'as_action_{0}': Parameter 'force' not supported for function '{1}'".format(name, function))
-            elif force and function == "set":
+            if parameter['function'] != "set" and parameter['function'] != "force":
+                self._log_warning("Attribute 'as_action_{0}': Parameter 'force' not supported for function '{1}'".format(name, parameter['function']))
+            elif parameter['force'] and parameter['function'] == "set":
                 # Convert type "set" with force=True to type "force"
                 self._log_info("Attribute 'as_action_{0}': Parameter 'function' changed from 'set' to 'force', because parameter 'force' is 'True'!".format(name))
-                function = "force"
-            elif not force and function == "force":
+                parameter['function'] = "force"
+            elif not parameter['force'] and parameter['function'] == "force":
                 # Convert type "force" with force=False to type "set"
                 self._log_info("Attribute 'as_action_{0}': Parameter 'function' changed from 'force' to 'set', because parameter 'force' is 'False'!".format(name))
-                function = "set"
+                parameter['function'] = "set"
 
         # create action based on function
-        if function is None:
-            raise ValueError("Attribute 'as_action_{0}: Parameter 'function' must be set!".format(name))
-        elif function in ("set", "force", "byattr", "trigger", "run", "special"):
-            func = "as_" + function
-            if self.__ensure_action_exists(func, name):
-                self.__actions[name].update(value)
-                if repeat is not None:
-                    self.__actions[name].update_repeat(repeat)
-                if delay != 0:
-                    self.__actions[name].update_delay(delay)
-                if order is not None:
-                    self.__actions[name].update_order(order)
+        exists = False
+        if parameter['function'] == "set":
+            if self.__ensure_action_exists("as_set", name):
+                self.__raise_missing_parameter_error(parameter, 'to')
+                self.__actions[name].update(parameter['to'])
+                exists = True
+        elif parameter['function'] == "force":
+            if self.__ensure_action_exists("as_force", name):
+                self.__raise_missing_parameter_error(parameter, 'to')
+                self.__actions[name].update(parameter['to'])
+                exists = True
+        elif parameter['function'] == "run":
+            if self.__ensure_action_exists("as_run", name):
+                self.__raise_missing_parameter_error(parameter, 'eval')
+                self.__actions[name].update(parameter['eval'])
+                exists = True
+        elif parameter['function'] == "byattr":
+            if self.__ensure_action_exists("as_byattr", name):
+                self.__raise_missing_parameter_error(parameter, 'attribute')
+                self.__actions[name].update(parameter['attribute'])
+                exists = True
+        elif parameter['function'] == "trigger":
+            if self.__ensure_action_exists("as_trigger", name):
+                self.__raise_missing_parameter_error(parameter, 'logic')
+                if 'value' in parameter and parameter['value'] is not None:
+                    self.__actions[name].update(parameter['logic'] + ':' + parameter['value'])
+                else:
+                    self.__actions[name].update(parameter['logic'])
+                exists = True
+        elif parameter['function'] == "special":
+            if self.__ensure_action_exists("as_special", name):
+                self.__raise_missing_parameter_error(parameter, 'value')
+                self.__actions[name].update(parameter['value'])
+                exists = True
         else:
-            raise ValueError("Attribute 'as_action_{0}: Invalid value '{1}' for parameter 'function'!".format(name, function))
+            raise ValueError("Attribute 'as_action_{0}: Invalid value '{1}' for parameter 'function'!".format(name, parameter['function']))
+
+        # add additional parameters
+        if exists:
+            if parameter['repeat'] is not None:
+                self.__actions[name].update_repeat(parameter['repeat'])
+            if parameter['delay'] != 0:
+                self.__actions[name].update_delay(parameter['delay'])
+            if parameter['order'] is not None:
+                self.__actions[name].update_order(parameter['order'])
+
+    # noinspection PyMethodMayBeStatic
+    def __raise_missing_parameter_error(self, parameter, param_name):
+        if param_name not in parameter or parameter[param_name] is None:
+            raise ValueError("Attribute 'as_action_{0}: Parameter '{1}' must be set for function '{2}'!".format(parameter['action'], param_name, parameter['function']))
 
     # Check the actions optimize and complete them
     # item_state: item to read from
