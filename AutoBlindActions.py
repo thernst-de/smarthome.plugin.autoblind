@@ -74,7 +74,10 @@ class AbActions(AutoBlindTools.AbItemChild):
                 # update action
                 self.__actions[name].update(value)
         except ValueError as ex:
-            raise ValueError("Action {0}: {1}".format(attribute, str(ex)))
+            if name in self.__actions:
+                del self.__actions[name]
+            self._log_warning("Ignoring action {0} because: {1} (2)".format(attribute, str(ex)))
+            #raise ValueError("Action {0}: {1}".format(attribute, str(ex)))
 
     # ensure that action exists and create if missing
     # func: action function
@@ -134,9 +137,11 @@ class AbActions(AutoBlindTools.AbItemChild):
                 parameter[key] = val
         parameter['action'] = name
 
-        # function given?
+        # function given and valid?
         if parameter['function'] is None:
             raise ValueError("Attribute 'as_action_{0}: Parameter 'function' must be set!".format(name))
+        if parameter['function'] not in ('set', 'force', 'run', 'byattr', 'trigger', 'special'):
+            raise ValueError("Attribute 'as_action_{0}: Invalid value '{1}' for parameter 'function'!".format(name, parameter['function']))
 
         # handle force
         if parameter['force'] is not None:
@@ -154,41 +159,46 @@ class AbActions(AutoBlindTools.AbItemChild):
 
         # create action based on function
         exists = False
-        if parameter['function'] == "set":
-            if self.__ensure_action_exists("as_set", name):
-                self.__raise_missing_parameter_error(parameter, 'to')
-                self.__actions[name].update(parameter['to'])
-                exists = True
-        elif parameter['function'] == "force":
-            if self.__ensure_action_exists("as_force", name):
-                self.__raise_missing_parameter_error(parameter, 'to')
-                self.__actions[name].update(parameter['to'])
-                exists = True
-        elif parameter['function'] == "run":
-            if self.__ensure_action_exists("as_run", name):
-                self.__raise_missing_parameter_error(parameter, 'eval')
-                self.__actions[name].update(parameter['eval'])
-                exists = True
-        elif parameter['function'] == "byattr":
-            if self.__ensure_action_exists("as_byattr", name):
-                self.__raise_missing_parameter_error(parameter, 'attribute')
-                self.__actions[name].update(parameter['attribute'])
-                exists = True
-        elif parameter['function'] == "trigger":
-            if self.__ensure_action_exists("as_trigger", name):
-                self.__raise_missing_parameter_error(parameter, 'logic')
-                if 'value' in parameter and parameter['value'] is not None:
-                    self.__actions[name].update(parameter['logic'] + ':' + parameter['value'])
-                else:
-                    self.__actions[name].update(parameter['logic'])
-                exists = True
-        elif parameter['function'] == "special":
-            if self.__ensure_action_exists("as_special", name):
-                self.__raise_missing_parameter_error(parameter, 'value')
-                self.__actions[name].update(parameter['value'])
-                exists = True
-        else:
-            raise ValueError("Attribute 'as_action_{0}: Invalid value '{1}' for parameter 'function'!".format(name, parameter['function']))
+        try:
+            if parameter['function'] == "set":
+                if self.__ensure_action_exists("as_set", name):
+                    self.__raise_missing_parameter_error(parameter, 'to')
+                    self.__actions[name].update(parameter['to'])
+                    exists = True
+            elif parameter['function'] == "force":
+                if self.__ensure_action_exists("as_force", name):
+                    self.__raise_missing_parameter_error(parameter, 'to')
+                    self.__actions[name].update(parameter['to'])
+                    exists = True
+            elif parameter['function'] == "run":
+                if self.__ensure_action_exists("as_run", name):
+                    self.__raise_missing_parameter_error(parameter, 'eval')
+                    self.__actions[name].update(parameter['eval'])
+                    exists = True
+            elif parameter['function'] == "byattr":
+                if self.__ensure_action_exists("as_byattr", name):
+                    self.__raise_missing_parameter_error(parameter, 'attribute')
+                    self.__actions[name].update(parameter['attribute'])
+                    exists = True
+            elif parameter['function'] == "trigger":
+                if self.__ensure_action_exists("as_trigger", name):
+                    self.__raise_missing_parameter_error(parameter, 'logic')
+                    if 'value' in parameter and parameter['value'] is not None:
+                        self.__actions[name].update(parameter['logic'] + ':' + parameter['value'])
+                    else:
+                        self.__actions[name].update(parameter['logic'])
+                    exists = True
+            elif parameter['function'] == "special":
+                if self.__ensure_action_exists("as_special", name):
+                    self.__raise_missing_parameter_error(parameter, 'value')
+                    self.__actions[name].update(parameter['value'])
+                    exists = True
+        except ValueError as ex:
+            exists = False
+            if name in self.__actions:
+                del self.__actions[name]
+            self._log_warning("Ignoring action {0} because: {1}".format(name, str(ex)))
+
 
         # add additional parameters
         if exists:
