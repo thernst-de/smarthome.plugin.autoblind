@@ -32,7 +32,7 @@ from lib.model.smartplugin import SmartPlugin
 
 class AutoBlind(SmartPlugin):
     ALLOW_MULTIINSTANCE = False
-    PLUGIN_VERSION = '1.2.2'
+    PLUGIN_VERSION = '1.4.0'
 
     # Constructor
     # smarthome: instance of smarthome.py
