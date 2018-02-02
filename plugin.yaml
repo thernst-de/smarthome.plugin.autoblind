@@ -13,8 +13,64 @@ plugin:
     multi_instance: False
     classname: AutoBlind
 
-plugin_parameters:
+parameters:
     # Definition of parameters to be configured in etc/plugin.yaml
+    startup_delay_default:
+        type: int
+        default: 10
+        description:
+            de: 'Vorgabe für Verzögerung der ersten Zustandsermittlung beim Start'
+            en: 'Default delay for first state determination at startup'
+        valid_min: -1
+        valid_max: 600
+
+    suspend_time_default:
+        type: int
+        default: 3600
+        description:
+            de: 'Vorgabezeit zur Unterbrechung der automatischen Steuerung nach manuellen Aktionen'
+            en: 'Default suspend duration after manual actions'
+        valid_min: 1
+        valid_max: 86400
+
+    laststate_name_manually_locked:
+        type: str
+        default: 'Manuell gesperrt'
+        description:
+            de: 'Text der als "laststate_name" angezeigt wird, wenn die Automatik manuell gesperrt wurde'
+            en: 'Text shown as "laststate_name" when the automatic has been locked manually'
+
+    laststate_name_suspended:
+        type: str
+        default: 'Ausgesetzt bis %X'
+        description:
+            de: 'Text der als "laststate_name" angezeigt wird, wenn die Automatik nach manuellen Aktionen zeitweise unterbrochen wurde'
+            en: 'Text shown as "laststate_name" when the automatic has been temporarily suspended after manual actions'
+
+    log_level:
+        type: int
+        default: 0
+        description:
+            de: 'Erweiterte Protokollierung: Loglevel (0: aus, 1: Info, 2: Debug)'
+            en: 'Extended Logging: Loglevel (0: off, 1: Info, 2: Debug)'
+        valid_list:
+          - 0
+          - 1
+          - 2
+
+    log_directory:
+        type: str
+        default: 'var/log/AutoBlind/'
+        description:
+            de: 'Erweiterte Protokollierung: Verzeichnis für die Protokolldateien'
+            en: 'Extended Logging: Directory for log files'
+
+    log_maxage:
+        type: int
+        default: 0
+        description:
+            de: 'Erweiterte Protokollierung: Anzahl der Tage, nach der die Dateien im Verzeichnis für die Protokolldateien wieder gelöscht werden sollen'
+            en: 'Extended Logging: Number of days after which the files in the directory for log files should be deleted'
 
 item_attributes:
     # Definition of item attributes defined by this plugin
