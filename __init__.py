@@ -52,7 +52,6 @@ class AutoBlind(SmartPlugin):
                  laststate_name_suspended="Ausgesetzt bis %X"):
 
         self.logger = logging.getLogger(__name__)
-        self._sh = smarthome
         self.__items = {}
         self.alive = False
         self.__cli = None
@@ -74,7 +73,7 @@ class AutoBlind(SmartPlugin):
         log_level = AutoBlindTools.cast_num(log_level)
         if log_level > 0:
             if log_directory[0] != "/":
-                base = self._sh.base_dir
+                base = self.get_sh().get_basedir()
                 if base[-1] != "/":
                     base += "/"
                 log_directory = base + log_directory
@@ -89,9 +88,9 @@ class AutoBlind(SmartPlugin):
             self.logger.info("AutoBlind extended log files will be deleted after {0} days.".format(log_maxage))
             AbLogger.set_logmaxage(log_maxage)
             cron = ['init', '30 0 * *']
-            self._sh.scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles, cron=cron, offset=0)
+            self.get_sh().scheduler.add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles, cron=cron, offset=0)
 
-        smarthome.autoblind_plugin_functions = AutoBlindFunctions.AbFunctions(self._sh)
+        smarthome.autoblind_plugin_functions = AutoBlindFunctions.AbFunctions(self.get_sh())
 
     # Parse an item
     # noinspection PyMethodMayBeStatic
@@ -107,10 +106,10 @@ class AutoBlind(SmartPlugin):
     def run(self):
         # Initialize
         self.logger.info("Init AutoBlind items")
-        for item in self._sh.find_items("as_plugin"):
+        for item in self.get_sh().find_items("as_plugin"):
             if item.conf["as_plugin"] == "active":
                 try:
-                    ab_item = AutoBlindItem.AbItem(self._sh, item)
+                    ab_item = AutoBlindItem.AbItem(self.get_sh(), item)
                     self.__items[ab_item.id] = ab_item
                 except ValueError as ex:
                     self.logger.error("Item: {0}: {1}".format(item.id(), str(ex)))
@@ -120,10 +119,10 @@ class AutoBlind(SmartPlugin):
         else:
             self.logger.info("AutoBlind deactivated because no items have been found.")
 
-        self.__cli = AutoBlindCliCommands.AbCliCommands(self._sh, self.__items)
+        self.__cli = AutoBlindCliCommands.AbCliCommands(self.get_sh(), self.__items)
 
         self.alive = True
-        self._sh.autoblind_plugin_functions.ab_alive = True
+        self.get_sh().autoblind_plugin_functions.ab_alive = True
 
     # Stopping of plugin
     def stop(self):
@@ -134,7 +133,7 @@ class AutoBlind(SmartPlugin):
     # source: Source to check
     # changed_by: List of callers/source (element format <caller>:<source>) to check against
     def is_changed_by(self, caller, source, changed_by):
-        original_caller, original_source = AutoBlindTools.get_original_caller(self._sh, caller, source)
+        original_caller, original_source = AutoBlindTools.get_original_caller(self.get_sh(), caller, source)
         for entry in changed_by:
             entry_caller, __, entry_source = entry.partition(":")
             if (entry_caller == original_caller or entry_caller == "*") and (
@@ -147,7 +146,7 @@ class AutoBlind(SmartPlugin):
     # source: Source to check
     # changed_by: List of callers/source (element format <caller>:<source>) to check against
     def not_changed_by(self, caller, source, changed_by):
-        original_caller, original_source = AutoBlindTools.get_original_caller(self._sh, caller, source)
+        original_caller, original_source = AutoBlindTools.get_original_caller(self.get_sh(), caller, source)
         for entry in changed_by:
             entry_caller, __, entry_source = entry.partition(":")
             if (entry_caller == original_caller or entry_caller == "*") and (
