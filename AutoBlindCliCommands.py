@@ -21,7 +21,7 @@
 import logging
 # noinspection PyUnresolvedReferences
 from lib.model.smartplugin import SmartPlugin
-
+from lib.plugin import Plugins
 
 class AbCliCommands:
     def __init__(self, smarthome, items):
@@ -37,8 +37,8 @@ class AbCliCommands:
             elif not isinstance(cli, SmartPlugin):
                 self.logger.info("AutoBlind: Additional CLI commands not registered because CLI plugin is to old")
             else:
-                cli.add_command("as_list", self.cli_list, "as_list: list AutoState items")
-                cli.add_command("as_detail", self.cli_detail, "as_detail [asItem]: show details on AutoState item [asItem]")
+                cli.commands.add_command("as_list", self.cli_list, "AutoBlind", "as_list: list AutoState items")
+                cli.commands.add_command("as_detail", self.cli_detail, "AutoBlind", "as_detail [asItem]: show details on AutoState item [asItem]")
                 self.logger.info("AutoBlind: Two additional CLI commands registered")
         except AttributeError as err:
             self.logger.error("AutoBlind: Additional CLI commands not registered because error occured.")
