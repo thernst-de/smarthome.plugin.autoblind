@@ -18,7 +18,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this plugin. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
-import time
 import datetime
 from . import AutoBlindTools
 from .AutoBlindLogger import AbLogger
@@ -74,8 +73,6 @@ class AbItem:
         self.__laststate_internal_name = "" if self.__laststate_item_name is None else self.__laststate_item_name()
 
         self.__states = []
-        self.__delay = 0
-        self.__can_not_leave_current_state_since = 0
         self.__repeat_actions = AutoBlindValue.AbValue(self, "Repeat actions if state is not changed", False, "bool")
         self.__repeat_actions.set_from_attr(self.__item, "as_repeat_actions", True)
 
@@ -168,45 +165,24 @@ class AbItem:
         last_state = self.__laststate_get()
         if last_state is not None:
             self.__logger.info("Last state: {0} ('{1}')", last_state.id, last_state.name)
-        if self.__can_not_leave_current_state_since == 0:
-            self.__delay = 0
-        else:
-            self.__delay = time.time() - self.__can_not_leave_current_state_since
 
-        # check if current state can be left
-        if last_state is not None and not self.__update_check_can_leave(last_state):
-            self.__logger.info("Can not leave current state, staying at {0} ('{1}')", last_state.id, last_state.name)
-            can_leave_state = False
-            new_state = last_state
-            if self.__can_not_leave_current_state_since == 0:
-                self.__can_not_leave_current_state_since = time.time()
-        else:
-            can_leave_state = True
-            new_state = None
+        # find new state
+        new_state = None
+        for state in self.__states:
+            if self.__update_check_can_enter(state):
+                new_state = state
+                break
 
-        if can_leave_state:
-            # find new state
-            for state in self.__states:
-                if self.__update_check_can_enter(state):
-                    new_state = state
-                    self.__can_not_leave_current_state_since = 0
-                    break
-
-            # no new state -> leave
-            if new_state is None:
-                if last_state is None:
-                    self.__logger.info("No matching state found, no previous state available. Doing nothing.")
-                else:
-                    text = "No matching state found, staying at {0} ('{1}')"
-                    self.__logger.info(text, last_state.id, last_state.name)
-                    last_state.run_stay(self.__repeat_actions.get())
-                self.__update_in_progress = False
-                return
-        else:
-            # if current state can not be left, check if enter conditions are still valid.
-            # If yes, set "can_not_leave_current_state_since" to 0
-            if new_state.can_enter():
-                self.__can_not_leave_current_state_since = 0
+        # no new state -> stay
+        if new_state is None:
+            if last_state is None:
+                self.__logger.info("No matching state found, no previous state available. Doing nothing.")
+            else:
+                text = "No matching state found, staying at {0} ('{1}')"
+                self.__logger.info(text, last_state.id, last_state.name)
+                last_state.run_stay(self.__repeat_actions.get())
+            self.__update_in_progress = False
+            return
 
         # get data for new state
         if last_state is not None and new_state.id == last_state.id:
@@ -229,17 +205,6 @@ class AbItem:
             self.__laststate_set(new_state)
 
         self.__update_in_progress = False
-
-    # check if state can be left after setting state-specific variables
-    # state: state to check
-    def __update_check_can_leave(self, state):
-        try:
-            self.__variables["current.state_id"] = state.id
-            self.__variables["current.state_name"] = state.name
-            return state.can_leave()
-        finally:
-            self.__variables["current.state_id"] = ""
-            self.__variables["current.state_name"] = ""
 
     # check if state can be entered after setting state-specific variables
     # state: state to check
@@ -418,10 +383,6 @@ class AbItem:
         else:
             self.__logger.warning('No item for last state id given. Can not determine age!')
             return 0
-
-    # return delay of item
-    def get_delay(self):
-        return self.__delay
 
     # return id of last state
     def get_laststate_id(self):

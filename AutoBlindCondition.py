@@ -90,8 +90,6 @@ class AbCondition(AutoBlindTools.AbItemChild):
                 self.__eval = AutoBlindCurrent.values.get_sun_altitude
             elif self.__name == "age":
                 self.__eval = self._abitem.get_age
-            elif self.__name == "delay":
-                self.__eval = self._abitem.get_delay
             elif self.__name == "time":
                 self.__eval = AutoBlindCurrent.values.get_time
             elif self.__name == "random":

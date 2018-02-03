@@ -50,8 +50,7 @@ class AbState(AutoBlindTools.AbItemChild):
         self.__id = self.__item.id()
         self.__name = ""
         self.__text = AutoBlindValue.AbValue(self._abitem, "State Name", False, "str")
-        self.__enterConditionSets = AutoBlindConditionSets.AbConditionSets(self._abitem)
-        self.__leaveConditionSets = AutoBlindConditionSets.AbConditionSets(self._abitem)
+        self.__conditions = AutoBlindConditionSets.AbConditionSets(self._abitem)
         self.__actions_enter_or_stay = AutoBlindActions.AbActions(self._abitem)
         self.__actions_enter = AutoBlindActions.AbActions(self._abitem)
         self.__actions_stay = AutoBlindActions.AbActions(self._abitem)
@@ -68,25 +67,12 @@ class AbState(AutoBlindTools.AbItemChild):
     def can_enter(self):
         self._log_info("Check if state '{0}' ('{1}') can be entered:", self.id, self.name)
         self._log_increase_indent()
-        result = self.__enterConditionSets.one_conditionset_matching()
+        result = self.__conditions.one_conditionset_matching()
         self._log_decrease_indent()
         if result:
             self._log_info("State can be entered")
         else:
             self._log_info("State can not be entered")
-        return result
-
-    # Check conditions if state can be left
-    # returns: True = At least one leave condition set is fulfulled, False = No leave condition set is fulfilled
-    def can_leave(self):
-        self._log_info("Check if state '{0}' ('{1}') can be left:", self.id, self.name)
-        self._log_increase_indent()
-        result = self.__leaveConditionSets.one_conditionset_matching()
-        self._log_decrease_indent()
-        if result:
-            self._log_info("State can be left")
-        else:
-            self._log_info("State can not be left")
         return result
 
     # log state data
@@ -95,15 +81,10 @@ class AbState(AutoBlindTools.AbItemChild):
         self._log_increase_indent()
         self._log_info("Name: {0}", self.name)
         self.__text.write_to_logger()
-        if self.__enterConditionSets.count() > 0:
+        if self.__conditions.count() > 0:
             self._log_info("Condition sets to enter state:")
             self._log_increase_indent()
-            self.__enterConditionSets.write_to_logger()
-            self._log_decrease_indent()
-        if self.__leaveConditionSets.count() > 0:
-            self._log_info("Condition sets to leave state:")
-            self._log_increase_indent()
-            self.__leaveConditionSets.write_to_logger()
+            self.__conditions.write_to_logger()
             self._log_decrease_indent()
         if self.__actions_enter.count() > 0:
             self._log_info("Actions to perform on enter:")
@@ -185,10 +166,7 @@ class AbState(AutoBlindTools.AbItemChild):
                     for attribute in child_item.conf:
                         self.__actions_leave.update(attribute, child_item.conf[attribute])
                 elif child_name == "enter" or child_name.startswith("enter_"):
-                    self.__enterConditionSets.update(child_name, child_item, parent_item)
-                elif child_name == "leave" or child_name.startswith("leave_"):
-                    self._log_warning("AUTOBLIND WARNING: Item {0}: Usage of leave-conditions is obsolete. Functionality will be removed in the future!", child_item.id())
-                    self.__leaveConditionSets.update(child_name, child_item, parent_item)
+                    self.__conditions.update(child_name, child_item, parent_item)
             except ValueError as ex:
                 raise ValueError("Condition {0}: {1}".format(child_name, str(ex)))
 
@@ -207,8 +185,7 @@ class AbState(AutoBlindTools.AbItemChild):
 
         # Complete condition sets and actions at the end
         if recursion_depth == 0:
-            self.__enterConditionSets.complete(item_state)
-            self.__leaveConditionSets.complete(item_state)
+            self.__conditions.complete(item_state)
             self.__actions_enter.complete(item_state)
             self.__actions_stay.complete(item_state)
             self.__actions_enter_or_stay.complete(item_state)
