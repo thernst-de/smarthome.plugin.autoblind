@@ -70,30 +70,6 @@ class AbEval(AutoBlindTools.AbItemChild):
         except Exception as ex:
             self._log_exception(ex)
 
-    # Return an item based on the main autoblind item
-    # subitem_id: Id of subitem to return
-    # parent_level: number of levels above main autoblind item to start
-    def get_item(self, subitem_id, parent_level=0):
-        self._log_debug("Executing method 'get_item({0}, {1})'", subitem_id, parent_level)
-        # Warning: Obsolete!
-        text = "eval-Method 'get_item' is obsolete and may be removed in the future. Use 'get_relative_itemid' instead."
-        self._log_warning(text)
-        try:
-            levels = self._abitem.id.split(".")
-            use_num_levels = len(levels) - parent_level
-            if use_num_levels < 0:
-                text = "parent_level {2} ist zu groß. Das Item '{0}' hat nur {1} Elemente"
-                raise ValueError(text.format(self._abitem.id, len(levels), parent_level))
-            result = ""
-            for level in levels[0:use_num_levels]:
-                result += level + "."
-            result += subitem_id
-            if self._abitem.sh.return_item(result) is None:
-                raise ValueError("Determined item '{0}' does not exist.".format(result))
-            return result
-        except Exception as ex:
-            self._log_exception(ex)
-
     # Return the absolute id of an item related to the AutoBlind Object Item
     # item_id: Relative id of item whose absolute id should be returned
     #
