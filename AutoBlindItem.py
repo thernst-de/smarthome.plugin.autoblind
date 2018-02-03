@@ -63,25 +63,7 @@ class AbItem:
         self.__startup_delay.set_from_attr(self.__item, "as_startup_delay", AutoBlindDefaults.startup_delay)
         self.__startup_delay_over = False
 
-        # Init lock settings
-        self.__item_lock = self.return_item_by_attribute("as_lock_item")
-        if self.__item_lock is not None:
-            self.__logger.warning("AUTOBLIND WARNING: Item {0}: Usage of 'as_log_item' is obsolete. Functionality will be removed in the future!", self.__id)
-
         # Init suspend settings
-        self.__suspend_item = self.return_item_by_attribute("as_suspend_item")
-        if self.__suspend_item is not None:
-            self.__logger.warning("AUTOBLIND WARNING: Item {0}: Usage of 'as_suspend_item' is obsolete. Functionality will be removed in the future!", self.__id)
-        self.__suspend_until = None
-        self.__suspend_watch_items = []
-        if "as_suspend_watch" in self.__item.conf:
-            self.__logger.warning("AUTOBLIND WARNING: Item {0}: Usage of 'as_suspend_watch' is obsolete. Functionality will be removed in the future!", self.__id)
-            suspend_on = self.__item.conf["as_suspend_watch"]
-            if isinstance(suspend_on, str):
-                suspend_on = [suspend_on]
-            for entry in suspend_on:
-                for item in self.__sh.match_items(entry):
-                    self.__suspend_watch_items.append(item)
         self.__suspend_time = AutoBlindValue.AbValue(self, "Suspension time on manual changes", False, "num")
         self.__suspend_time.set_from_attr(self.__item, "as_suspend_time", AutoBlindDefaults.suspend_time)
 
@@ -176,23 +158,6 @@ class AbItem:
         self.__update_original_item = orig_item.id()
         self.__update_original_caller = orig_caller
         self.__update_original_source = orig_source
-
-        # check if locked
-        if self.__lock_is_active():
-            self.__logger.info("AutoBlind is locked")
-            self.__laststate_internal_name = AutoBlindDefaults.laststate_name_manually_locked
-            self.__update_in_progress = False
-            return
-
-        # check if suspended
-        if self.__suspend_is_active():
-            # noinspection PyNoneFunctionAssignment
-            active_timer_time = self.__suspend_get_time()
-            text = "AutoBlind has been suspended after manual changes. Reactivating at {0}"
-            self.__logger.info(text, active_timer_time)
-            self.__laststate_internal_name = active_timer_time.strftime(AutoBlindDefaults.laststate_name_suspended)
-            self.__update_in_progress = False
-            return
 
         # Update current values
         AutoBlindCurrent.update()
@@ -311,109 +276,9 @@ class AbItem:
 
     # endregion
 
-    # region Lock ******************************************************************************************************
-    # get the value of lock item
-    # returns: value of lock item
-    def __lock_is_active(self):
-        if self.__item_lock is not None:
-            # noinspection PyCallingNonCallable
-            return self.__item_lock()
-        else:
-            return False
-
-    # callback function that is called when the lock item is being changed
-    # noinspection PyUnusedLocal
-    def __lock_callback(self, item, caller=None, source=None, dest=None):
-        # we're just changing "lock" ourselves ... ignore
-        if caller == "AutoBlind":
-            return
-
-        self.__logger.update_logfile()
-        self.__logger.header("Item 'lock' changed")
-        self.__logger.debug("'{0}' set to '{1}' by '{2}'", item.id(), item(), caller)
-
-        # Any manual change of lock removes suspension
-        if self.__suspend_is_active():
-            self.__suspend_remove()
-
-        # trigger delayed update
-        self.__item.timer(1, 1)
-
-    # endregion
-
-    # region Suspend ***************************************************************************************************
-    # suspend automatic mode for a given time
-    def __suspend_set(self):
-        suspend_time = self.__suspend_time.get()
-        self.__logger.debug("Suspending automatic mode for {0} seconds.", suspend_time)
-        self.__suspend_until = self.__sh.now() + datetime.timedelta(seconds=suspend_time)
-        name = self.id + "SuspensionRemove-Timer"
-        self.__sh.scheduler.add(name, self.__suspend_reactivate_callback, next=self.__suspend_until)
-        self.__variables["item.suspend_time"] = suspend_time
-
-        if self.__suspend_item is not None:
-            self.__suspend_item(True, caller="AutoBlind")
-
-        # trigger delayed update
-        self.__item.timer(1, 1)
-
-    # remove suspension
-    def __suspend_remove(self):
-        self.__logger.debug("Removing suspension of automatic mode.")
-        self.__suspend_until = None
-        self.__sh.scheduler.remove(self.id + "SuspensionRemove-Timer")
-
-        if self.__suspend_item is not None:
-            self.__suspend_item(False, caller="AutoBlind")
-
-        # trigger delayed update
-        self.__item.timer(1, 1)
-
-    # check if suspension is active
-    # returns: True = automatic mode is suspended, False = automatic mode is not suspended
-    def __suspend_is_active(self):
-        return self.__suspend_until is not None
-
-    # return time when timer on item "suspended" will be called. None if no timer is set
-    # returns: time that has been set for the timer on item "suspended"
-    def __suspend_get_time(self):
-        return self.__suspend_until
-
-    # callback function that is called when one of the items given at "watch_manual" is being changed
-    # noinspection PyUnusedLocal
-    def __suspend_watch_callback(self, item, caller=None, source=None, dest=None):
-        self.__logger.update_logfile()
-        self.__logger.header("Watch suspend triggered")
-        text = "Manual operation: Change of item '{0}' by '{1}' (source='{2}', dest='{3}')"
-        self.__logger.debug(text, item.id(), caller, source, dest)
-        self.__logger.increase_indent()
-        if caller == AutoBlindDefaults.plugin_identification:
-            self.__logger.debug("Ignoring changes from {0}", AutoBlindDefaults.plugin_identification)
-        elif self.__lock_is_active():
-            self.__logger.debug("Automatic mode already locked")
-        else:
-            self.__suspend_set()
-        self.__logger.decrease_indent()
-
-    # callback function that is called when the suspend time is over
-    def __suspend_reactivate_callback(self):
-        self.__logger.update_logfile()
-        self.__logger.header("Suspend time over")
-        self.__suspend_remove()
-
-    # endregion
-
     # region Helper methods ********************************************************************************************
     # add all required triggers
     def __add_triggers(self):
-        # add lock trigger
-        if self.__item_lock is not None:
-            self.__item_lock.add_method_trigger(self.__lock_callback)
-
-        # add triggers for suspend watch items
-        for item in self.__suspend_watch_items:
-            item.add_method_trigger(self.__suspend_watch_callback)
-
         # add item trigger
         self.__item.add_method_trigger(self.update_state)
 
@@ -520,21 +385,6 @@ class AbItem:
             self.__logger.info("Item 'Laststate Id': {0}", self.__laststate_item_id.id())
         if self.__laststate_item_name is not None:
             self.__logger.info("Item 'Laststate Name': {0}", self.__laststate_item_name.id())
-
-        # log lock settings
-        if self.__item_lock is not None:
-            self.__logger.info("Item 'Lock': {0}", self.__item_lock.id())
-
-        # log suspend settings
-        if self.__suspend_item is not None:
-            self.__logger.info("Item 'Suspend': {0}", self.__suspend_item.id())
-        if len(self.__suspend_watch_items) > 0:
-            self.__suspend_time.write_to_logger()
-            self.__logger.info("Items causing suspension when changed:")
-            self.__logger.increase_indent()
-            for watch_manual_item in self.__suspend_watch_items:
-                self.__logger.info("{0} ('{1}')", watch_manual_item.id(), str(watch_manual_item))
-            self.__logger.decrease_indent()
 
         # log states
         for state in self.__states:

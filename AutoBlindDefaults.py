@@ -25,10 +25,6 @@ startup_delay = 10
 
 suspend_time = 3600
 
-laststate_name_manually_locked = "Manuell gesperrt"
-
-laststate_name_suspended = "Ausgesetzt bis %X"
-
 plugin_identification = "AutoBlind Plugin"
 
 

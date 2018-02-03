@@ -48,8 +48,6 @@ class AutoBlind(SmartPlugin):
 
         AutoBlindDefaults.startup_delay = self.get_parameter_value("startup_delay_default")
         AutoBlindDefaults.suspend_time = self.get_parameter_value("suspend_time_default")
-        AutoBlindDefaults.laststate_name_manually_locked = self.get_parameter_value("laststate_name_manually_locked")
-        AutoBlindDefaults.laststate_name_suspended = self.get_parameter_value("laststate_name_suspended")
         AutoBlindDefaults.write_to_log()
 
         AutoBlindCurrent.init(self.get_sh())
