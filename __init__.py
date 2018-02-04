@@ -71,7 +71,7 @@ class AutoBlind(SmartPlugin):
             cron = ['init', '30 0 * *']
             self.scheduler_add('AutoBlind: Remove old logfiles', AbLogger.remove_old_logfiles, cron=cron, offset=0)
 
-            self.get_sh().autoblind_plugin_functions = AutoBlindFunctions.AbFunctions(self.get_sh())
+        self.get_sh().autoblind_plugin_functions = AutoBlindFunctions.AbFunctions(self.get_sh())
 
     # Parse an item
     # noinspection PyMethodMayBeStatic
